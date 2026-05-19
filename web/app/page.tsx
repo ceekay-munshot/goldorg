@@ -1,22 +1,31 @@
 "use client";
 
-import { GlassCard, CardHeader } from "@/components/primitives/GlassCard";
+import { Hero } from "@/components/snapshot/Hero";
+import { BuyersSellers } from "@/components/snapshot/BuyersSellers";
+import { RegionalDiverging } from "@/components/snapshot/RegionalDiverging";
+import { HoldingsFlowChart } from "@/components/snapshot/HoldingsFlowChart";
+import { CountryHeatmap } from "@/components/snapshot/CountryHeatmap";
+import { FundLeaderboard } from "@/components/snapshot/FundLeaderboard";
+import { MarketShareTreemap } from "@/components/snapshot/MarketShareTreemap";
 
 export default function SnapshotPage() {
   return (
     <div className="flex flex-col gap-6">
-      <GlassCard variant="hero" className="p-10">
-        <CardHeader
-          eyebrow="Tab 1 · Snapshot"
-          title="Global gold ETF flow situation"
-          subtitle="The hero page renders here. Build coming in Phase 2."
-        />
-        <p className="text-fg-secondary text-sm">
-          Foundation complete: theme, fonts, filters, data loader and primitives
-          are wired. Next phase will populate this with the hero summary, buyers
-          and sellers, and the core visual intelligence section.
-        </p>
-      </GlassCard>
+      <Hero />
+      <BuyersSellers />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <RegionalDiverging />
+        <HoldingsFlowChart />
+      </div>
+      <CountryHeatmap />
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <div className="xl:col-span-3">
+          <FundLeaderboard />
+        </div>
+        <div className="xl:col-span-2">
+          <MarketShareTreemap />
+        </div>
+      </div>
     </div>
   );
 }

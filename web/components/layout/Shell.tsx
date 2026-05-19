@@ -5,6 +5,7 @@ import { TabNav } from "./TabNav";
 import { FilterBar } from "./FilterBar";
 import { useData } from "@/lib/data-provider";
 import { LoadingScreen } from "@/components/primitives/LoadingScreen";
+import { FundOverlay } from "@/components/drilldown/FundOverlay";
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const { data, loading, error } = useData();
@@ -24,6 +25,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
         {data && children}
       </main>
+      <FundOverlay />
     </div>
   );
 }

@@ -9,18 +9,16 @@ import { fmtUsd } from "@/lib/format";
 import { regionAccent } from "@/lib/regions";
 
 /**
- * A loud, friendly scope banner that appears whenever the user has
- * narrowed the dashboard via region / country / fund / search.
- * Makes it crystal-clear what data is currently being shown.
- * Only rendered inside the data-ready gate of Shell.
+ * Loud, friendly scope banner that appears whenever the user has
+ * narrowed the dashboard via region(s) / country(ies) / fund / search.
  */
 export function ScopeBanner() {
-  const region = useFilters((s) => s.region);
-  const country = useFilters((s) => s.country);
+  const regions = useFilters((s) => s.regions);
+  const countries = useFilters((s) => s.countries);
   const fund = useFilters((s) => s.fund);
   const search = useFilters((s) => s.search);
-  const setRegion = useFilters((s) => s.setRegion);
-  const setCountry = useFilters((s) => s.setCountry);
+  const toggleRegion = useFilters((s) => s.toggleRegion);
+  const toggleCountry = useFilters((s) => s.toggleCountry);
   const setFund = useFilters((s) => s.setFund);
   const setSearch = useFilters((s) => s.setSearch);
   const resetCrossFilters = useFilters((s) => s.resetCrossFilters);
@@ -30,13 +28,14 @@ export function ScopeBanner() {
   const filtered = useFilteredFunds();
   const totals = useTotals();
 
-  const active = !!(region || country || fund || search);
+  const active = regions.length + countries.length > 0 || !!fund || !!search;
   if (!active) return null;
 
   const fundName = fund
     ? data.funds.funds.find((f) => f.ticker === fund)?.name ?? fund
     : null;
-  const tone = region ? regionAccent(region) : null;
+  // Banner tint: derive from the first region selected (or none → gold)
+  const primaryTone = regions.length === 1 ? regionAccent(regions[0]) : null;
   const periodLabel = data.metadata.periods[period]?.label ?? period;
 
   return (
@@ -48,34 +47,44 @@ export function ScopeBanner() {
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className="relative overflow-hidden rounded-2xl border shadow-[var(--shadow-card)]"
         style={{
-          background: tone
-            ? `linear-gradient(135deg, ${tone.hex}18 0%, ${tone.hex}05 70%, transparent 100%)`
+          background: primaryTone
+            ? `linear-gradient(135deg, ${primaryTone.hex}18 0%, ${primaryTone.hex}05 70%, transparent 100%)`
             : "linear-gradient(135deg, var(--gold-50) 0%, transparent 70%)",
-          borderColor: tone ? `${tone.hex}55` : "var(--border-gold)",
+          borderColor: primaryTone ? `${primaryTone.hex}55` : "var(--border-gold)",
         }}
       >
         <span
           className="absolute left-0 top-0 bottom-0 w-1"
-          style={{ background: tone?.hex ?? "var(--gold-500)" }}
+          style={{ background: primaryTone?.hex ?? "var(--gold-500)" }}
         />
         <div className="pl-5 pr-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="text-[10px] uppercase tracking-[0.24em] text-fg-muted font-semibold">
               Filtering
             </span>
-            {region && (
+            {regions.map((r) => (
               <ChipChip
-                label={region}
+                key={`r-${r}`}
+                label={r}
                 prefix="Region"
-                tone={tone?.hex}
-                onClear={() => setRegion(null)}
+                tone={regionAccent(r).hex}
+                onClear={() => toggleRegion(r)}
               />
-            )}
-            {country && (
-              <ChipChip label={country} prefix="Country" onClear={() => setCountry(null)} />
-            )}
+            ))}
+            {countries.map((c) => (
+              <ChipChip
+                key={`c-${c}`}
+                label={c}
+                prefix="Country"
+                onClear={() => toggleCountry(c)}
+              />
+            ))}
             {fund && (
-              <ChipChip label={fundName ?? fund} prefix="Fund" onClear={() => setFund(null)} />
+              <ChipChip
+                label={fundName ?? fund}
+                prefix="Fund"
+                onClear={() => setFund(null)}
+              />
             )}
             {search && (
               <ChipChip label={`"${search}"`} prefix="Search" onClear={() => setSearch("")} />

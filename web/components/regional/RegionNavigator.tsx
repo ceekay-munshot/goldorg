@@ -12,8 +12,8 @@ import { cn } from "@/lib/cn";
 export function RegionNavigator() {
   const { regions, timeseries } = useDataset();
   const period = useFilters((s) => s.period);
-  const selectedRegion = useFilters((s) => s.region);
-  const setRegion = useFilters((s) => s.setRegion);
+  const selectedRegions = useFilters((s) => s.regions);
+  const toggleRegion = useFilters((s) => s.toggleRegion);
   const openRegionFundsList = useFilters((s) => s.openRegionFundsList);
 
   const totalAum = useMemo(
@@ -48,7 +48,7 @@ export function RegionNavigator() {
         const row = regions.regions.find((r) => r.region === name);
         if (!row) return null;
         const tone = regionAccent(name);
-        const active = selectedRegion === name;
+        const active = selectedRegions.includes(name);
         const pm = row.periods[period];
         const flowSign = signOf(pm.flows_usd_mn);
         const share = totalAum ? row.current_aum_usd_mn / totalAum : 0;
@@ -59,7 +59,7 @@ export function RegionNavigator() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 + i * 0.05, duration: 0.35 }}
             whileHover={{ y: -3 }}
-            onClick={() => setRegion(active ? null : name)}
+            onClick={() => toggleRegion(name)}
             className={cn(
               "group relative overflow-hidden rounded-2xl border bg-bg-surface p-5 text-left transition-all",
               "shadow-[var(--shadow-card)]",
@@ -125,7 +125,7 @@ export function RegionNavigator() {
 
             <div className="mt-3 flex items-center justify-between gap-2">
               <span className="text-[9.5px] uppercase tracking-[0.22em] text-fg-faint">
-                {active ? "Region is active — click card to clear" : "Click card to filter region"}
+                {active ? "Selected — click to remove" : "Click to add region · multi-select"}
               </span>
               <span
                 role="button"

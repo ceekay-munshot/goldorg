@@ -20,8 +20,8 @@ import {
 export function Hero() {
   const { metadata, timeseries } = useDataset();
   const period = useFilters((s) => s.period);
-  const region = useFilters((s) => s.region);
-  const country = useFilters((s) => s.country);
+  const regions = useFilters((s) => s.regions);
+  const countries = useFilters((s) => s.countries);
   const fund = useFilters((s) => s.fund);
   const t = useTotals();
 
@@ -29,11 +29,15 @@ export function Hero() {
   const direction = signOf(t.flows_usd_mn);
   const scopeLabel = fund
     ? "Fund view"
-    : country
-      ? country
-      : region
-        ? region
-        : "Global";
+    : countries.length === 1
+      ? countries[0]
+      : countries.length > 1
+        ? `${countries.length} countries`
+        : regions.length === 1
+          ? regions[0]
+          : regions.length > 1
+            ? `${regions.length} regions`
+            : "Global";
 
   // Sparkline data — last 24 monthly points of holdings (filtered scope is approximate; using global series)
   const spark = useMemo(() => {

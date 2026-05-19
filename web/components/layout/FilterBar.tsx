@@ -10,6 +10,7 @@ import { MetricToggle } from "@/components/primitives/MetricToggle";
 import { ViewToggle } from "@/components/primitives/ViewToggle";
 import { SearchInput } from "@/components/primitives/SearchInput";
 import { Select } from "@/components/primitives/Select";
+import { MultiSelect } from "@/components/primitives/MultiSelect";
 import { regionAccent } from "@/lib/regions";
 import { fmtTonnes, fmtUsd, signOf } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -18,13 +19,13 @@ export function FilterBar() {
   const { data } = useData();
   const {
     period,
-    region,
-    country,
+    regions,
+    countries,
     fund,
     active,
     search,
-    setRegion,
-    setCountry,
+    setRegions,
+    setCountries,
     setFund,
     setActive,
     setSearch,
@@ -54,9 +55,9 @@ export function FilterBar() {
     if (!data) return [];
     return data.countries.countrys
       .filter((c) => {
-        if (!region) return true;
+        if (!regions.length) return true;
         return data.funds.funds.some(
-          (f) => f.country === c.country && f.region === region,
+          (f) => f.country === c.country && f.region && regions.includes(f.region),
         );
       })
       .map((c) => {
@@ -75,13 +76,13 @@ export function FilterBar() {
           },
         };
       });
-  }, [data, region, period]);
+  }, [data, regions, period]);
 
   const fundOptions = useMemo(() => {
     if (!data) return [];
     return data.funds.funds
-      .filter((f) => (region ? f.region === region : true))
-      .filter((f) => (country ? f.country === country : true))
+      .filter((f) => (regions.length ? f.region && regions.includes(f.region) : true))
+      .filter((f) => (countries.length ? f.country && countries.includes(f.country) : true))
       .filter((f) =>
         active === "active" ? f.active : active === "inactive" ? !f.active : true,
       )
@@ -98,10 +99,9 @@ export function FilterBar() {
           },
         };
       });
-  }, [data, region, country, active, period]);
+  }, [data, regions, countries, active, period]);
 
-  const hasCrossFilter = !!(region || country || fund || search);
-  const regionTone = region ? regionAccent(region) : null;
+  const hasCrossFilter = regions.length > 0 || countries.length > 0 || !!fund || !!search;
 
   return (
     <div className="sticky top-[7.25rem] z-20 bg-bg-base/85 backdrop-blur-xl border-b border-border-subtle">
@@ -114,20 +114,20 @@ export function FilterBar() {
         <Divider />
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select
+          <MultiSelect
             placeholder="Region"
-            value={region}
+            values={regions}
             options={regionOptions}
-            onChange={setRegion}
-            width="9rem"
-            accent={regionTone?.dot}
-          />
-          <Select
-            placeholder="Country"
-            value={country}
-            options={countryOptions}
-            onChange={setCountry}
+            onChange={setRegions}
             width="10rem"
+          />
+          <MultiSelect
+            placeholder="Country"
+            values={countries}
+            options={countryOptions}
+            onChange={setCountries}
+            width="11rem"
+            searchable
           />
           <Select
             placeholder="Fund"

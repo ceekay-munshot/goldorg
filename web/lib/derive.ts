@@ -9,15 +9,15 @@ import { useDataset } from "./data-provider";
 import { useFilters } from "./filters";
 import type { Fund, MetricKey, PeriodKey, RegionAggregate } from "./types";
 
-/** Filter the full fund universe by region/country/fund/active/search. */
+/** Filter the full fund universe by region(s)/country(ies)/fund/active/search. */
 export function useFilteredFunds(): Fund[] {
   const { funds } = useDataset();
-  const { region, country, fund, active, search } = useFilters();
+  const { regions, countries, fund, active, search } = useFilters();
   return useMemo(() => {
     const q = search.trim().toLowerCase();
     return funds.funds.filter((f) => {
-      if (region && f.region !== region) return false;
-      if (country && f.country !== country) return false;
+      if (regions.length && (!f.region || !regions.includes(f.region))) return false;
+      if (countries.length && (!f.country || !countries.includes(f.country))) return false;
       if (fund && f.ticker !== fund) return false;
       if (active === "active" && !f.active) return false;
       if (active === "inactive" && f.active) return false;
@@ -27,7 +27,7 @@ export function useFilteredFunds(): Fund[] {
       }
       return true;
     });
-  }, [funds, region, country, fund, active, search]);
+  }, [funds, regions, countries, fund, active, search]);
 }
 
 export interface Totals {
@@ -83,13 +83,13 @@ export interface RegionRow {
 export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): RegionRow[] {
   const period = useFilters((s) => s.period);
   const { funds } = useDataset();
-  const { region, country, active, search } = useFilters();
+  const { regions, countries, active, search } = useFilters();
   return useMemo(() => {
     const q = search.trim().toLowerCase();
     const buckets = new Map<string, RegionRow>();
     for (const f of funds.funds) {
-      if (!opts?.ignoreRegionFilter && region && f.region !== region) continue;
-      if (country && f.country !== country) continue;
+      if (!opts?.ignoreRegionFilter && regions.length && (!f.region || !regions.includes(f.region))) continue;
+      if (countries.length && (!f.country || !countries.includes(f.country))) continue;
       if (active === "active" && !f.active) continue;
       if (active === "inactive" && f.active) continue;
       if (q) {
@@ -119,7 +119,7 @@ export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): Regio
     return Array.from(buckets.values()).sort(
       (a, b) => b.aum_usd_mn - a.aum_usd_mn,
     );
-  }, [funds, opts?.ignoreRegionFilter, region, country, active, search, period]);
+  }, [funds, opts?.ignoreRegionFilter, regions, countries, active, search, period]);
 }
 
 /** Group filtered funds by country. */
@@ -130,13 +130,13 @@ export interface CountryRow extends RegionRow {
 export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): CountryRow[] {
   const period = useFilters((s) => s.period);
   const { funds } = useDataset();
-  const { region, country, active, search } = useFilters();
+  const { regions, countries, active, search } = useFilters();
   return useMemo(() => {
     const q = search.trim().toLowerCase();
     const buckets = new Map<string, CountryRow>();
     for (const f of funds.funds) {
-      if (region && f.region !== region) continue;
-      if (!opts?.ignoreCountryFilter && country && f.country !== country) continue;
+      if (regions.length && (!f.region || !regions.includes(f.region))) continue;
+      if (!opts?.ignoreCountryFilter && countries.length && (!f.country || !countries.includes(f.country))) continue;
       if (active === "active" && !f.active) continue;
       if (active === "inactive" && f.active) continue;
       if (q) {
@@ -167,7 +167,7 @@ export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): Cou
     return Array.from(buckets.values()).sort(
       (a, b) => b.aum_usd_mn - a.aum_usd_mn,
     );
-  }, [funds, opts?.ignoreCountryFilter, region, country, active, search, period]);
+  }, [funds, opts?.ignoreCountryFilter, regions, countries, active, search, period]);
 }
 
 /** Rank funds by a metric for the current period (top N inflow / outflow). */

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { X, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useMemo } from "react";
 import { useData } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
@@ -118,43 +118,6 @@ export function FilterBar() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {hasCrossFilter && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-border-faint bg-bg-tint/40"
-          >
-            <div className="mx-auto max-w-[1600px] px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] uppercase tracking-[0.22em] text-fg-muted">
-                Active filters
-              </span>
-              {region && (
-                <Pill
-                  label={region}
-                  prefix="Region"
-                  tone={regionAccent(region).hex}
-                  onClear={() => setRegion(null)}
-                />
-              )}
-              {country && (
-                <Pill label={country} prefix="Country" onClear={() => setCountry(null)} />
-              )}
-              {fund && (
-                <Pill
-                  label={data?.funds.funds.find((f) => f.ticker === fund)?.name ?? fund}
-                  prefix="Fund"
-                  onClear={() => setFund(null)}
-                />
-              )}
-              {search && (
-                <Pill label={`"${search}"`} prefix="Search" onClear={() => setSearch("")} />
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -163,46 +126,6 @@ function Divider() {
   return <div className="hidden lg:block w-px h-7 bg-border-subtle/80" />;
 }
 
-function Pill({
-  label,
-  prefix,
-  tone,
-  onClear,
-}: {
-  label: string;
-  prefix: string;
-  tone?: string;
-  onClear: () => void;
-}) {
-  return (
-    <motion.span
-      layout
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.92 }}
-      className="inline-flex items-center gap-1.5 h-7 pl-2 pr-1 rounded-full border bg-bg-surface shadow-[var(--shadow-soft)]"
-      style={{ borderColor: tone ? `${tone}55` : undefined }}
-    >
-      {tone && (
-        <span
-          className="inline-block w-1.5 h-1.5 rounded-full"
-          style={{ background: tone }}
-        />
-      )}
-      <span className="text-[9px] uppercase tracking-[0.22em] text-fg-muted">
-        {prefix}
-      </span>
-      <span className="text-[11px] text-fg-primary">{label}</span>
-      <button
-        onClick={onClear}
-        className="grid place-items-center w-5 h-5 rounded-full hover:bg-bg-tint text-fg-muted hover:text-fg-primary transition-colors"
-        aria-label="Clear"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </motion.span>
-  );
-}
 
 function ActiveToggle({
   value,

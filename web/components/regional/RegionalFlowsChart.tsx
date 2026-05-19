@@ -130,24 +130,21 @@ export function RegionalFlowsChart() {
                 cursor={{ fill: "var(--bg-tint)", opacity: 0.4 }}
                 content={(props) => <MultiTooltip {...props} usingDemand={usingDemand} />}
               />
-              {REGIONS_ORDERED.map((r) => {
+              {REGIONS_ORDERED.filter(
+                (r) => !selectedRegion || selectedRegion === r,
+              ).map((r) => {
                 const tint = regionAccent(r);
-                const dim = selectedRegion && selectedRegion !== r;
                 return (
                   <Bar
                     key={r}
                     dataKey={r}
                     radius={[2, 2, 0, 0]}
-                    maxBarSize={14}
+                    maxBarSize={selectedRegion ? 22 : 14}
                     isAnimationActive
                     animationDuration={900}
                   >
                     {data.map((d) => (
-                      <Cell
-                        key={d.date}
-                        fill={tint.hex}
-                        fillOpacity={dim ? 0.18 : 0.9}
-                      />
+                      <Cell key={d.date} fill={tint.hex} fillOpacity={0.9} />
                     ))}
                   </Bar>
                 );
@@ -178,17 +175,17 @@ export function RegionalFlowsChart() {
                 cursor={{ stroke: "var(--gold-500)", strokeWidth: 1, strokeDasharray: "3 3" }}
                 content={(props) => <MultiTooltip {...props} usingDemand={usingDemand} />}
               />
-              {REGIONS_ORDERED.map((r) => {
+              {REGIONS_ORDERED.filter(
+                (r) => !selectedRegion || selectedRegion === r,
+              ).map((r) => {
                 const tint = regionAccent(r);
-                const dim = selectedRegion && selectedRegion !== r;
                 return (
                   <Line
                     key={r}
                     type="monotone"
                     dataKey={r}
                     stroke={tint.hex}
-                    strokeWidth={dim ? 1 : 2}
-                    strokeOpacity={dim ? 0.25 : 1}
+                    strokeWidth={selectedRegion ? 2.5 : 2}
                     dot={false}
                     isAnimationActive
                     animationDuration={1000}

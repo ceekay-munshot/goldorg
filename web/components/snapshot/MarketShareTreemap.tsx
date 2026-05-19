@@ -116,35 +116,49 @@ interface CellProps {
   y?: number;
   width?: number;
   height?: number;
-  payload?: Node;
   name?: string;
-  index?: number;
-  root?: { children: unknown[] };
+  ticker?: string;
+  region?: string;
+  size?: number;
+  share?: number;
+  fill?: string;
+  payload?: Node;
   onClick?: (n: Node) => void;
 }
 
 function TreemapCell(props: CellProps) {
-  const { x = 0, y = 0, width = 0, height = 0, payload, onClick } = props;
-  if (!payload) return null;
+  const { x = 0, y = 0, width = 0, height = 0, onClick } = props;
+  // In recharts v3 the node data is spread on props; older versions used .payload
+  const data: Node | undefined =
+    props.payload ??
+    (props.name
+      ? {
+          name: props.name,
+          ticker: props.ticker ?? "",
+          region: props.region ?? "Other",
+          size: props.size ?? 0,
+          share: props.share ?? 0,
+          fill: props.fill ?? "var(--neu)",
+        }
+      : undefined);
+  if (!data || width <= 0 || height <= 0) return null;
 
-  // Recharts passes the node data via index but our typing is loose
-  const node = payload as Node;
   const isLarge = width > 110 && height > 70;
   const isMedium = !isLarge && width > 70 && height > 44;
   const labelText = isLarge
-    ? node.name
+    ? data.name
     : isMedium
-      ? node.name.split(" ").slice(0, 2).join(" ")
+      ? data.name.split(" ").slice(0, 2).join(" ")
       : "";
 
   return (
-    <g onClick={() => onClick?.(node)} style={{ cursor: "pointer" }}>
+    <g onClick={() => onClick?.(data)} style={{ cursor: "pointer" }}>
       <rect
         x={x}
         y={y}
         width={width}
         height={height}
-        fill={node.fill}
+        fill={data.fill}
         fillOpacity={0.82}
         rx={4}
       />
@@ -167,7 +181,7 @@ function TreemapCell(props: CellProps) {
             fontSize={11}
             fontFamily="var(--font-mono)"
           >
-            {fmtUsd(node.size)}
+            {fmtUsd(data.size)}
           </text>
           <text
             x={x + 10}
@@ -176,7 +190,7 @@ function TreemapCell(props: CellProps) {
             fontSize={10}
             fontFamily="var(--font-mono)"
           >
-            {(node.share * 100).toFixed(1)}%
+            {(data.share * 100).toFixed(1)}%
           </text>
         </>
       )}

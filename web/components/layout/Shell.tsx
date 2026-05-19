@@ -3,6 +3,7 @@
 import { TopBar } from "./TopBar";
 import { TabNav } from "./TabNav";
 import { FilterBar } from "./FilterBar";
+import { ScopeBanner } from "./ScopeBanner";
 import { useData } from "@/lib/data-provider";
 import { LoadingScreen } from "@/components/primitives/LoadingScreen";
 import { FundOverlay } from "@/components/drilldown/FundOverlay";
@@ -23,7 +24,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <div className="text-fg-muted text-xs mt-2 font-mono">{error}</div>
           </div>
         )}
-        {data && children}
+        {data && (
+          <div className="flex flex-col gap-6">
+            <ScopeBanner />
+            {children}
+          </div>
+        )}
       </main>
       <FundOverlay />
     </div>

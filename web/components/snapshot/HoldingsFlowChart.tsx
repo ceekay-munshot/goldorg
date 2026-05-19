@@ -17,6 +17,7 @@ import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes, fmtUsd } from "@/lib/format";
+import { REGION_KEY, regionAccent } from "@/lib/regions";
 
 const RANGE_OPTIONS: { key: string; months: number; label: string }[] = [
   { key: "12m", months: 12, label: "12M" },
@@ -28,7 +29,7 @@ const RANGE_OPTIONS: { key: string; months: number; label: string }[] = [
 export function HoldingsFlowChart() {
   const { timeseries } = useDataset();
   const period = useFilters((s) => s.period);
-  // Derive a sensible default range from the active period; user can override
+  const region = useFilters((s) => s.region);
   const defaultRange =
     period === "Max"
       ? "all"
@@ -38,22 +39,28 @@ export function HoldingsFlowChart() {
           ? "24m"
           : "12m";
 
+  const tone = region ? regionAccent(region) : null;
+  const regionKey = region ? REGION_KEY[region] : null;
+
   const data = useMemo(() => {
     const months = RANGE_OPTIONS.find((r) => r.key === defaultRange)?.months ?? 12;
 
-    // join holdings + monthly flows by date
+    // Aggregate either by region (when filtered) or globally
     const holdingsByDate = new Map(
       timeseries.monthly_holdings_tonnes.map((p) => [
         p.date,
-        (p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0),
+        regionKey
+          ? (p[regionKey] ?? 0)
+          : (p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0),
       ]),
     );
 
-    // flow series only has data from 2025
     const flowByDate = new Map(
       timeseries.monthly_flows_usd.map((p) => [
         p.date,
-        ((p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0)) / 1e6,
+        regionKey
+          ? (p[regionKey] ?? 0) / 1e6
+          : ((p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0)) / 1e6,
       ]),
     );
 
@@ -65,17 +72,26 @@ export function HoldingsFlowChart() {
       holdings: holdingsByDate.get(d) ?? null,
       flow: flowByDate.get(d) ?? null,
     }));
-  }, [timeseries, defaultRange]);
+  }, [timeseries, defaultRange, regionKey]);
+
+  const lineColor = tone?.hex ?? "var(--gold-500)";
+  const lineSlug = tone?.slug ?? "gold";
 
   return (
     <GlassCard variant="default" className="p-6">
       <CardHeader
         eyebrow="Trend"
-        title="Holdings vs Monthly Flow"
-        subtitle="Cumulative holdings as area, monthly fund flows as bars"
+        title={
+          region ? `Holdings & flow · ${region}` : "Holdings vs Monthly Flow"
+        }
+        subtitle={
+          region
+            ? `Filtered to ${region}. Clear the region filter to see global totals.`
+            : "Cumulative holdings as area, monthly fund flows as bars"
+        }
         trailing={
           <div className="flex items-center gap-3">
-            <LegendChip color="var(--gold-500)" label="Holdings · tonnes" />
+            <LegendChip color={lineColor} label={`Holdings · tonnes`} />
             <LegendChip color="var(--c-eu)" label="Flow · USD mn" muted />
           </div>
         }
@@ -89,9 +105,9 @@ export function HoldingsFlowChart() {
             barGap={0}
           >
             <defs>
-              <linearGradient id="holdings-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--gold-500)" stopOpacity={0.32} />
-                <stop offset="100%" stopColor="var(--gold-500)" stopOpacity={0.02} />
+              <linearGradient id={`holdings-fill-${lineSlug}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={lineColor} stopOpacity={0.32} />
+                <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
@@ -132,17 +148,17 @@ export function HoldingsFlowChart() {
             />
 
             <Tooltip
-              cursor={{ stroke: "var(--gold-500)", strokeWidth: 1, strokeDasharray: "3 3" }}
-              content={(props) => <TrendTooltip {...props} />}
+              cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: "3 3" }}
+              content={(props) => <TrendTooltip {...props} lineColor={lineColor} />}
             />
 
             <Area
               yAxisId="holdings"
               type="monotone"
               dataKey="holdings"
-              stroke="var(--gold-500)"
+              stroke={lineColor}
               strokeWidth={2}
-              fill="url(#holdings-fill)"
+              fill={`url(#holdings-fill-${lineSlug})`}
               isAnimationActive
               animationDuration={1000}
             />
@@ -167,9 +183,10 @@ interface TooltipProps {
   active?: boolean;
   label?: string | number;
   payload?: readonly { value?: unknown; dataKey?: unknown }[];
+  lineColor?: string;
 }
 
-function TrendTooltip({ active, label, payload }: TooltipProps) {
+function TrendTooltip({ active, label, payload, lineColor = "var(--gold-500)" }: TooltipProps) {
   if (!active || !payload?.length) return null;
   const numAt = (key: string): number | null => {
     const v = payload.find((p) => p.dataKey === key)?.value;
@@ -181,7 +198,7 @@ function TrendTooltip({ active, label, payload }: TooltipProps) {
     <PremiumTooltip
       title={fmtDate(typeof label === "string" ? label : "", "month-year")}
       rows={[
-        { label: "Holdings", color: "var(--gold-500)", value: fmtTonnes(h), accent: true },
+        { label: "Holdings", color: lineColor, value: fmtTonnes(h), accent: true },
         {
           label: "Net flow",
           color: "var(--c-eu)",

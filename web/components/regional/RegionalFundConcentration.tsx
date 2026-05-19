@@ -105,19 +105,38 @@ interface CellProps {
   y?: number;
   width?: number;
   height?: number;
+  name?: string;
+  ticker?: string;
+  country?: string;
+  region?: string;
+  size?: number;
+  share?: number;
+  fill?: string;
   payload?: Node;
   onClick?: (n: Node) => void;
 }
 
 function Cell(props: CellProps) {
-  const { x = 0, y = 0, width = 0, height = 0, payload, onClick } = props;
-  if (!payload) return null;
-  const node = payload;
+  const { x = 0, y = 0, width = 0, height = 0, onClick } = props;
+  const data: Node | undefined =
+    props.payload ??
+    (props.name
+      ? {
+          name: props.name,
+          ticker: props.ticker ?? "",
+          country: props.country ?? "—",
+          region: props.region ?? "Other",
+          size: props.size ?? 0,
+          share: props.share ?? 0,
+          fill: props.fill ?? "var(--neu)",
+        }
+      : undefined);
+  if (!data || width <= 0 || height <= 0) return null;
   const isLarge = width > 100 && height > 60;
   const isMedium = !isLarge && width > 65 && height > 40;
   return (
-    <g onClick={() => onClick?.(node)} style={{ cursor: "pointer" }}>
-      <rect x={x} y={y} width={width} height={height} fill={node.fill} fillOpacity={0.82} rx={4} />
+    <g onClick={() => onClick?.(data)} style={{ cursor: "pointer" }}>
+      <rect x={x} y={y} width={width} height={height} fill={data.fill} fillOpacity={0.82} rx={4} />
       {isLarge && (
         <>
           <text
@@ -128,7 +147,7 @@ function Cell(props: CellProps) {
             fontWeight={600}
             fontFamily="var(--font-display)"
           >
-            {node.name.length > 22 ? node.name.slice(0, 20) + "…" : node.name}
+            {data.name.length > 22 ? data.name.slice(0, 20) + "…" : data.name}
           </text>
           <text
             x={x + 9}
@@ -137,7 +156,7 @@ function Cell(props: CellProps) {
             fontSize={10.5}
             fontFamily="var(--font-mono)"
           >
-            {fmtUsd(node.size)}
+            {fmtUsd(data.size)}
           </text>
           <text
             x={x + 9}
@@ -146,13 +165,13 @@ function Cell(props: CellProps) {
             fontSize={10}
             fontFamily="var(--font-mono)"
           >
-            {(node.share * 100).toFixed(1)}%
+            {(data.share * 100).toFixed(1)}%
           </text>
         </>
       )}
       {isMedium && !isLarge && (
         <text x={x + 6} y={y + 16} fill="white" fontSize={10} fontWeight={600}>
-          {node.name.length > 15 ? node.name.slice(0, 13) + "…" : node.name}
+          {data.name.length > 15 ? data.name.slice(0, 13) + "…" : data.name}
         </text>
       )}
     </g>

@@ -59,15 +59,23 @@ export function RegionalCompositionChart() {
     <GlassCard variant="default" className="p-6">
       <CardHeader
         eyebrow="Composition · holdings since 2003"
-        title={view === "proportionate" ? "Regional share of global holdings" : "Regional holdings stacked"}
+        title={
+          selectedRegion
+            ? `${selectedRegion} holdings over time`
+            : view === "proportionate"
+              ? "Regional share of global holdings"
+              : "Regional holdings stacked"
+        }
         subtitle={
-          view === "proportionate"
-            ? "Each region's share of total global gold ETF holdings over time"
-            : "Tonnes of physical gold held by region, stacked"
+          selectedRegion
+            ? `Filtered to ${selectedRegion}. Clear the region filter to see all regions stacked.`
+            : view === "proportionate"
+              ? "Each region's share of total global gold ETF holdings over time"
+              : "Tonnes of physical gold held by region, stacked"
         }
         trailing={
           <span className="text-[9px] uppercase tracking-[0.22em] font-mono px-2 py-1 rounded-md bg-bg-tint text-fg-muted">
-            {view === "proportionate" ? "% share" : "tonnes"}
+            {view === "proportionate" && !selectedRegion ? "% share" : "tonnes"}
           </span>
         }
       />
@@ -113,9 +121,10 @@ export function RegionalCompositionChart() {
               cursor={{ stroke: "var(--gold-500)", strokeWidth: 1, strokeDasharray: "3 3" }}
               content={(props) => <CompositionTooltip {...props} view={view} />}
             />
-            {REGIONS_ORDERED.map((r) => {
+            {REGIONS_ORDERED.filter(
+              (r) => !selectedRegion || selectedRegion === r,
+            ).map((r) => {
               const t = regionAccent(r);
-              const dim = selectedRegion && selectedRegion !== r;
               return (
                 <Area
                   key={r}
@@ -123,9 +132,7 @@ export function RegionalCompositionChart() {
                   dataKey={r}
                   stackId="1"
                   stroke={t.hex}
-                  strokeOpacity={dim ? 0.25 : 1}
                   fill={`url(#comp-${t.slug})`}
-                  fillOpacity={dim ? 0.15 : 1}
                   isAnimationActive
                   animationDuration={900}
                 />

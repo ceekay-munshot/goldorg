@@ -3,6 +3,15 @@
    consistently across charts, badges, tints, and cards.
    ============================================================ */
 
+/** Lower-cased mapping from region name → snake_case key used in
+ *  `TimeSeriesPoint` and the parsed JSON. */
+export const REGION_KEY: Record<string, "north_america" | "europe" | "asia" | "other"> = {
+  "North America": "north_america",
+  Europe: "europe",
+  Asia: "asia",
+  Other: "other",
+};
+
 export type RegionTone = {
   /** Vivid hex used on charts/dots */
   hex: string;

@@ -8,12 +8,12 @@
 
 :root {
   /* ---------- BASE LAYERS ---------- */
-  --bg-base:      #FAF6EA;     /* warm champagne cream */
-  --bg-tint:      #F5EEDC;     /* slightly darker warm tint */
-  --bg-surface:   #FFFFFF;     /* pure white card */
-  --bg-elevated:  #FFFDF6;     /* warmer raised card */
-  --bg-glass:     rgba(255, 252, 240, 0.72);
-  --bg-glass-strong: rgba(255, 250, 235, 0.86);
+  --bg-base:      #F8EFCD;     /* warm gold-tinted cream */
+  --bg-tint:      #F2E5B5;     /* deeper gold-cream */
+  --bg-surface:   #FFFCF0;     /* near-white card with gold whisper */
+  --bg-elevated:  #FFFAE8;     /* raised card, slightly warmer */
+  --bg-glass:     rgba(255, 252, 232, 0.74);
+  --bg-glass-strong: rgba(255, 250, 222, 0.88);
 
   /* ---------- BORDERS ---------- */
   --border-faint:    rgba(28, 28, 46, 0.045);
@@ -83,10 +83,12 @@
     radial-gradient(ellipse at 100% 100%, rgba(139, 123, 184, 0.10) 0%, transparent 55%),
     radial-gradient(ellipse at 0% 100%, rgba(107, 144, 128, 0.10) 0%, transparent 50%);
 
-  /* Page-level subtle warm wash */
+  /* Page-level luxurious gold wash */
   --page-wash:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(212, 162, 74, 0.08) 0%, transparent 65%),
-    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(107, 144, 128, 0.06) 0%, transparent 60%);
+    radial-gradient(ellipse 100% 70% at 50% 0%, rgba(212, 162, 74, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 100% 50%, rgba(232, 181, 71, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 0% 50%, rgba(192, 145, 60, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 60% at 50% 100%, rgba(133, 90, 24, 0.06) 0%, transparent 60%);
 
   /* ---------- SHADOWS (soft, layered, paper-like) ---------- */
   --shadow-soft:

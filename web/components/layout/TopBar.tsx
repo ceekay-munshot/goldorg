@@ -2,7 +2,6 @@
 
 import { useData } from "@/lib/data-provider";
 import { fmtDate } from "@/lib/format";
-import { motion } from "framer-motion";
 
 export function TopBar() {
   const { data } = useData();
@@ -10,39 +9,30 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-40 bg-bg-base/85 backdrop-blur-xl border-b border-border-faint">
-      <div className="mx-auto max-w-[1600px] px-6 lg:px-10 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto max-w-[1600px] px-6 lg:px-10 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
           <BrandMark />
           <div className="flex flex-col leading-tight">
-            <span className="text-[11px] uppercase tracking-[0.22em] text-fg-muted font-medium">
-              Gold ETF Intelligence
+            <span className="font-display text-[17px] tracking-tight text-fg-primary leading-none">
+              Gold ETF <span className="text-gold-gradient">Observatory</span>
             </span>
-            <span className="text-[10px] text-fg-faint font-mono">
-              gold.org · physically-backed funds
+            <span className="text-[10px] uppercase tracking-[0.22em] text-fg-muted mt-1">
+              World Gold Council · physically-backed funds
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="hidden md:flex flex-col items-end leading-tight">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-fg-muted">
+        <div className="hidden md:flex items-center gap-5 text-right">
+          <div className="flex flex-col leading-tight">
+            <span className="text-[9px] uppercase tracking-[0.24em] text-fg-muted">
               Data as of
             </span>
-            <span className="text-[12px] text-fg-primary font-mono tabular-nums">
+            <span className="text-[13px] text-fg-primary font-mono tabular-nums mt-0.5">
               {asOf ? fmtDate(asOf, "long") : "—"}
             </span>
           </div>
-          <motion.div
-            className="flex items-center gap-2 text-[10px] text-fg-muted uppercase tracking-[0.2em]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 rounded-full bg-pos animate-ping opacity-60" />
-              <span className="relative rounded-full h-1.5 w-1.5 bg-pos" />
-            </span>
-            Live
-          </motion.div>
+          <div className="w-px h-9 bg-border-subtle" />
+          <SourceBadge />
         </div>
       </div>
       <div className="gold-hair" />
@@ -52,12 +42,26 @@ export function TopBar() {
 
 function BrandMark() {
   return (
-    <div className="relative h-8 w-8 grid place-items-center">
-      <div className="absolute inset-0 rounded-full bg-gold-gradient opacity-90" />
+    <div className="relative h-10 w-10 grid place-items-center">
+      <div className="absolute inset-0 rounded-full bg-gold-gradient shadow-[0_4px_14px_-4px_rgba(212,162,74,0.55)]" />
       <div className="absolute inset-[2px] rounded-full bg-bg-base" />
-      <span className="relative text-gold-gradient font-display font-semibold text-lg leading-none translate-y-[1px]">
+      <span className="relative font-display text-[15px] leading-none translate-y-[1px] text-gold-gradient font-semibold tracking-tight">
         Au
       </span>
+    </div>
+  );
+}
+
+function SourceBadge() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-pos-soft text-pos-text border border-[var(--pos-border)]">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inset-0 rounded-full bg-pos animate-ping opacity-50" />
+          <span className="relative rounded-full h-1.5 w-1.5 bg-pos" />
+        </span>
+        <span className="text-[10px] uppercase tracking-[0.18em] font-medium">Live</span>
+      </div>
     </div>
   );
 }

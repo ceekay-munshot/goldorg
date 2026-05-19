@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 /**
  * Premium tooltip body for recharts custom tooltips.
- * Dark glass background with subtle gold border.
+ * Light glass body with subtle gold border.
  */
 export function PremiumTooltip({
   title,
@@ -23,13 +23,13 @@ export function PremiumTooltip({
   return (
     <div
       className={cn(
-        "min-w-[180px] rounded-xl border border-border-gold/40 bg-bg-base/90 backdrop-blur-2xl px-3.5 py-2.5 shadow-[var(--shadow-raised)]",
+        "min-w-[180px] rounded-xl border border-border-gold bg-bg-surface backdrop-blur-2xl px-3.5 py-2.5 shadow-[var(--shadow-elevated)]",
         className,
       )}
     >
       {title && (
         <>
-          <div className="text-[10px] uppercase tracking-[0.22em] text-gold-200/90">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-gold-700">
             {title}
           </div>
           <div className="gold-hair my-1.5" />
@@ -50,7 +50,7 @@ export function PremiumTooltip({
             <span
               className={cn(
                 "font-mono tabular-nums",
-                r.accent ? "text-gold-200" : "text-fg-primary",
+                r.accent ? "text-gold-700 font-semibold" : "text-fg-primary",
               )}
             >
               {r.value}

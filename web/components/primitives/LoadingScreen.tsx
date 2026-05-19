@@ -12,10 +12,10 @@ export function LoadingScreen() {
           transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
         >
           <div className="absolute inset-0 rounded-full border-2 border-border-subtle" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-gold-300 border-r-gold-300/40" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-gold-500 border-r-gold-300" />
         </motion.div>
         <div className="flex flex-col items-center gap-1">
-          <span className="text-[11px] uppercase tracking-[0.22em] text-gold-200">
+          <span className="text-[11px] uppercase tracking-[0.22em] text-gold-700">
             Loading dataset
           </span>
           <span className="text-[10px] text-fg-muted font-mono">

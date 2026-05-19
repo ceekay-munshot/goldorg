@@ -15,16 +15,16 @@ export function SearchInput({
   return (
     <div
       className={cn(
-        "relative h-9 w-64 rounded-lg border bg-bg-surface/60 flex items-center transition-colors",
+        "relative h-9 w-64 rounded-lg border bg-bg-surface flex items-center transition-colors shadow-[var(--shadow-soft)]",
         value
-          ? "border-border-gold/45"
+          ? "border-border-gold"
           : "border-border-subtle hover:border-border-strong",
       )}
     >
       <Search
         className={cn(
           "absolute left-3 w-3.5 h-3.5 pointer-events-none transition-colors",
-          value ? "text-gold-300" : "text-fg-muted",
+          value ? "text-gold-600" : "text-fg-muted",
         )}
       />
       <input
@@ -36,7 +36,7 @@ export function SearchInput({
       {value && (
         <button
           onClick={() => onChange("")}
-          className="absolute right-2 grid place-items-center w-5 h-5 rounded-full text-fg-muted hover:text-fg-primary hover:bg-bg-elevated transition-colors"
+          className="absolute right-2 grid place-items-center w-5 h-5 rounded-full text-fg-muted hover:text-fg-primary hover:bg-bg-tint transition-colors"
         >
           <X className="w-3 h-3" />
         </button>

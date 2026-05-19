@@ -24,14 +24,14 @@ export function FlowBadge({
         ? "h-7 px-2.5 text-[10px] gap-1"
         : "h-6 px-2 text-[9px] gap-1";
   const tones = {
-    pos: "bg-[var(--pos-bg)] text-pos-text border-[var(--pos-border)]",
-    neg: "bg-[var(--neg-bg)] text-neg-text border-[var(--neg-border)]",
-    neu: "bg-[var(--neu-bg)] text-neu-text border-[var(--neu-border)]",
+    pos: "bg-pos-soft text-pos-text border-[var(--pos-border)]",
+    neg: "bg-neg-soft text-neg-text border-[var(--neg-border)]",
+    neu: "bg-neu-soft text-neu-text border-[var(--neu-border)]",
   } as const;
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border font-medium uppercase tracking-[0.18em]",
+        "inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.18em]",
         sizing,
         tones[tone],
         className,

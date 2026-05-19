@@ -4,7 +4,14 @@ import { motion, type HTMLMotionProps } from "framer-motion";
 import { forwardRef } from "react";
 import { cn } from "@/lib/cn";
 
-type CardVariant = "default" | "elevated" | "hero";
+type CardVariant =
+  | "default"
+  | "elevated"
+  | "hero"
+  | "tinted-gold"
+  | "tinted-sage"
+  | "tinted-coral"
+  | "tinted-purple";
 
 interface GlassCardProps extends HTMLMotionProps<"div"> {
   variant?: CardVariant;
@@ -12,16 +19,27 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
   glowOnHover?: boolean;
 }
 
+const VARIANT_CLASSES: Record<CardVariant, string> = {
+  default: "surface rounded-2xl",
+  elevated: "surface-elevated rounded-2xl",
+  hero: "surface-elevated hero-texture rounded-3xl",
+  "tinted-gold": "surface-tinted-gold rounded-2xl",
+  "tinted-sage": "surface-tinted-sage rounded-2xl",
+  "tinted-coral": "surface-tinted-coral rounded-2xl",
+  "tinted-purple": "surface-tinted-purple rounded-2xl",
+};
+
 export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(function GlassCard(
-  { className, variant = "default", interactive = false, glowOnHover = false, children, ...rest },
+  {
+    className,
+    variant = "default",
+    interactive = false,
+    glowOnHover = false,
+    children,
+    ...rest
+  },
   ref,
 ) {
-  const base =
-    variant === "hero"
-      ? "surface-elevated noise gold-sheen rounded-3xl"
-      : variant === "elevated"
-        ? "surface-elevated rounded-2xl"
-        : "surface rounded-2xl";
   return (
     <motion.div
       ref={ref}
@@ -31,10 +49,10 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(function Gla
           : undefined
       }
       className={cn(
-        base,
+        VARIANT_CLASSES[variant],
         "relative overflow-hidden",
         interactive &&
-          "cursor-pointer transition-colors hover:border-border-gold/40",
+          "cursor-pointer transition-colors hover:border-border-gold",
         glowOnHover && "hover:shadow-[var(--shadow-gold)]",
         className,
       )}
@@ -67,7 +85,7 @@ export function CardHeader({
           </div>
         )}
         {title && (
-          <h3 className="font-display text-[18px] leading-tight text-fg-primary tracking-tight">
+          <h3 className="font-display text-[20px] leading-tight text-fg-primary tracking-tight">
             {title}
           </h3>
         )}

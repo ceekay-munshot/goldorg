@@ -17,6 +17,7 @@ export function Select({
   onChange,
   width = "10rem",
   searchable = false,
+  accent,
 }: {
   placeholder: string;
   value: string | null;
@@ -24,6 +25,7 @@ export function Select({
   onChange: (value: string | null) => void;
   width?: string;
   searchable?: boolean;
+  accent?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -50,12 +52,18 @@ export function Select({
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "w-full h-9 px-3 rounded-lg border bg-bg-surface/60 text-left flex items-center gap-2 transition-all",
+          "w-full h-9 px-3 rounded-lg border bg-bg-surface text-left flex items-center gap-2 transition-all shadow-[var(--shadow-soft)]",
           open || value
-            ? "border-border-gold/45 text-fg-primary"
+            ? "border-border-gold text-fg-primary"
             : "border-border-subtle text-fg-muted hover:border-border-strong",
         )}
       >
+        {accent && value && (
+          <span
+            className="inline-block w-1.5 h-1.5 rounded-full"
+            style={{ background: accent }}
+          />
+        )}
         <span className="flex-1 truncate text-[12px]">
           {selected ? selected.label : placeholder}
         </span>
@@ -63,7 +71,7 @@ export function Select({
           className={cn(
             "w-3.5 h-3.5 transition-transform",
             open && "rotate-180",
-            value ? "text-gold-300" : "text-fg-muted",
+            value ? "text-gold-600" : "text-fg-muted",
           )}
         />
       </button>
@@ -75,7 +83,7 @@ export function Select({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1.5 left-0 right-0 max-h-72 overflow-hidden z-50 rounded-xl border border-border-strong bg-bg-elevated/95 backdrop-blur-xl shadow-[var(--shadow-raised)]"
+            className="absolute top-full mt-1.5 left-0 right-0 max-h-72 overflow-hidden z-50 rounded-xl border border-border-strong bg-bg-surface backdrop-blur-xl shadow-[var(--shadow-elevated)]"
           >
             {searchable && (
               <div className="flex items-center gap-2 px-3 h-9 border-b border-border-subtle">
@@ -97,7 +105,7 @@ export function Select({
                     setOpen(false);
                     setQuery("");
                   }}
-                  className="w-full px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-fg-muted hover:bg-bg-glass hover:text-neg-text text-left"
+                  className="w-full px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-fg-muted hover:bg-neg-soft hover:text-neg-text text-left transition-colors"
                 >
                   Clear selection
                 </button>
@@ -116,14 +124,14 @@ export function Select({
                     setQuery("");
                   }}
                   className={cn(
-                    "w-full px-3 py-1.5 flex items-center gap-2 text-[12px] text-left hover:bg-bg-glass-strong transition-colors",
+                    "w-full px-3 py-1.5 flex items-center gap-2 text-[12px] text-left hover:bg-bg-tint transition-colors",
                     o.value === value
-                      ? "text-gold-200"
+                      ? "text-gold-700 bg-gold-50/60"
                       : "text-fg-secondary hover:text-fg-primary",
                   )}
                 >
                   <span className="flex-1 truncate">{o.label}</span>
-                  {o.value === value && <Check className="w-3.5 h-3.5 text-gold-300" />}
+                  {o.value === value && <Check className="w-3.5 h-3.5 text-gold-600" />}
                 </button>
               ))}
             </div>

@@ -15,7 +15,7 @@ export function TabNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-14 z-30 bg-bg-base/85 backdrop-blur-xl border-b border-border-faint">
+    <nav className="sticky top-16 z-30 bg-bg-base/85 backdrop-blur-xl border-b border-border-faint">
       <div className="mx-auto max-w-[1600px] px-6 lg:px-10 flex">
         {TABS.map((t) => {
           const active = pathname === t.href;
@@ -24,15 +24,18 @@ export function TabNav() {
               key={t.href}
               href={t.href}
               className={cn(
-                "relative px-6 py-3.5 group transition-colors",
+                "relative px-5 py-3.5 group transition-colors",
                 active ? "text-fg-primary" : "text-fg-muted hover:text-fg-secondary",
               )}
             >
               <div className="flex items-baseline gap-2.5">
-                <span className="font-display text-[15px] tracking-tight">
+                <span className={cn(
+                  "font-display text-[16px] tracking-tight",
+                  active && "text-gold-gradient",
+                )}>
                   {t.label}
                 </span>
-                <span className="text-[10px] uppercase tracking-[0.18em] text-fg-faint group-hover:text-fg-muted transition-colors">
+                <span className="hidden sm:inline text-[10px] uppercase tracking-[0.18em] text-fg-faint group-hover:text-fg-muted transition-colors">
                   {t.hint}
                 </span>
               </div>

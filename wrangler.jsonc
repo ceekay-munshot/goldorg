@@ -1,0 +1,20 @@
+/**
+ * Cloudflare Workers Static Assets deployment.
+ * Builds the Next.js dashboard in /web (static export to /web/out)
+ * and serves it as static assets through the Worker runtime.
+ *
+ * Docs: https://developers.cloudflare.com/workers/static-assets/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "goldorg",
+  "compatibility_date": "2024-12-01",
+  "build": {
+    "command": "cd web && npm install && npm run build"
+  },
+  "assets": {
+    "directory": "./web/out",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

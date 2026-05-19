@@ -11,11 +11,13 @@ import { ViewToggle } from "@/components/primitives/ViewToggle";
 import { SearchInput } from "@/components/primitives/SearchInput";
 import { Select } from "@/components/primitives/Select";
 import { regionAccent } from "@/lib/regions";
+import { fmtTonnes, fmtUsd, signOf } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export function FilterBar() {
   const { data } = useData();
   const {
+    period,
     region,
     country,
     fund,
@@ -33,8 +35,20 @@ export function FilterBar() {
     if (!data) return [];
     return data.regions.regions
       .filter((r) => r.region !== "Total" && r.region !== "Unknown")
-      .map((r) => ({ value: r.region, label: r.region }));
-  }, [data]);
+      .map((r) => {
+        const pm = r.periods[period];
+        return {
+          value: r.region,
+          label: r.region,
+          meta: {
+            dot: regionAccent(r.region).hex,
+            primary: fmtUsd(r.current_aum_usd_mn),
+            secondary: `${fmtUsd(pm.flows_usd_mn, { signed: true, decimals: 1 })} · ${r.fund_count} funds`,
+            tone: signOf(pm.flows_usd_mn),
+          },
+        };
+      });
+  }, [data, period]);
 
   const countryOptions = useMemo(() => {
     if (!data) return [];
@@ -45,8 +59,23 @@ export function FilterBar() {
           (f) => f.country === c.country && f.region === region,
         );
       })
-      .map((c) => ({ value: c.country, label: c.country }));
-  }, [data, region]);
+      .map((c) => {
+        const pm = c.periods[period];
+        const regionForCountry = data.funds.funds.find(
+          (f) => f.country === c.country,
+        )?.region as string | undefined;
+        return {
+          value: c.country,
+          label: c.country,
+          meta: {
+            dot: regionForCountry ? regionAccent(regionForCountry).hex : undefined,
+            primary: fmtUsd(c.current_aum_usd_mn),
+            secondary: `${fmtUsd(pm.flows_usd_mn, { signed: true, decimals: 1 })} · ${c.fund_count} funds`,
+            tone: signOf(pm.flows_usd_mn),
+          },
+        };
+      });
+  }, [data, region, period]);
 
   const fundOptions = useMemo(() => {
     if (!data) return [];
@@ -56,8 +85,20 @@ export function FilterBar() {
       .filter((f) =>
         active === "active" ? f.active : active === "inactive" ? !f.active : true,
       )
-      .map((f) => ({ value: f.ticker, label: f.name ?? f.ticker }));
-  }, [data, region, country, active]);
+      .map((f) => {
+        const pm = f.periods[period];
+        return {
+          value: f.ticker,
+          label: f.name ?? f.ticker,
+          meta: {
+            dot: f.region ? regionAccent(f.region).hex : undefined,
+            primary: fmtUsd(f.current_aum_usd_mn),
+            secondary: `${fmtUsd(pm.flows_usd_mn, { signed: true, decimals: 1 })} · ${fmtTonnes(f.current_holdings_tonnes, { decimals: 0 })}`,
+            tone: signOf(pm.flows_usd_mn),
+          },
+        };
+      });
+  }, [data, region, country, active, period]);
 
   const hasCrossFilter = !!(region || country || fund || search);
   const regionTone = region ? regionAccent(region) : null;

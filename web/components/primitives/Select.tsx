@@ -8,6 +8,12 @@ import { cn } from "@/lib/cn";
 export interface SelectOption {
   value: string;
   label: string;
+  meta?: {
+    primary?: string;   // shown on right of the row (e.g. "$213B AUM")
+    secondary?: string; // shown below primary (e.g. "+$3.6B Apr")
+    dot?: string;       // color marker on the left
+    tone?: "pos" | "neg" | "neu";
+  };
 }
 
 export function Select({
@@ -83,7 +89,7 @@ export function Select({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1.5 left-0 right-0 max-h-72 overflow-hidden z-50 rounded-xl border border-border-strong bg-bg-surface backdrop-blur-xl shadow-[var(--shadow-elevated)]"
+            className="absolute top-full mt-1.5 left-0 min-w-full w-[max(100%,280px)] max-h-80 overflow-hidden z-50 rounded-xl border border-border-strong bg-bg-surface backdrop-blur-xl shadow-[var(--shadow-elevated)]"
           >
             {searchable && (
               <div className="flex items-center gap-2 px-3 h-9 border-b border-border-subtle">
@@ -115,25 +121,52 @@ export function Select({
                   No matches
                 </div>
               )}
-              {filtered.map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => {
-                    onChange(o.value);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  className={cn(
-                    "w-full px-3 py-1.5 flex items-center gap-2 text-[12px] text-left hover:bg-bg-tint transition-colors",
-                    o.value === value
-                      ? "text-gold-700 bg-gold-50/60"
-                      : "text-fg-secondary hover:text-fg-primary",
-                  )}
-                >
-                  <span className="flex-1 truncate">{o.label}</span>
-                  {o.value === value && <Check className="w-3.5 h-3.5 text-gold-600" />}
-                </button>
-              ))}
+              {filtered.map((o) => {
+                const isSel = o.value === value;
+                const toneCls =
+                  o.meta?.tone === "pos"
+                    ? "text-pos-text"
+                    : o.meta?.tone === "neg"
+                      ? "text-neg-text"
+                      : "text-fg-muted";
+                return (
+                  <button
+                    key={o.value}
+                    onClick={() => {
+                      onChange(o.value);
+                      setOpen(false);
+                      setQuery("");
+                    }}
+                    className={cn(
+                      "w-full px-3 py-2 flex items-center gap-2.5 text-[12px] text-left transition-colors",
+                      isSel
+                        ? "bg-gold-50/70 text-gold-700"
+                        : "text-fg-secondary hover:bg-bg-tint hover:text-fg-primary",
+                    )}
+                  >
+                    {o.meta?.dot && (
+                      <span
+                        className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: o.meta.dot }}
+                      />
+                    )}
+                    <span className="flex-1 min-w-0 truncate">{o.label}</span>
+                    {o.meta?.primary && (
+                      <span className="flex flex-col items-end leading-tight shrink-0">
+                        <span className="text-[10.5px] font-mono tabular-nums text-fg-primary">
+                          {o.meta.primary}
+                        </span>
+                        {o.meta.secondary && (
+                          <span className={cn("text-[9.5px] font-mono tabular-nums mt-0.5", toneCls)}>
+                            {o.meta.secondary}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {isSel && <Check className="w-3.5 h-3.5 text-gold-600 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         )}

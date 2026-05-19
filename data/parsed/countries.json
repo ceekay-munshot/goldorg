@@ -1,0 +1,490 @@
+{
+  "periods": {
+    "1MONTH": [
+      {
+        "country": "US",
+        "aum_usd_bn": 297.564146,
+        "flows_usd_mn": 845.529392,
+        "holdings_tonnes": 2007.043066,
+        "demand_tonnes": 4.731026,
+        "demand_pct_of_holdings": 0.002363
+      },
+      {
+        "country": "UK",
+        "aum_usd_bn": 93.993932,
+        "flows_usd_mn": 2175.139966,
+        "holdings_tonnes": 633.987461,
+        "demand_tonnes": 15.250351,
+        "demand_pct_of_holdings": 0.024648
+      },
+      {
+        "country": "Switzerland",
+        "aum_usd_bn": 56.090082,
+        "flows_usd_mn": 660.96961,
+        "holdings_tonnes": 378.326642,
+        "demand_tonnes": 5.714506,
+        "demand_pct_of_holdings": 0.015336
+      },
+      {
+        "country": "Germany",
+        "aum_usd_bn": 47.902935,
+        "flows_usd_mn": 464.178103,
+        "holdings_tonnes": 323.104606,
+        "demand_tonnes": 3.556546,
+        "demand_pct_of_holdings": 0.01113
+      },
+      {
+        "country": "China P.R. Mainland",
+        "aum_usd_bn": 44.742531,
+        "flows_usd_mn": 497.97389,
+        "holdings_tonnes": 301.438161,
+        "demand_tonnes": 3.148912,
+        "demand_pct_of_holdings": 0.010557
+      },
+      {
+        "country": "India",
+        "aum_usd_bn": 18.415232,
+        "flows_usd_mn": 297.202552,
+        "holdings_tonnes": 116.712296,
+        "demand_tonnes": 1.855124,
+        "demand_pct_of_holdings": 0.016152
+      },
+      {
+        "country": "France",
+        "aum_usd_bn": 12.580713,
+        "flows_usd_mn": 203.9392,
+        "holdings_tonnes": 84.856697,
+        "demand_tonnes": 1.341378,
+        "demand_pct_of_holdings": 0.016061
+      },
+      {
+        "country": "Canada",
+        "aum_usd_bn": 11.631921,
+        "flows_usd_mn": 156.412081,
+        "holdings_tonnes": 78.457105,
+        "demand_tonnes": 1.3193,
+        "demand_pct_of_holdings": 0.017103
+      },
+      {
+        "country": "Japan",
+        "aum_usd_bn": 11.363726,
+        "flows_usd_mn": 245.87817,
+        "holdings_tonnes": 73.929266,
+        "demand_tonnes": 1.562811,
+        "demand_pct_of_holdings": 0.021596
+      },
+      {
+        "country": "Australia",
+        "aum_usd_bn": 8.060998,
+        "flows_usd_mn": 65.365573,
+        "holdings_tonnes": 54.345379,
+        "demand_tonnes": 0.609062,
+        "demand_pct_of_holdings": 0.011334
+      },
+      {
+        "country": "South Korea",
+        "aum_usd_bn": 4.148279,
+        "flows_usd_mn": 5.091054,
+        "holdings_tonnes": 27.980068,
+        "demand_tonnes": -0.246614,
+        "demand_pct_of_holdings": -0.008737
+      },
+      {
+        "country": "South Africa",
+        "aum_usd_bn": 2.531766,
+        "flows_usd_mn": 41.123,
+        "holdings_tonnes": 17.076716,
+        "demand_tonnes": 0.286519,
+        "demand_pct_of_holdings": 0.017065
+      },
+      {
+        "country": "Ireland",
+        "aum_usd_bn": 1.640274,
+        "flows_usd_mn": 17.5537,
+        "holdings_tonnes": 11.063618,
+        "demand_tonnes": 0.113859,
+        "demand_pct_of_holdings": 0.010398
+      },
+      {
+        "country": "Italy",
+        "aum_usd_bn": 1.519606,
+        "flows_usd_mn": 132.404917,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": 0.873216,
+        "demand_pct_of_holdings": 0.093128
+      },
+      {
+        "country": "Hong Kong SAR",
+        "aum_usd_bn": 1.435386,
+        "flows_usd_mn": 732.22431,
+        "holdings_tonnes": 9.651414,
+        "demand_tonnes": 4.761041,
+        "demand_pct_of_holdings": 0.973554
+      },
+      {
+        "country": "Turkey",
+        "aum_usd_bn": 0.583947,
+        "flows_usd_mn": 0,
+        "holdings_tonnes": 3.938712,
+        "demand_tonnes": -0.011757,
+        "demand_pct_of_holdings": -0.002976
+      },
+      {
+        "country": "Singapore",
+        "aum_usd_bn": 0.426849,
+        "flows_usd_mn": 23.37264,
+        "holdings_tonnes": 2.870094,
+        "demand_tonnes": 0.153753,
+        "demand_pct_of_holdings": 0.056603
+      },
+      {
+        "country": "Malaysia",
+        "aum_usd_bn": 0.155321,
+        "flows_usd_mn": 11.5358,
+        "holdings_tonnes": 1.047637,
+        "demand_tonnes": 0.089509,
+        "demand_pct_of_holdings": 0.09342
+      },
+      {
+        "country": "Saudi Arabia",
+        "aum_usd_bn": 0.069182,
+        "flows_usd_mn": -0.58596,
+        "holdings_tonnes": 0.466797,
+        "demand_tonnes": 0.001313,
+        "demand_pct_of_holdings": 0.002821
+      },
+      {
+        "country": "Liechtenstein",
+        "aum_usd_bn": 0.06072,
+        "flows_usd_mn": -0.292582,
+        "holdings_tonnes": 0.409555,
+        "demand_tonnes": 0.008857,
+        "demand_pct_of_holdings": 0.022105
+      }
+    ],
+    "QTD": [
+      {
+        "country": "US",
+        "aum_usd_bn": 297.564146,
+        "flows_usd_mn": 845.529392,
+        "holdings_tonnes": 2007.043066,
+        "demand_tonnes": 4.731026,
+        "demand_pct_of_holdings": 0.002363
+      },
+      {
+        "country": "UK",
+        "aum_usd_bn": 93.993932,
+        "flows_usd_mn": 2175.139966,
+        "holdings_tonnes": 633.987461,
+        "demand_tonnes": 15.250351,
+        "demand_pct_of_holdings": 0.024648
+      },
+      {
+        "country": "Switzerland",
+        "aum_usd_bn": 56.090082,
+        "flows_usd_mn": 660.96961,
+        "holdings_tonnes": 378.326642,
+        "demand_tonnes": 5.714506,
+        "demand_pct_of_holdings": 0.015336
+      },
+      {
+        "country": "Germany",
+        "aum_usd_bn": 47.902935,
+        "flows_usd_mn": 464.178103,
+        "holdings_tonnes": 323.104606,
+        "demand_tonnes": 3.556546,
+        "demand_pct_of_holdings": 0.01113
+      },
+      {
+        "country": "China P.R. Mainland",
+        "aum_usd_bn": 44.742531,
+        "flows_usd_mn": 497.97389,
+        "holdings_tonnes": 301.438161,
+        "demand_tonnes": 3.148912,
+        "demand_pct_of_holdings": 0.010557
+      },
+      {
+        "country": "India",
+        "aum_usd_bn": 18.415232,
+        "flows_usd_mn": 297.202552,
+        "holdings_tonnes": 116.712296,
+        "demand_tonnes": 1.855124,
+        "demand_pct_of_holdings": 0.016152
+      },
+      {
+        "country": "France",
+        "aum_usd_bn": 12.580713,
+        "flows_usd_mn": 203.9392,
+        "holdings_tonnes": 84.856697,
+        "demand_tonnes": 1.341378,
+        "demand_pct_of_holdings": 0.016061
+      },
+      {
+        "country": "Canada",
+        "aum_usd_bn": 11.631921,
+        "flows_usd_mn": 156.412081,
+        "holdings_tonnes": 78.457105,
+        "demand_tonnes": 1.3193,
+        "demand_pct_of_holdings": 0.017103
+      },
+      {
+        "country": "Japan",
+        "aum_usd_bn": 11.363726,
+        "flows_usd_mn": 245.87817,
+        "holdings_tonnes": 73.929266,
+        "demand_tonnes": 1.562811,
+        "demand_pct_of_holdings": 0.021596
+      },
+      {
+        "country": "Australia",
+        "aum_usd_bn": 8.060998,
+        "flows_usd_mn": 65.365573,
+        "holdings_tonnes": 54.345379,
+        "demand_tonnes": 0.609062,
+        "demand_pct_of_holdings": 0.011334
+      },
+      {
+        "country": "South Korea",
+        "aum_usd_bn": 4.148279,
+        "flows_usd_mn": 5.091054,
+        "holdings_tonnes": 27.980068,
+        "demand_tonnes": -0.246614,
+        "demand_pct_of_holdings": -0.008737
+      },
+      {
+        "country": "South Africa",
+        "aum_usd_bn": 2.531766,
+        "flows_usd_mn": 41.123,
+        "holdings_tonnes": 17.076716,
+        "demand_tonnes": 0.286519,
+        "demand_pct_of_holdings": 0.017065
+      },
+      {
+        "country": "Ireland",
+        "aum_usd_bn": 1.640274,
+        "flows_usd_mn": 17.5537,
+        "holdings_tonnes": 11.063618,
+        "demand_tonnes": 0.113859,
+        "demand_pct_of_holdings": 0.010398
+      },
+      {
+        "country": "Italy",
+        "aum_usd_bn": 1.519606,
+        "flows_usd_mn": 132.404917,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": 0.873216,
+        "demand_pct_of_holdings": 0.093128
+      },
+      {
+        "country": "Hong Kong SAR",
+        "aum_usd_bn": 1.435386,
+        "flows_usd_mn": 732.22431,
+        "holdings_tonnes": 9.651414,
+        "demand_tonnes": 4.761041,
+        "demand_pct_of_holdings": 0.973554
+      },
+      {
+        "country": "Turkey",
+        "aum_usd_bn": 0.583947,
+        "flows_usd_mn": 0,
+        "holdings_tonnes": 3.938712,
+        "demand_tonnes": -0.011757,
+        "demand_pct_of_holdings": -0.002976
+      },
+      {
+        "country": "Singapore",
+        "aum_usd_bn": 0.426849,
+        "flows_usd_mn": 23.37264,
+        "holdings_tonnes": 2.870094,
+        "demand_tonnes": 0.153753,
+        "demand_pct_of_holdings": 0.056603
+      },
+      {
+        "country": "Malaysia",
+        "aum_usd_bn": 0.155321,
+        "flows_usd_mn": 11.5358,
+        "holdings_tonnes": 1.047637,
+        "demand_tonnes": 0.089509,
+        "demand_pct_of_holdings": 0.09342
+      },
+      {
+        "country": "Saudi Arabia",
+        "aum_usd_bn": 0.069182,
+        "flows_usd_mn": -0.58596,
+        "holdings_tonnes": 0.466797,
+        "demand_tonnes": 0.001313,
+        "demand_pct_of_holdings": 0.002821
+      },
+      {
+        "country": "Liechtenstein",
+        "aum_usd_bn": 0.06072,
+        "flows_usd_mn": -0.292582,
+        "holdings_tonnes": 0.409555,
+        "demand_tonnes": 0.008857,
+        "demand_pct_of_holdings": 0.022105
+      }
+    ],
+    "YTD": [
+      {
+        "country": "US",
+        "aum_usd_bn": 297.564146,
+        "flows_usd_mn": -1365.597552,
+        "holdings_tonnes": 2007.043066,
+        "demand_tonnes": -11.634761,
+        "demand_pct_of_holdings": -0.005764
+      },
+      {
+        "country": "UK",
+        "aum_usd_bn": 93.993932,
+        "flows_usd_mn": 1904.782976,
+        "holdings_tonnes": 633.987461,
+        "demand_tonnes": 11.849222,
+        "demand_pct_of_holdings": 0.019046
+      },
+      {
+        "country": "Switzerland",
+        "aum_usd_bn": 56.090082,
+        "flows_usd_mn": 1953.7932,
+        "holdings_tonnes": 378.326642,
+        "demand_tonnes": 9.279506,
+        "demand_pct_of_holdings": 0.025144
+      },
+      {
+        "country": "Germany",
+        "aum_usd_bn": 47.902935,
+        "flows_usd_mn": -14.895387,
+        "holdings_tonnes": 323.104606,
+        "demand_tonnes": -0.685044,
+        "demand_pct_of_holdings": -0.002116
+      },
+      {
+        "country": "China P.R. Mainland",
+        "aum_usd_bn": 44.742531,
+        "flows_usd_mn": 8993.757652,
+        "holdings_tonnes": 301.438161,
+        "demand_tonnes": 53.586551,
+        "demand_pct_of_holdings": 0.216204
+      },
+      {
+        "country": "India",
+        "aum_usd_bn": 18.415232,
+        "flows_usd_mn": 3556.405808,
+        "holdings_tonnes": 116.712296,
+        "demand_tonnes": 21.729596,
+        "demand_pct_of_holdings": 0.228774
+      },
+      {
+        "country": "France",
+        "aum_usd_bn": 12.580713,
+        "flows_usd_mn": -27.6151,
+        "holdings_tonnes": 84.856697,
+        "demand_tonnes": -0.184072,
+        "demand_pct_of_holdings": -0.002165
+      },
+      {
+        "country": "Canada",
+        "aum_usd_bn": 11.631921,
+        "flows_usd_mn": 342.853096,
+        "holdings_tonnes": 78.457105,
+        "demand_tonnes": 1.97658,
+        "demand_pct_of_holdings": 0.025844
+      },
+      {
+        "country": "Japan",
+        "aum_usd_bn": 11.363726,
+        "flows_usd_mn": 1264.40668,
+        "holdings_tonnes": 73.929266,
+        "demand_tonnes": 7.663222,
+        "demand_pct_of_holdings": 0.115643
+      },
+      {
+        "country": "Australia",
+        "aum_usd_bn": 8.060998,
+        "flows_usd_mn": 326.303807,
+        "holdings_tonnes": 54.345379,
+        "demand_tonnes": 2.503,
+        "demand_pct_of_holdings": 0.048281
+      },
+      {
+        "country": "South Korea",
+        "aum_usd_bn": 4.148279,
+        "flows_usd_mn": 890.238666,
+        "holdings_tonnes": 27.980068,
+        "demand_tonnes": 4.833696,
+        "demand_pct_of_holdings": 0.208832
+      },
+      {
+        "country": "South Africa",
+        "aum_usd_bn": 2.531766,
+        "flows_usd_mn": -32.2337,
+        "holdings_tonnes": 17.076716,
+        "demand_tonnes": -0.424406,
+        "demand_pct_of_holdings": -0.02425
+      },
+      {
+        "country": "Ireland",
+        "aum_usd_bn": 1.640274,
+        "flows_usd_mn": -22.715,
+        "holdings_tonnes": 11.063618,
+        "demand_tonnes": -0.294127,
+        "demand_pct_of_holdings": -0.025897
+      },
+      {
+        "country": "Italy",
+        "aum_usd_bn": 1.519606,
+        "flows_usd_mn": -134.545165,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": -0.867099,
+        "demand_pct_of_holdings": -0.077999
+      },
+      {
+        "country": "Hong Kong SAR",
+        "aum_usd_bn": 1.435386,
+        "flows_usd_mn": 922.30095,
+        "holdings_tonnes": 9.651414,
+        "demand_tonnes": 5.975499,
+        "demand_pct_of_holdings": 1.625582
+      },
+      {
+        "country": "Turkey",
+        "aum_usd_bn": 0.583947,
+        "flows_usd_mn": 66.5566,
+        "holdings_tonnes": 3.938712,
+        "demand_tonnes": 0.340751,
+        "demand_pct_of_holdings": 0.094707
+      },
+      {
+        "country": "Singapore",
+        "aum_usd_bn": 0.426849,
+        "flows_usd_mn": 248.221677,
+        "holdings_tonnes": 2.870094,
+        "demand_tonnes": 1.569257,
+        "demand_pct_of_holdings": 1.206344
+      },
+      {
+        "country": "Malaysia",
+        "aum_usd_bn": 0.155321,
+        "flows_usd_mn": 28.0846,
+        "holdings_tonnes": 1.047637,
+        "demand_tonnes": 0.180273,
+        "demand_pct_of_holdings": 0.20784
+      },
+      {
+        "country": "Saudi Arabia",
+        "aum_usd_bn": 0.069182,
+        "flows_usd_mn": 29.41974,
+        "holdings_tonnes": 0.466797,
+        "demand_tonnes": 0.185799,
+        "demand_pct_of_holdings": 0.661209
+      },
+      {
+        "country": "Liechtenstein",
+        "aum_usd_bn": 0.06072,
+        "flows_usd_mn": -3.010649,
+        "holdings_tonnes": 0.409555,
+        "demand_tonnes": -0.034574,
+        "demand_pct_of_holdings": -0.077847
+      }
+    ]
+  }
+}

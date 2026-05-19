@@ -1,0 +1,48 @@
+{
+  "source_file": "ETF_Flows_2026-05-05_1212.xlsx",
+  "source_size_bytes": 1435335,
+  "generated_at": "2026-05-19T05:51:33Z",
+  "as_of_date": "2026-04-30",
+  "periods": {
+    "DAILY": {
+      "label": "Daily as of 30 Apr 26",
+      "from": "2026-04-29",
+      "to": "2026-04-30"
+    },
+    "WTD": {
+      "label": "WTD 18 ending 30 Apr 26",
+      "from": "2026-04-24",
+      "to": "2026-04-30"
+    },
+    "1WEEK": {
+      "label": "Week 17 ending 24 Apr 26",
+      "from": "2026-04-17",
+      "to": "2026-04-24"
+    },
+    "MTD": {
+      "label": "MTD as of 30 Apr 26",
+      "from": "2026-03-31",
+      "to": "2026-04-30"
+    },
+    "1MONTH": {
+      "label": "Apr 26",
+      "from": "2026-03-31",
+      "to": "2026-04-30"
+    },
+    "QTD_FULLMONTH": {
+      "label": "Q2 26",
+      "from": "2026-03-31",
+      "to": "2026-04-30"
+    },
+    "YTD_FULLMONTH": {
+      "label": "YTD 26",
+      "from": "2025-12-31",
+      "to": "2026-04-30"
+    },
+    "YTD": {
+      "label": "YTD as of 30 Apr 26",
+      "from": "2025-12-31",
+      "to": "2026-04-30"
+    }
+  }
+}

@@ -1,0 +1,1472 @@
+{
+  "1MONTH": {
+    "top_flows": [
+      {
+        "name": "iShares Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 1825.5361,
+        "holdings_tonnes": 259.011248,
+        "demand_tonnes": 11.949186,
+        "demand_pct_of_holdings": 0.048365
+      },
+      {
+        "name": "SPDR Gold MiniShares Trust",
+        "country": "US",
+        "flows_usd_mn": 1435.5133,
+        "holdings_tonnes": 209.352374,
+        "demand_tonnes": 9.462041,
+        "demand_pct_of_holdings": 0.047336
+      },
+      {
+        "name": "iShares Gold Trust",
+        "country": "US",
+        "flows_usd_mn": 928.4698,
+        "holdings_tonnes": 482.009453,
+        "demand_tonnes": 6.047957,
+        "demand_pct_of_holdings": 0.012707
+      },
+      {
+        "name": "CSOP Gold ETF",
+        "country": "HK",
+        "flows_usd_mn": 719.26241,
+        "holdings_tonnes": 4.677071,
+        "demand_tonnes": 4.677071,
+        "demand_pct_of_holdings": null
+      },
+      {
+        "name": "Pictet CH Precious Metals Fund - Physical Gold  ‡",
+        "country": "CH",
+        "flows_usd_mn": 302.6143,
+        "holdings_tonnes": 95.292826,
+        "demand_tonnes": 2.072931,
+        "demand_pct_of_holdings": 0.022237
+      },
+      {
+        "name": "Japan Physical Gold ETF",
+        "country": "JP",
+        "flows_usd_mn": 245.87817,
+        "holdings_tonnes": 73.929266,
+        "demand_tonnes": 1.562811,
+        "demand_pct_of_holdings": 0.021596
+      },
+      {
+        "name": "ChinaAMC Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 217.5244,
+        "holdings_tonnes": 17.917438,
+        "demand_tonnes": 1.42481,
+        "demand_pct_of_holdings": 0.086391
+      },
+      {
+        "name": "Amundi Physical Gold ETC",
+        "country": "FR",
+        "flows_usd_mn": 203.9392,
+        "holdings_tonnes": 84.856697,
+        "demand_tonnes": 1.341378,
+        "demand_pct_of_holdings": 0.016061
+      },
+      {
+        "name": "Invesco Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 202.5798,
+        "holdings_tonnes": 199.886835,
+        "demand_tonnes": 1.332523,
+        "demand_pct_of_holdings": 0.006711
+      },
+      {
+        "name": "BMO Gold Bullion ETF",
+        "country": "CA",
+        "flows_usd_mn": 190.742226,
+        "holdings_tonnes": 8.933605,
+        "demand_tonnes": 1.252784,
+        "demand_pct_of_holdings": 0.163105
+      },
+      {
+        "name": "Swisscanto CH Gold ETF EA CHF ‡",
+        "country": "CH",
+        "flows_usd_mn": 162.164,
+        "holdings_tonnes": 147.549262,
+        "demand_tonnes": 1.358788,
+        "demand_pct_of_holdings": 0.009295
+      },
+      {
+        "name": "ICICI Prudential Gold iWIN ETF",
+        "country": "IN",
+        "flows_usd_mn": 147.405657,
+        "holdings_tonnes": 17.298099,
+        "demand_tonnes": 0.920099,
+        "demand_pct_of_holdings": 0.056179
+      },
+      {
+        "name": "Xetra-Gold",
+        "country": "DE",
+        "flows_usd_mn": 144.236598,
+        "holdings_tonnes": 171.16075,
+        "demand_tonnes": 0.946669,
+        "demand_pct_of_holdings": 0.005562
+      },
+      {
+        "name": "WisdomTree Physical Gold GBP Daily Hedged",
+        "country": "GB",
+        "flows_usd_mn": 139.2322,
+        "holdings_tonnes": 23.480451,
+        "demand_tonnes": 1.490987,
+        "demand_pct_of_holdings": 0.067805
+      },
+      {
+        "name": "WisdomTree Physical Gold EUR Daily Hedged",
+        "country": "IT",
+        "flows_usd_mn": 132.404917,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": 0.873216,
+        "demand_pct_of_holdings": 0.093128
+      }
+    ],
+    "bottom_flows": [
+      {
+        "name": "SPDR Gold Shares",
+        "country": "US",
+        "flows_usd_mn": -1624.3794,
+        "holdings_tonnes": 1035.421853,
+        "demand_tonnes": -11.479083,
+        "demand_pct_of_holdings": -0.010965
+      },
+      {
+        "name": "WisdomTree Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": -169.5027,
+        "holdings_tonnes": 52.196814,
+        "demand_tonnes": -1.11806,
+        "demand_pct_of_holdings": -0.020971
+      },
+      {
+        "name": "UBS Gold ETF",
+        "country": "CH",
+        "flows_usd_mn": -36.5079,
+        "holdings_tonnes": 42.993855,
+        "demand_tonnes": -0.278457,
+        "demand_pct_of_holdings": -0.006435
+      },
+      {
+        "name": "Kotak Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -30.564317,
+        "holdings_tonnes": 9.294219,
+        "demand_tonnes": -0.190781,
+        "demand_pct_of_holdings": -0.020114
+      },
+      {
+        "name": "Purpose Gold Bullion Fund - Hedged  ‡",
+        "country": "CA",
+        "flows_usd_mn": -29.145,
+        "holdings_tonnes": 4.38481,
+        "demand_tonnes": -0.207562,
+        "demand_pct_of_holdings": -0.045197
+      },
+      {
+        "name": "CI Gold Bullion ETF (USD)",
+        "country": "CA",
+        "flows_usd_mn": -24.5669,
+        "holdings_tonnes": 2.85354,
+        "demand_tonnes": -0.139117,
+        "demand_pct_of_holdings": -0.046486
+      },
+      {
+        "name": "Goldman Sachs Physical Gold ETF",
+        "country": "US",
+        "flows_usd_mn": -21.4087,
+        "holdings_tonnes": 18.890835,
+        "demand_tonnes": -0.141035,
+        "demand_pct_of_holdings": -0.00741
+      },
+      {
+        "name": "E Fund Gold Tradable Open-end Securities Investment Fund",
+        "country": "CN",
+        "flows_usd_mn": -13.3818,
+        "holdings_tonnes": 40.94098,
+        "demand_tonnes": -0.113678,
+        "demand_pct_of_holdings": -0.002769
+      },
+      {
+        "name": "Invesco Physical Gold GBP Hedged ETC",
+        "country": "GB",
+        "flows_usd_mn": -9.1648,
+        "holdings_tonnes": 3.388517,
+        "demand_tonnes": 0.028463,
+        "demand_pct_of_holdings": 0.008471
+      },
+      {
+        "name": "Xtrackers IE Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": -6.903,
+        "holdings_tonnes": 9.009389,
+        "demand_tonnes": 0.068006,
+        "demand_pct_of_holdings": 0.007606
+      },
+      {
+        "name": "Bosera Gold ETF I",
+        "country": "CN",
+        "flows_usd_mn": -6.154494,
+        "holdings_tonnes": 0.622211,
+        "demand_tonnes": -0.040452,
+        "demand_pct_of_holdings": -0.061045
+      },
+      {
+        "name": "Harvest Shanghai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": -5.020671,
+        "holdings_tonnes": 2.127562,
+        "demand_tonnes": -0.033,
+        "demand_pct_of_holdings": -0.015274
+      },
+      {
+        "name": "Angel One Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -4.814175,
+        "holdings_tonnes": 0.05395,
+        "demand_tonnes": -0.03005,
+        "demand_pct_of_holdings": -0.357736
+      },
+      {
+        "name": "Xtrackers Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -4.222,
+        "holdings_tonnes": 3.785271,
+        "demand_tonnes": -0.029097,
+        "demand_pct_of_holdings": -0.007628
+      },
+      {
+        "name": "Perth Mint Gold Structured Product",
+        "country": "AU",
+        "flows_usd_mn": -3.617827,
+        "holdings_tonnes": 12.147263,
+        "demand_tonnes": -0.02386,
+        "demand_pct_of_holdings": -0.00196
+      }
+    ],
+    "top_demand_pct": [
+      {
+        "name": "HSBC Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 51.486652,
+        "holdings_tonnes": 0.323249,
+        "demand_tonnes": 0.321377,
+        "demand_pct_of_holdings": 171.660282
+      },
+      {
+        "name": "SMO Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 4.7654,
+        "holdings_tonnes": 0.088268,
+        "demand_tonnes": 0.030909,
+        "demand_pct_of_holdings": 0.538865
+      },
+      {
+        "name": "LionGlobal Singapore Physical Gold ETF",
+        "country": "SG",
+        "flows_usd_mn": 23.37264,
+        "holdings_tonnes": 0.441859,
+        "demand_tonnes": 0.153753,
+        "demand_pct_of_holdings": 0.533669
+      },
+      {
+        "name": "BMO Gold Bullion Hedged to CAD",
+        "country": "CA",
+        "flows_usd_mn": 19.0692,
+        "holdings_tonnes": 0.948267,
+        "demand_tonnes": 0.14335,
+        "demand_pct_of_holdings": 0.178093
+      },
+      {
+        "name": "BMO Gold Bullion ETF",
+        "country": "CA",
+        "flows_usd_mn": 190.742226,
+        "holdings_tonnes": 8.933605,
+        "demand_tonnes": 1.252784,
+        "demand_pct_of_holdings": 0.163105
+      },
+      {
+        "name": "iShares Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": 56.5828,
+        "holdings_tonnes": 4.69659,
+        "demand_tonnes": 0.426799,
+        "demand_pct_of_holdings": 0.099958
+      },
+      {
+        "name": "TradePlus Shariah Gold Tracker",
+        "country": "MY",
+        "flows_usd_mn": 11.5358,
+        "holdings_tonnes": 1.047637,
+        "demand_tonnes": 0.089509,
+        "demand_pct_of_holdings": 0.09342
+      },
+      {
+        "name": "WisdomTree Physical Gold EUR Daily Hedged",
+        "country": "IT",
+        "flows_usd_mn": 132.404917,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": 0.873216,
+        "demand_pct_of_holdings": 0.093128
+      },
+      {
+        "name": "ChinaAMC Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 217.5244,
+        "holdings_tonnes": 17.917438,
+        "demand_tonnes": 1.42481,
+        "demand_pct_of_holdings": 0.086391
+      },
+      {
+        "name": "Global X Gold Bullion (Currency Hedged) ETF",
+        "country": "AU",
+        "flows_usd_mn": 5.5122,
+        "holdings_tonnes": 1.418115,
+        "demand_tonnes": 0.092952,
+        "demand_pct_of_holdings": 0.070144
+      },
+      {
+        "name": "WisdomTree Physical Gold GBP Daily Hedged",
+        "country": "GB",
+        "flows_usd_mn": 139.2322,
+        "holdings_tonnes": 23.480451,
+        "demand_tonnes": 1.490987,
+        "demand_pct_of_holdings": 0.067805
+      },
+      {
+        "name": "EUWAX Gold Core",
+        "country": "DE",
+        "flows_usd_mn": 1.4436,
+        "holdings_tonnes": 0.148936,
+        "demand_tonnes": 0.00928,
+        "demand_pct_of_holdings": 0.066447
+      },
+      {
+        "name": "Invesco Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": 60.6996,
+        "holdings_tonnes": 8.280658,
+        "demand_tonnes": 0.500945,
+        "demand_pct_of_holdings": 0.064391
+      },
+      {
+        "name": "ICICI Prudential Gold iWIN ETF",
+        "country": "IN",
+        "flows_usd_mn": 147.405657,
+        "holdings_tonnes": 17.298099,
+        "demand_tonnes": 0.920099,
+        "demand_pct_of_holdings": 0.056179
+      },
+      {
+        "name": "WisdomTree Core Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": 114.7016,
+        "holdings_tonnes": 14.871126,
+        "demand_tonnes": 0.754887,
+        "demand_pct_of_holdings": 0.053476
+      }
+    ],
+    "bottom_demand_pct": [
+      {
+        "name": "Angel One Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -4.814175,
+        "holdings_tonnes": 0.05395,
+        "demand_tonnes": -0.03005,
+        "demand_pct_of_holdings": -0.357736
+      },
+      {
+        "name": "BMO Gold Bullion ETF (USD Units)",
+        "country": "CA",
+        "flows_usd_mn": -2.700365,
+        "holdings_tonnes": 0.234352,
+        "demand_tonnes": -0.017766,
+        "demand_pct_of_holdings": -0.070466
+      },
+      {
+        "name": "Bosera Gold ETF I",
+        "country": "CN",
+        "flows_usd_mn": -6.154494,
+        "holdings_tonnes": 0.622211,
+        "demand_tonnes": -0.040452,
+        "demand_pct_of_holdings": -0.061045
+      },
+      {
+        "name": "CI Gold Bullion ETF (USD)",
+        "country": "CA",
+        "flows_usd_mn": -24.5669,
+        "holdings_tonnes": 2.85354,
+        "demand_tonnes": -0.139117,
+        "demand_pct_of_holdings": -0.046486
+      },
+      {
+        "name": "Purpose Gold Bullion Fund - Hedged  ‡",
+        "country": "CA",
+        "flows_usd_mn": -29.145,
+        "holdings_tonnes": 4.38481,
+        "demand_tonnes": -0.207562,
+        "demand_pct_of_holdings": -0.045197
+      },
+      {
+        "name": "Choice Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -0.16019,
+        "holdings_tonnes": 0.0343,
+        "demand_tonnes": -0.001,
+        "demand_pct_of_holdings": -0.028326
+      },
+      {
+        "name": "WisdomTree Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": -169.5027,
+        "holdings_tonnes": 52.196814,
+        "demand_tonnes": -1.11806,
+        "demand_pct_of_holdings": -0.020971
+      },
+      {
+        "name": "Kotak Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -30.564317,
+        "holdings_tonnes": 9.294219,
+        "demand_tonnes": -0.190781,
+        "demand_pct_of_holdings": -0.020114
+      },
+      {
+        "name": "Harvest Shanghai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": -5.020671,
+        "holdings_tonnes": 2.127562,
+        "demand_tonnes": -0.033,
+        "demand_pct_of_holdings": -0.015274
+      },
+      {
+        "name": "SPDR Gold Shares",
+        "country": "US",
+        "flows_usd_mn": -1624.3794,
+        "holdings_tonnes": 1035.421853,
+        "demand_tonnes": -11.479083,
+        "demand_pct_of_holdings": -0.010965
+      },
+      {
+        "name": "Union Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -0.3349,
+        "holdings_tonnes": 0.20491,
+        "demand_tonnes": -0.00209,
+        "demand_pct_of_holdings": -0.010099
+      },
+      {
+        "name": "First Seafront Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": -2.6405,
+        "holdings_tonnes": 1.817956,
+        "demand_tonnes": -0.017933,
+        "demand_pct_of_holdings": -0.009768
+      },
+      {
+        "name": "KIM Ace KRX Physical Gold ETF",
+        "country": "KR",
+        "flows_usd_mn": 2.0657,
+        "holdings_tonnes": 21.421625,
+        "demand_tonnes": -0.200975,
+        "demand_pct_of_holdings": -0.009295
+      },
+      {
+        "name": "Quantum Gold Fund",
+        "country": "IN",
+        "flows_usd_mn": -0.647054,
+        "holdings_tonnes": 0.468961,
+        "demand_tonnes": -0.004039,
+        "demand_pct_of_holdings": -0.008539
+      },
+      {
+        "name": "Xtrackers Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -4.222,
+        "holdings_tonnes": 3.785271,
+        "demand_tonnes": -0.029097,
+        "demand_pct_of_holdings": -0.007628
+      }
+    ]
+  },
+  "QTD": {
+    "top_flows": [
+      {
+        "name": "iShares Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 1825.5361,
+        "holdings_tonnes": 259.011248,
+        "demand_tonnes": 11.949186,
+        "demand_pct_of_holdings": 0.048365
+      },
+      {
+        "name": "SPDR Gold MiniShares Trust",
+        "country": "US",
+        "flows_usd_mn": 1435.5133,
+        "holdings_tonnes": 209.352374,
+        "demand_tonnes": 9.462041,
+        "demand_pct_of_holdings": 0.047336
+      },
+      {
+        "name": "iShares Gold Trust",
+        "country": "US",
+        "flows_usd_mn": 928.4698,
+        "holdings_tonnes": 482.009453,
+        "demand_tonnes": 6.047957,
+        "demand_pct_of_holdings": 0.012707
+      },
+      {
+        "name": "CSOP Gold ETF",
+        "country": "HK",
+        "flows_usd_mn": 719.26241,
+        "holdings_tonnes": 4.677071,
+        "demand_tonnes": 4.677071,
+        "demand_pct_of_holdings": null
+      },
+      {
+        "name": "Pictet CH Precious Metals Fund - Physical Gold  ‡",
+        "country": "CH",
+        "flows_usd_mn": 302.6143,
+        "holdings_tonnes": 95.292826,
+        "demand_tonnes": 2.072931,
+        "demand_pct_of_holdings": 0.022237
+      },
+      {
+        "name": "Japan Physical Gold ETF",
+        "country": "JP",
+        "flows_usd_mn": 245.87817,
+        "holdings_tonnes": 73.929266,
+        "demand_tonnes": 1.562811,
+        "demand_pct_of_holdings": 0.021596
+      },
+      {
+        "name": "ChinaAMC Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 217.5244,
+        "holdings_tonnes": 17.917438,
+        "demand_tonnes": 1.42481,
+        "demand_pct_of_holdings": 0.086391
+      },
+      {
+        "name": "Amundi Physical Gold ETC",
+        "country": "FR",
+        "flows_usd_mn": 203.9392,
+        "holdings_tonnes": 84.856697,
+        "demand_tonnes": 1.341378,
+        "demand_pct_of_holdings": 0.016061
+      },
+      {
+        "name": "Invesco Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 202.5798,
+        "holdings_tonnes": 199.886835,
+        "demand_tonnes": 1.332523,
+        "demand_pct_of_holdings": 0.006711
+      },
+      {
+        "name": "BMO Gold Bullion ETF",
+        "country": "CA",
+        "flows_usd_mn": 190.742226,
+        "holdings_tonnes": 8.933605,
+        "demand_tonnes": 1.252784,
+        "demand_pct_of_holdings": 0.163105
+      },
+      {
+        "name": "Swisscanto CH Gold ETF EA CHF ‡",
+        "country": "CH",
+        "flows_usd_mn": 162.164,
+        "holdings_tonnes": 147.549262,
+        "demand_tonnes": 1.358788,
+        "demand_pct_of_holdings": 0.009295
+      },
+      {
+        "name": "ICICI Prudential Gold iWIN ETF",
+        "country": "IN",
+        "flows_usd_mn": 147.405657,
+        "holdings_tonnes": 17.298099,
+        "demand_tonnes": 0.920099,
+        "demand_pct_of_holdings": 0.056179
+      },
+      {
+        "name": "Xetra-Gold",
+        "country": "DE",
+        "flows_usd_mn": 144.236598,
+        "holdings_tonnes": 171.16075,
+        "demand_tonnes": 0.946669,
+        "demand_pct_of_holdings": 0.005562
+      },
+      {
+        "name": "WisdomTree Physical Gold GBP Daily Hedged",
+        "country": "GB",
+        "flows_usd_mn": 139.2322,
+        "holdings_tonnes": 23.480451,
+        "demand_tonnes": 1.490987,
+        "demand_pct_of_holdings": 0.067805
+      },
+      {
+        "name": "WisdomTree Physical Gold EUR Daily Hedged",
+        "country": "IT",
+        "flows_usd_mn": 132.404917,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": 0.873216,
+        "demand_pct_of_holdings": 0.093128
+      }
+    ],
+    "bottom_flows": [
+      {
+        "name": "SPDR Gold Shares",
+        "country": "US",
+        "flows_usd_mn": -1624.3794,
+        "holdings_tonnes": 1035.421853,
+        "demand_tonnes": -11.479083,
+        "demand_pct_of_holdings": -0.010965
+      },
+      {
+        "name": "WisdomTree Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": -169.5027,
+        "holdings_tonnes": 52.196814,
+        "demand_tonnes": -1.11806,
+        "demand_pct_of_holdings": -0.020971
+      },
+      {
+        "name": "UBS Gold ETF",
+        "country": "CH",
+        "flows_usd_mn": -36.5079,
+        "holdings_tonnes": 42.993855,
+        "demand_tonnes": -0.278457,
+        "demand_pct_of_holdings": -0.006435
+      },
+      {
+        "name": "Kotak Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -30.564317,
+        "holdings_tonnes": 9.294219,
+        "demand_tonnes": -0.190781,
+        "demand_pct_of_holdings": -0.020114
+      },
+      {
+        "name": "Purpose Gold Bullion Fund - Hedged  ‡",
+        "country": "CA",
+        "flows_usd_mn": -29.145,
+        "holdings_tonnes": 4.38481,
+        "demand_tonnes": -0.207562,
+        "demand_pct_of_holdings": -0.045197
+      },
+      {
+        "name": "CI Gold Bullion ETF (USD)",
+        "country": "CA",
+        "flows_usd_mn": -24.5669,
+        "holdings_tonnes": 2.85354,
+        "demand_tonnes": -0.139117,
+        "demand_pct_of_holdings": -0.046486
+      },
+      {
+        "name": "Goldman Sachs Physical Gold ETF",
+        "country": "US",
+        "flows_usd_mn": -21.4087,
+        "holdings_tonnes": 18.890835,
+        "demand_tonnes": -0.141035,
+        "demand_pct_of_holdings": -0.00741
+      },
+      {
+        "name": "E Fund Gold Tradable Open-end Securities Investment Fund",
+        "country": "CN",
+        "flows_usd_mn": -13.3818,
+        "holdings_tonnes": 40.94098,
+        "demand_tonnes": -0.113678,
+        "demand_pct_of_holdings": -0.002769
+      },
+      {
+        "name": "Invesco Physical Gold GBP Hedged ETC",
+        "country": "GB",
+        "flows_usd_mn": -9.1648,
+        "holdings_tonnes": 3.388517,
+        "demand_tonnes": 0.028463,
+        "demand_pct_of_holdings": 0.008471
+      },
+      {
+        "name": "Xtrackers IE Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": -6.903,
+        "holdings_tonnes": 9.009389,
+        "demand_tonnes": 0.068006,
+        "demand_pct_of_holdings": 0.007606
+      },
+      {
+        "name": "Bosera Gold ETF I",
+        "country": "CN",
+        "flows_usd_mn": -6.154494,
+        "holdings_tonnes": 0.622211,
+        "demand_tonnes": -0.040452,
+        "demand_pct_of_holdings": -0.061045
+      },
+      {
+        "name": "Harvest Shanghai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": -5.020671,
+        "holdings_tonnes": 2.127562,
+        "demand_tonnes": -0.033,
+        "demand_pct_of_holdings": -0.015274
+      },
+      {
+        "name": "Angel One Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -4.814175,
+        "holdings_tonnes": 0.05395,
+        "demand_tonnes": -0.03005,
+        "demand_pct_of_holdings": -0.357736
+      },
+      {
+        "name": "Xtrackers Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -4.222,
+        "holdings_tonnes": 3.785271,
+        "demand_tonnes": -0.029097,
+        "demand_pct_of_holdings": -0.007628
+      },
+      {
+        "name": "Perth Mint Gold Structured Product",
+        "country": "AU",
+        "flows_usd_mn": -3.617827,
+        "holdings_tonnes": 12.147263,
+        "demand_tonnes": -0.02386,
+        "demand_pct_of_holdings": -0.00196
+      }
+    ],
+    "top_demand_pct": [
+      {
+        "name": "HSBC Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 51.486652,
+        "holdings_tonnes": 0.323249,
+        "demand_tonnes": 0.321377,
+        "demand_pct_of_holdings": 171.660282
+      },
+      {
+        "name": "SMO Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 4.7654,
+        "holdings_tonnes": 0.088268,
+        "demand_tonnes": 0.030909,
+        "demand_pct_of_holdings": 0.538865
+      },
+      {
+        "name": "LionGlobal Singapore Physical Gold ETF",
+        "country": "SG",
+        "flows_usd_mn": 23.37264,
+        "holdings_tonnes": 0.441859,
+        "demand_tonnes": 0.153753,
+        "demand_pct_of_holdings": 0.533669
+      },
+      {
+        "name": "BMO Gold Bullion Hedged to CAD",
+        "country": "CA",
+        "flows_usd_mn": 19.0692,
+        "holdings_tonnes": 0.948267,
+        "demand_tonnes": 0.14335,
+        "demand_pct_of_holdings": 0.178093
+      },
+      {
+        "name": "BMO Gold Bullion ETF",
+        "country": "CA",
+        "flows_usd_mn": 190.742226,
+        "holdings_tonnes": 8.933605,
+        "demand_tonnes": 1.252784,
+        "demand_pct_of_holdings": 0.163105
+      },
+      {
+        "name": "iShares Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": 56.5828,
+        "holdings_tonnes": 4.69659,
+        "demand_tonnes": 0.426799,
+        "demand_pct_of_holdings": 0.099958
+      },
+      {
+        "name": "TradePlus Shariah Gold Tracker",
+        "country": "MY",
+        "flows_usd_mn": 11.5358,
+        "holdings_tonnes": 1.047637,
+        "demand_tonnes": 0.089509,
+        "demand_pct_of_holdings": 0.09342
+      },
+      {
+        "name": "WisdomTree Physical Gold EUR Daily Hedged",
+        "country": "IT",
+        "flows_usd_mn": 132.404917,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": 0.873216,
+        "demand_pct_of_holdings": 0.093128
+      },
+      {
+        "name": "ChinaAMC Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 217.5244,
+        "holdings_tonnes": 17.917438,
+        "demand_tonnes": 1.42481,
+        "demand_pct_of_holdings": 0.086391
+      },
+      {
+        "name": "Global X Gold Bullion (Currency Hedged) ETF",
+        "country": "AU",
+        "flows_usd_mn": 5.5122,
+        "holdings_tonnes": 1.418115,
+        "demand_tonnes": 0.092952,
+        "demand_pct_of_holdings": 0.070144
+      },
+      {
+        "name": "WisdomTree Physical Gold GBP Daily Hedged",
+        "country": "GB",
+        "flows_usd_mn": 139.2322,
+        "holdings_tonnes": 23.480451,
+        "demand_tonnes": 1.490987,
+        "demand_pct_of_holdings": 0.067805
+      },
+      {
+        "name": "EUWAX Gold Core",
+        "country": "DE",
+        "flows_usd_mn": 1.4436,
+        "holdings_tonnes": 0.148936,
+        "demand_tonnes": 0.00928,
+        "demand_pct_of_holdings": 0.066447
+      },
+      {
+        "name": "Invesco Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": 60.6996,
+        "holdings_tonnes": 8.280658,
+        "demand_tonnes": 0.500945,
+        "demand_pct_of_holdings": 0.064391
+      },
+      {
+        "name": "ICICI Prudential Gold iWIN ETF",
+        "country": "IN",
+        "flows_usd_mn": 147.405657,
+        "holdings_tonnes": 17.298099,
+        "demand_tonnes": 0.920099,
+        "demand_pct_of_holdings": 0.056179
+      },
+      {
+        "name": "WisdomTree Core Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": 114.7016,
+        "holdings_tonnes": 14.871126,
+        "demand_tonnes": 0.754887,
+        "demand_pct_of_holdings": 0.053476
+      }
+    ],
+    "bottom_demand_pct": [
+      {
+        "name": "Angel One Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -4.814175,
+        "holdings_tonnes": 0.05395,
+        "demand_tonnes": -0.03005,
+        "demand_pct_of_holdings": -0.357736
+      },
+      {
+        "name": "BMO Gold Bullion ETF (USD Units)",
+        "country": "CA",
+        "flows_usd_mn": -2.700365,
+        "holdings_tonnes": 0.234352,
+        "demand_tonnes": -0.017766,
+        "demand_pct_of_holdings": -0.070466
+      },
+      {
+        "name": "Bosera Gold ETF I",
+        "country": "CN",
+        "flows_usd_mn": -6.154494,
+        "holdings_tonnes": 0.622211,
+        "demand_tonnes": -0.040452,
+        "demand_pct_of_holdings": -0.061045
+      },
+      {
+        "name": "CI Gold Bullion ETF (USD)",
+        "country": "CA",
+        "flows_usd_mn": -24.5669,
+        "holdings_tonnes": 2.85354,
+        "demand_tonnes": -0.139117,
+        "demand_pct_of_holdings": -0.046486
+      },
+      {
+        "name": "Purpose Gold Bullion Fund - Hedged  ‡",
+        "country": "CA",
+        "flows_usd_mn": -29.145,
+        "holdings_tonnes": 4.38481,
+        "demand_tonnes": -0.207562,
+        "demand_pct_of_holdings": -0.045197
+      },
+      {
+        "name": "Choice Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -0.16019,
+        "holdings_tonnes": 0.0343,
+        "demand_tonnes": -0.001,
+        "demand_pct_of_holdings": -0.028326
+      },
+      {
+        "name": "WisdomTree Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": -169.5027,
+        "holdings_tonnes": 52.196814,
+        "demand_tonnes": -1.11806,
+        "demand_pct_of_holdings": -0.020971
+      },
+      {
+        "name": "Kotak Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -30.564317,
+        "holdings_tonnes": 9.294219,
+        "demand_tonnes": -0.190781,
+        "demand_pct_of_holdings": -0.020114
+      },
+      {
+        "name": "Harvest Shanghai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": -5.020671,
+        "holdings_tonnes": 2.127562,
+        "demand_tonnes": -0.033,
+        "demand_pct_of_holdings": -0.015274
+      },
+      {
+        "name": "SPDR Gold Shares",
+        "country": "US",
+        "flows_usd_mn": -1624.3794,
+        "holdings_tonnes": 1035.421853,
+        "demand_tonnes": -11.479083,
+        "demand_pct_of_holdings": -0.010965
+      },
+      {
+        "name": "Union Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -0.3349,
+        "holdings_tonnes": 0.20491,
+        "demand_tonnes": -0.00209,
+        "demand_pct_of_holdings": -0.010099
+      },
+      {
+        "name": "First Seafront Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": -2.6405,
+        "holdings_tonnes": 1.817956,
+        "demand_tonnes": -0.017933,
+        "demand_pct_of_holdings": -0.009768
+      },
+      {
+        "name": "KIM Ace KRX Physical Gold ETF",
+        "country": "KR",
+        "flows_usd_mn": 2.0657,
+        "holdings_tonnes": 21.421625,
+        "demand_tonnes": -0.200975,
+        "demand_pct_of_holdings": -0.009295
+      },
+      {
+        "name": "Quantum Gold Fund",
+        "country": "IN",
+        "flows_usd_mn": -0.647054,
+        "holdings_tonnes": 0.468961,
+        "demand_tonnes": -0.004039,
+        "demand_pct_of_holdings": -0.008539
+      },
+      {
+        "name": "Xtrackers Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -4.222,
+        "holdings_tonnes": 3.785271,
+        "demand_tonnes": -0.029097,
+        "demand_pct_of_holdings": -0.007628
+      }
+    ]
+  },
+  "YTD": {
+    "top_flows": [
+      {
+        "name": "SPDR Gold MiniShares Trust",
+        "country": "US",
+        "flows_usd_mn": 4112.1821,
+        "holdings_tonnes": 209.352374,
+        "demand_tonnes": 26.776039,
+        "demand_pct_of_holdings": 0.146657
+      },
+      {
+        "name": "Huaan Yifu Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 2608.166155,
+        "holdings_tonnes": 111.08683,
+        "demand_tonnes": 15.155476,
+        "demand_pct_of_holdings": 0.157983
+      },
+      {
+        "name": "iShares Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 2548.6017,
+        "holdings_tonnes": 259.011248,
+        "demand_tonnes": 15.844243,
+        "demand_pct_of_holdings": 0.065158
+      },
+      {
+        "name": "Pictet CH Precious Metals Fund - Physical Gold  ‡",
+        "country": "CH",
+        "flows_usd_mn": 1977.326,
+        "holdings_tonnes": 95.292826,
+        "demand_tonnes": 12.643958,
+        "demand_pct_of_holdings": 0.152984
+      },
+      {
+        "name": "Guotai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 1629.862312,
+        "holdings_tonnes": 40.004747,
+        "demand_tonnes": 9.762722,
+        "demand_pct_of_holdings": 0.32282
+      },
+      {
+        "name": "Japan Physical Gold ETF",
+        "country": "JP",
+        "flows_usd_mn": 1264.40668,
+        "holdings_tonnes": 73.929266,
+        "demand_tonnes": 7.663222,
+        "demand_pct_of_holdings": 0.115643
+      },
+      {
+        "name": "Nippon India ETF Gold BeES",
+        "country": "IN",
+        "flows_usd_mn": 1114.137802,
+        "holdings_tonnes": 36.466368,
+        "demand_tonnes": 6.807368,
+        "demand_pct_of_holdings": 0.229521
+      },
+      {
+        "name": "Bosera Gold Exchange Trade Open-End Fund ETF",
+        "country": "CN",
+        "flows_usd_mn": 1049.3143,
+        "holdings_tonnes": 47.464743,
+        "demand_tonnes": 6.110608,
+        "demand_pct_of_holdings": 0.147763
+      },
+      {
+        "name": "ChinaAMC Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 958.0196,
+        "holdings_tonnes": 17.917438,
+        "demand_tonnes": 5.991645,
+        "demand_pct_of_holdings": 0.502411
+      },
+      {
+        "name": "iShares Gold Trust Micro",
+        "country": "US",
+        "flows_usd_mn": 842.4391,
+        "holdings_tonnes": 48.790385,
+        "demand_tonnes": 5.259649,
+        "demand_pct_of_holdings": 0.120826
+      },
+      {
+        "name": "E Fund Gold Tradable Open-end Securities Investment Fund",
+        "country": "CN",
+        "flows_usd_mn": 785.6524,
+        "holdings_tonnes": 40.94098,
+        "demand_tonnes": 4.519956,
+        "demand_pct_of_holdings": 0.124103
+      },
+      {
+        "name": "CSOP Gold ETF",
+        "country": "HK",
+        "flows_usd_mn": 719.26241,
+        "holdings_tonnes": 4.677071,
+        "demand_tonnes": 4.677071,
+        "demand_pct_of_holdings": null
+      },
+      {
+        "name": "ICICI Prudential Gold iWIN ETF",
+        "country": "IN",
+        "flows_usd_mn": 673.503642,
+        "holdings_tonnes": 17.298099,
+        "demand_tonnes": 4.115099,
+        "demand_pct_of_holdings": 0.312152
+      },
+      {
+        "name": "KIM Ace KRX Physical Gold ETF",
+        "country": "KR",
+        "flows_usd_mn": 618.9228,
+        "holdings_tonnes": 21.421625,
+        "demand_tonnes": 3.325023,
+        "demand_pct_of_holdings": 0.183737
+      },
+      {
+        "name": "SBI-ETF Gold",
+        "country": "IN",
+        "flows_usd_mn": 522.986233,
+        "holdings_tonnes": 16.11044,
+        "demand_tonnes": 3.19544,
+        "demand_pct_of_holdings": 0.247421
+      }
+    ],
+    "bottom_flows": [
+      {
+        "name": "SPDR Gold Shares",
+        "country": "US",
+        "flows_usd_mn": -4965.0485,
+        "holdings_tonnes": 1035.421853,
+        "demand_tonnes": -34.788877,
+        "demand_pct_of_holdings": -0.032507
+      },
+      {
+        "name": "iShares Gold Trust",
+        "country": "US",
+        "flows_usd_mn": -1825.6742,
+        "holdings_tonnes": 482.009453,
+        "demand_tonnes": -11.670121,
+        "demand_pct_of_holdings": -0.023639
+      },
+      {
+        "name": "Invesco Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": -877.1179,
+        "holdings_tonnes": 199.886835,
+        "demand_tonnes": -5.511341,
+        "demand_pct_of_holdings": -0.026832
+      },
+      {
+        "name": "Xtrackers IE Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -649.7746,
+        "holdings_tonnes": 47.881,
+        "demand_tonnes": -3.932253,
+        "demand_pct_of_holdings": -0.075893
+      },
+      {
+        "name": "Swisscanto CH Gold ETF EA CHF ‡",
+        "country": "CH",
+        "flows_usd_mn": -436.3762,
+        "holdings_tonnes": 147.549262,
+        "demand_tonnes": -5.291544,
+        "demand_pct_of_holdings": -0.034621
+      },
+      {
+        "name": "WisdomTree Physical Swiss Gold",
+        "country": "GB",
+        "flows_usd_mn": -406.7928,
+        "holdings_tonnes": 35.384673,
+        "demand_tonnes": -2.41553,
+        "demand_pct_of_holdings": -0.063903
+      },
+      {
+        "name": "WisdomTree Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": -359.9398,
+        "holdings_tonnes": 52.196814,
+        "demand_tonnes": -2.328903,
+        "demand_pct_of_holdings": -0.042712
+      },
+      {
+        "name": "Xetra-Gold",
+        "country": "DE",
+        "flows_usd_mn": -256.722213,
+        "holdings_tonnes": 171.16075,
+        "demand_tonnes": -1.717749,
+        "demand_pct_of_holdings": -0.009936
+      },
+      {
+        "name": "Gold Bullion Securities Ltd",
+        "country": "GB",
+        "flows_usd_mn": -222.5944,
+        "holdings_tonnes": 30.235397,
+        "demand_tonnes": -1.452951,
+        "demand_pct_of_holdings": -0.045851
+      },
+      {
+        "name": "Sprott Physical Gold & Silver Trust",
+        "country": "CA",
+        "flows_usd_mn": -198.868268,
+        "holdings_tonnes": 37.161146,
+        "demand_tonnes": -1.28164,
+        "demand_pct_of_holdings": -0.033339
+      },
+      {
+        "name": "WisdomTree Physical Gold EUR Daily Hedged",
+        "country": "IT",
+        "flows_usd_mn": -134.545165,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": -0.867099,
+        "demand_pct_of_holdings": -0.077999
+      },
+      {
+        "name": "Xtrackers IE Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": -61.2435,
+        "holdings_tonnes": 9.009389,
+        "demand_tonnes": -0.526572,
+        "demand_pct_of_holdings": -0.05522
+      },
+      {
+        "name": "BCV Physical Gold ESG-USD ‡",
+        "country": "CH",
+        "flows_usd_mn": -56.4711,
+        "holdings_tonnes": 2.409597,
+        "demand_tonnes": -0.399039,
+        "demand_pct_of_holdings": -0.142076
+      },
+      {
+        "name": "iShares Gold CHF Hedged CH",
+        "country": "CH",
+        "flows_usd_mn": -42.0542,
+        "holdings_tonnes": 5.565383,
+        "demand_tonnes": -0.25636,
+        "demand_pct_of_holdings": -0.044035
+      },
+      {
+        "name": "Xtrackers Physical Gold ETC EUR",
+        "country": "DE",
+        "flows_usd_mn": -40.724,
+        "holdings_tonnes": 18.991769,
+        "demand_tonnes": -0.336998,
+        "demand_pct_of_holdings": -0.017435
+      }
+    ],
+    "top_demand_pct": [
+      {
+        "name": "Bandhan Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 15.548312,
+        "holdings_tonnes": 0.11,
+        "demand_tonnes": 0.095,
+        "demand_pct_of_holdings": 6.333333
+      },
+      {
+        "name": "Invesco Physical Gold GBP Hedged ETC",
+        "country": "GB",
+        "flows_usd_mn": 360.548,
+        "holdings_tonnes": 3.388517,
+        "demand_tonnes": 2.107644,
+        "demand_pct_of_holdings": 1.645475
+      },
+      {
+        "name": "Tata Gold Exchange Traded Fund",
+        "country": "IN",
+        "flows_usd_mn": 291.648774,
+        "holdings_tonnes": 3.81097,
+        "demand_tonnes": 1.78197,
+        "demand_pct_of_holdings": 0.878251
+      },
+      {
+        "name": "LionGlobal Singapore Physical Gold Fund Class A SGD (Acc) ‡",
+        "country": "SG",
+        "flows_usd_mn": 183.55035,
+        "holdings_tonnes": 2.428235,
+        "demand_tonnes": 1.127397,
+        "demand_pct_of_holdings": 0.866671
+      },
+      {
+        "name": "Zerodha Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 99.703768,
+        "holdings_tonnes": 1.462289,
+        "demand_tonnes": 0.609189,
+        "demand_pct_of_holdings": 0.714088
+      },
+      {
+        "name": "Albilad Gold ETF",
+        "country": "SA",
+        "flows_usd_mn": 29.41974,
+        "holdings_tonnes": 0.466797,
+        "demand_tonnes": 0.185799,
+        "demand_pct_of_holdings": 0.661209
+      },
+      {
+        "name": "EUWAX Gold Core",
+        "country": "DE",
+        "flows_usd_mn": 8.6064,
+        "holdings_tonnes": 0.148936,
+        "demand_tonnes": 0.056551,
+        "demand_pct_of_holdings": 0.612118
+      },
+      {
+        "name": "iShares Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": 270.0874,
+        "holdings_tonnes": 4.69659,
+        "demand_tonnes": 1.696678,
+        "demand_pct_of_holdings": 0.565576
+      },
+      {
+        "name": "GF Shanghai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 443.3655,
+        "holdings_tonnes": 7.772546,
+        "demand_tonnes": 2.692729,
+        "demand_pct_of_holdings": 0.530084
+      },
+      {
+        "name": "SMO Physical Gold ETC",
+        "country": "GB",
+        "flows_usd_mn": 4.7654,
+        "holdings_tonnes": 0.088268,
+        "demand_tonnes": 0.03007,
+        "demand_pct_of_holdings": 0.516695
+      },
+      {
+        "name": "Angel One Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 2.986937,
+        "holdings_tonnes": 0.05395,
+        "demand_tonnes": 0.01825,
+        "demand_pct_of_holdings": 0.511209
+      },
+      {
+        "name": "ChinaAMC Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 958.0196,
+        "holdings_tonnes": 17.917438,
+        "demand_tonnes": 5.991645,
+        "demand_pct_of_holdings": 0.502411
+      },
+      {
+        "name": "Tianhong Shanghai Gold ETF",
+        "country": "CN",
+        "flows_usd_mn": 176.767797,
+        "holdings_tonnes": 3.524572,
+        "demand_tonnes": 1.087331,
+        "demand_pct_of_holdings": 0.446132
+      },
+      {
+        "name": "Union Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 9.314187,
+        "holdings_tonnes": 0.20491,
+        "demand_tonnes": 0.05691,
+        "demand_pct_of_holdings": 0.384524
+      },
+      {
+        "name": "Mirae Asset Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": 93.790741,
+        "holdings_tonnes": 2.09306,
+        "demand_tonnes": 0.57306,
+        "demand_pct_of_holdings": 0.377013
+      }
+    ],
+    "bottom_demand_pct": [
+      {
+        "name": "Choice Gold ETF",
+        "country": "IN",
+        "flows_usd_mn": -1.898514,
+        "holdings_tonnes": 0.0343,
+        "demand_tonnes": -0.0116,
+        "demand_pct_of_holdings": -0.252721
+      },
+      {
+        "name": "BCV Physical Gold ESG-USD ‡",
+        "country": "CH",
+        "flows_usd_mn": -56.4711,
+        "holdings_tonnes": 2.409597,
+        "demand_tonnes": -0.399039,
+        "demand_pct_of_holdings": -0.142076
+      },
+      {
+        "name": "Safe Port Precious Metals 95+ Fund",
+        "country": "LI",
+        "flows_usd_mn": -0.316249,
+        "holdings_tonnes": 0.167505,
+        "demand_tonnes": -0.018554,
+        "demand_pct_of_holdings": -0.099722
+      },
+      {
+        "name": "Bosera Gold ETF I",
+        "country": "CN",
+        "flows_usd_mn": -9.313651,
+        "holdings_tonnes": 0.622211,
+        "demand_tonnes": -0.059873,
+        "demand_pct_of_holdings": -0.08778
+      },
+      {
+        "name": "WisdomTree Physical Gold EUR Daily Hedged",
+        "country": "IT",
+        "flows_usd_mn": -134.545165,
+        "holdings_tonnes": 10.249716,
+        "demand_tonnes": -0.867099,
+        "demand_pct_of_holdings": -0.077999
+      },
+      {
+        "name": "Xtrackers IE Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -649.7746,
+        "holdings_tonnes": 47.881,
+        "demand_tonnes": -3.932253,
+        "demand_pct_of_holdings": -0.075893
+      },
+      {
+        "name": "WisdomTree Physical Swiss Gold",
+        "country": "GB",
+        "flows_usd_mn": -406.7928,
+        "holdings_tonnes": 35.384673,
+        "demand_tonnes": -2.41553,
+        "demand_pct_of_holdings": -0.063903
+      },
+      {
+        "name": "CI Gold Bullion ETF (USD)",
+        "country": "CA",
+        "flows_usd_mn": -24.4962,
+        "holdings_tonnes": 2.85354,
+        "demand_tonnes": -0.193596,
+        "demand_pct_of_holdings": -0.063534
+      },
+      {
+        "name": "Safe Port Physical Gold 95+ Fund",
+        "country": "LI",
+        "flows_usd_mn": -2.6944,
+        "holdings_tonnes": 0.24205,
+        "demand_tonnes": -0.01602,
+        "demand_pct_of_holdings": -0.062075
+      },
+      {
+        "name": "Xtrackers IE Physical Gold EUR Hedged ETC",
+        "country": "DE",
+        "flows_usd_mn": -61.2435,
+        "holdings_tonnes": 9.009389,
+        "demand_tonnes": -0.526572,
+        "demand_pct_of_holdings": -0.05522
+      },
+      {
+        "name": "Xtrackers Physical Gold ETC",
+        "country": "DE",
+        "flows_usd_mn": -32.0464,
+        "holdings_tonnes": 3.785271,
+        "demand_tonnes": -0.210973,
+        "demand_pct_of_holdings": -0.052793
+      },
+      {
+        "name": "Gold Bullion Securities Ltd",
+        "country": "GB",
+        "flows_usd_mn": -222.5944,
+        "holdings_tonnes": 30.235397,
+        "demand_tonnes": -1.452951,
+        "demand_pct_of_holdings": -0.045851
+      },
+      {
+        "name": "iShares Gold CHF Hedged CH",
+        "country": "CH",
+        "flows_usd_mn": -42.0542,
+        "holdings_tonnes": 5.565383,
+        "demand_tonnes": -0.25636,
+        "demand_pct_of_holdings": -0.044035
+      },
+      {
+        "name": "Franklin Responsibly Sourced Gold ETF",
+        "country": "US",
+        "flows_usd_mn": -20.8962,
+        "holdings_tonnes": 3.209494,
+        "demand_tonnes": -0.14655,
+        "demand_pct_of_holdings": -0.043667
+      },
+      {
+        "name": "WisdomTree Physical Gold",
+        "country": "GB",
+        "flows_usd_mn": -359.9398,
+        "holdings_tonnes": 52.196814,
+        "demand_tonnes": -2.328903,
+        "demand_pct_of_holdings": -0.042712
+      }
+    ]
+  }
+}

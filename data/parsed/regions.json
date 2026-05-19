@@ -1,0 +1,151 @@
+{
+  "periods": {
+    "1MONTH": {
+      "label": "Apr 26",
+      "regions": [
+        {
+          "region": "North America",
+          "aum_usd_bn": 309.196067,
+          "flows_usd_mn": 1001.941474,
+          "holdings_tonnes": 2085.500171,
+          "demand_tonnes": 6.050325,
+          "demand_pct_of_holdings": 0.00291
+        },
+        {
+          "region": "Europe",
+          "aum_usd_bn": 213.788261,
+          "flows_usd_mn": 3653.892914,
+          "holdings_tonnes": 1441.998295,
+          "demand_tonnes": 26.858713,
+          "demand_pct_of_holdings": 0.01898
+        },
+        {
+          "region": "Asia",
+          "aum_usd_bn": 80.687323,
+          "flows_usd_mn": 1813.278416,
+          "holdings_tonnes": 533.628935,
+          "demand_tonnes": 11.324536,
+          "demand_pct_of_holdings": 0.021682
+        },
+        {
+          "region": "Other",
+          "aum_usd_bn": 11.245892,
+          "flows_usd_mn": 105.902613,
+          "holdings_tonnes": 75.827604,
+          "demand_tonnes": 0.885137,
+          "demand_pct_of_holdings": 0.011811
+        },
+        {
+          "region": "Total",
+          "aum_usd_bn": 614.92,
+          "flows_usd_mn": 6575.015416,
+          "holdings_tonnes": 4136.955006,
+          "demand_tonnes": 45.118711,
+          "demand_pct_of_holdings": 0.011027
+        }
+      ],
+      "global_inflows_usd_mn": 13624.371247,
+      "global_inflows_demand_tonnes": 104.881172,
+      "global_outflows_usd_mn": -7049.35583,
+      "global_outflows_demand_tonnes": -59.764871
+    },
+    "QTD": {
+      "label": "Q2 26",
+      "regions": [
+        {
+          "region": "North America",
+          "aum_usd_bn": 309.196067,
+          "flows_usd_mn": 1001.941474,
+          "holdings_tonnes": 2085.500171,
+          "demand_tonnes": 6.050325,
+          "demand_pct_of_holdings": 0.00291
+        },
+        {
+          "region": "Europe",
+          "aum_usd_bn": 213.788261,
+          "flows_usd_mn": 3653.892914,
+          "holdings_tonnes": 1441.998295,
+          "demand_tonnes": 26.858713,
+          "demand_pct_of_holdings": 0.01898
+        },
+        {
+          "region": "Asia",
+          "aum_usd_bn": 80.687323,
+          "flows_usd_mn": 1813.278416,
+          "holdings_tonnes": 533.628935,
+          "demand_tonnes": 11.324536,
+          "demand_pct_of_holdings": 0.021682
+        },
+        {
+          "region": "Other",
+          "aum_usd_bn": 11.245892,
+          "flows_usd_mn": 105.902613,
+          "holdings_tonnes": 75.827604,
+          "demand_tonnes": 0.885137,
+          "demand_pct_of_holdings": 0.011811
+        },
+        {
+          "region": "Total",
+          "aum_usd_bn": 614.92,
+          "flows_usd_mn": 6575.015416,
+          "holdings_tonnes": 4136.955006,
+          "demand_tonnes": 45.118711,
+          "demand_pct_of_holdings": 0.011027
+        }
+      ],
+      "global_inflows_usd_mn": 13624.371247,
+      "global_inflows_demand_tonnes": 104.881172,
+      "global_outflows_usd_mn": -7049.35583,
+      "global_outflows_demand_tonnes": -59.764871
+    },
+    "YTD": {
+      "label": "YTD 26",
+      "regions": [
+        {
+          "region": "North America",
+          "aum_usd_bn": 309.196067,
+          "flows_usd_mn": -1022.744456,
+          "holdings_tonnes": 2085.500171,
+          "demand_tonnes": -9.658182,
+          "demand_pct_of_holdings": -0.00461
+        },
+        {
+          "region": "Europe",
+          "aum_usd_bn": 213.788261,
+          "flows_usd_mn": 3655.794874,
+          "holdings_tonnes": 1441.998295,
+          "demand_tonnes": 19.063812,
+          "demand_pct_of_holdings": 0.013398
+        },
+        {
+          "region": "Asia",
+          "aum_usd_bn": 80.687323,
+          "flows_usd_mn": 15903.416033,
+          "holdings_tonnes": 533.628935,
+          "demand_tonnes": 95.538094,
+          "demand_pct_of_holdings": 0.218078
+        },
+        {
+          "region": "Other",
+          "aum_usd_bn": 11.245892,
+          "flows_usd_mn": 390.046447,
+          "holdings_tonnes": 75.827604,
+          "demand_tonnes": 2.605143,
+          "demand_pct_of_holdings": 0.035578
+        },
+        {
+          "region": "Total",
+          "aum_usd_bn": 614.92,
+          "flows_usd_mn": 18926.512898,
+          "holdings_tonnes": 4136.955006,
+          "demand_tonnes": 107.548868,
+          "demand_pct_of_holdings": 0.026691
+        }
+      ],
+      "global_inflows_usd_mn": 67539.766909,
+      "global_inflows_demand_tonnes": 498.081465,
+      "global_outflows_usd_mn": -48613.254011,
+      "global_outflows_demand_tonnes": -390.574852
+    }
+  }
+}

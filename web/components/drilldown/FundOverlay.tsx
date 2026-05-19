@@ -373,14 +373,53 @@ function FundTrendTooltip({
 }
 
 function PeriodGrid({ fund }: { fund: import("@/lib/types").Fund }) {
+  const { data } = useData();
+  const lastActive = fund.last_active_date ? fund.last_active_date : null;
+  const isFundInactive = !fund.active && !!lastActive;
+
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.22em] text-fg-muted mb-2.5">
-        Period breakdown
+      <div className="flex items-baseline justify-between mb-2.5">
+        <div className="text-[10px] uppercase tracking-[0.22em] text-fg-muted">
+          Period breakdown
+        </div>
+        {isFundInactive && (
+          <div className="text-[10px] uppercase tracking-[0.22em] text-neg-text font-semibold">
+            Stopped reporting {fmtDate(lastActive ?? "", "short")} — later periods marked Inactive
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
         {(["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "Max"] as const).map((p) => {
           const m = fund.periods[p];
+          const periodFrom = data?.metadata.periods[p]?.from;
+          // The whole period window starts AFTER the fund stopped reporting →
+          // there's no data here, only a dead zero. Render an "Inactive" card.
+          const periodAfterDeath =
+            lastActive && periodFrom ? periodFrom > lastActive : false;
+
+          if (periodAfterDeath) {
+            return (
+              <div
+                key={p}
+                className="rounded-xl border border-dashed border-border-strong bg-bg-tint/40 p-3"
+              >
+                <div className="text-[10px] uppercase tracking-[0.22em] text-fg-muted">
+                  {p}
+                </div>
+                <div className="font-display text-[13px] tracking-tight mt-1.5 text-fg-muted">
+                  Inactive
+                </div>
+                <div className="text-[10px] text-fg-faint mt-0.5">
+                  No reporting
+                </div>
+                <div className="text-[9px] text-fg-faint mt-0.5 font-mono">
+                  Ended {fmtDate(lastActive ?? "", "month-year")}
+                </div>
+              </div>
+            );
+          }
+
           const tone = signOf(m.flows_usd_mn);
           const toneCls =
             tone === "pos"

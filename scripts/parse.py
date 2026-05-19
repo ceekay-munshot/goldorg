@@ -301,6 +301,10 @@ def parse_funds(meta_list, dates, holdings, demand, flows, gp, as_of) -> dict:
             if h is not None and h > 0:
                 last_active = d
                 break
+        # Last 36 months of monthly flows (USD mn) — used for streak strips
+        flows_recent_36 = [
+            (round(v, 4) if v is not None else None) for v in flows[m["ticker"]][-36:]
+        ]
         # Skip funds with no holdings AND no flows (inactive + zero history)
         if per["current_holdings_tonnes"] in (None, 0) and all(
             per["periods"][p]["flows_usd_mn"] == 0 for p in PERIODS
@@ -319,6 +323,7 @@ def parse_funds(meta_list, dates, holdings, demand, flows, gp, as_of) -> dict:
                 "current_holdings_tonnes": per["current_holdings_tonnes"],
                 "current_aum_usd_mn": per["current_aum_usd_mn"],
                 "periods": per["periods"],
+                "flows_recent_36m": flows_recent_36,
             }
         )
     return {"count": len(funds), "funds": funds}

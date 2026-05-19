@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes, fmtUsd } from "@/lib/format";
@@ -149,6 +150,7 @@ export function RegionalFlowsChart() {
                   </Bar>
                 );
               })}
+              <CrisisOverlay data={data} />
             </BarChart>
           ) : (
             <LineChart data={data} margin={{ top: 6, right: 10, bottom: 6, left: 0 }}>
@@ -192,6 +194,7 @@ export function RegionalFlowsChart() {
                   />
                 );
               })}
+              <CrisisOverlay data={data} />
             </LineChart>
           )}
         </ResponsiveContainer>

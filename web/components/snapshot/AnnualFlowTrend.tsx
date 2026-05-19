@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtTonnes, fmtUsd, signOf } from "@/lib/format";
@@ -192,6 +193,7 @@ export function AnnualFlowTrend() {
               isAnimationActive
               animationDuration={1100}
             />
+            <CrisisOverlay data={data} yAxisId="flow" granularity="year" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useMemo } from "react";
 import { GlassCard } from "@/components/primitives/GlassCard";
+import { StreakStrip } from "@/components/primitives/StreakStrip";
 import { useFundsByCountry, useFundsByRegion, useTopFunds } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
 import { fmtTonnes, fmtUsd } from "@/lib/format";
@@ -39,6 +39,7 @@ export function BuyersSellers() {
           region: f.region as string,
           value: f.periods[useFilters.getState().period].flows_usd_mn ?? 0,
           secondary: f.current_holdings_tonnes,
+          streak: f.flows_recent_36m ?? null,
         }))}
         countries={buyers.countries}
         regions={buyers.regions}
@@ -54,6 +55,7 @@ export function BuyersSellers() {
           region: f.region as string,
           value: f.periods[useFilters.getState().period].flows_usd_mn ?? 0,
           secondary: f.current_holdings_tonnes,
+          streak: f.flows_recent_36m ?? null,
         }))}
         countries={sellers.countries}
         regions={sellers.regions}
@@ -69,6 +71,7 @@ interface FundItem {
   region: string;
   value: number;
   secondary: number | null;
+  streak: (number | null)[] | null;
 }
 
 function SidePanel({
@@ -196,6 +199,17 @@ function FundRow({
           {item.country} · {item.region}
         </div>
       </div>
+      {item.streak && (
+        <div
+          className="relative hidden md:block"
+          title="Monthly flows · last 36m (green = inflow, rose = outflow)"
+        >
+          <StreakStrip values={item.streak} width={96} height={20} />
+          <div className="text-[8.5px] uppercase tracking-[0.18em] text-fg-faint text-center mt-0.5">
+            36m streak
+          </div>
+        </div>
+      )}
       <div className="relative text-right">
         <div
           className={cn(

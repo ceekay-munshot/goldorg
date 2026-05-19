@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtPct, fmtTonnes } from "@/lib/format";
@@ -138,6 +139,7 @@ export function RegionalCompositionChart() {
                 />
               );
             })}
+            <CrisisOverlay data={data} showLabels={!selectedRegion} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

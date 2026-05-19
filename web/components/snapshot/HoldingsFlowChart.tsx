@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes, fmtUsd } from "@/lib/format";
@@ -172,6 +173,7 @@ export function HoldingsFlowChart() {
               isAnimationActive
               animationDuration={900}
             />
+            <CrisisOverlay data={data} yAxisId="holdings" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

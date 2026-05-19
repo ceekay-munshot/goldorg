@@ -47,6 +47,7 @@ export interface Fund {
   current_holdings_tonnes: number | null;
   current_aum_usd_mn: number | null;
   periods: Record<PeriodKey, FundPeriodMetrics>;
+  flows_recent_36m?: (number | null)[];
 }
 
 export interface FundsFile {

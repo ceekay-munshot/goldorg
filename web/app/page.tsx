@@ -3,6 +3,7 @@
 import { Hero } from "@/components/snapshot/Hero";
 import { BuyersSellers } from "@/components/snapshot/BuyersSellers";
 import { AnnualFlowTrend } from "@/components/snapshot/AnnualFlowTrend";
+import { FlowCalendarHeatmap } from "@/components/snapshot/FlowCalendarHeatmap";
 import { RegionalDiverging } from "@/components/snapshot/RegionalDiverging";
 import { HoldingsFlowChart } from "@/components/snapshot/HoldingsFlowChart";
 import { CountryHeatmap } from "@/components/snapshot/CountryHeatmap";
@@ -15,6 +16,7 @@ export default function SnapshotPage() {
       <Hero />
       <BuyersSellers />
       <AnnualFlowTrend />
+      <FlowCalendarHeatmap />
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <RegionalDiverging />
         <HoldingsFlowChart />

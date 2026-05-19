@@ -1,0 +1,267 @@
+@import "tailwindcss";
+
+/* ============================================================
+   PREMIUM GOLD INSTITUTIONAL THEME
+   Deep navy / charcoal base + ivory text + metallic gold accents
+   ============================================================ */
+
+:root {
+  /* ---------- BASE LAYERS ---------- */
+  --bg-base:      #07090f;   /* deepest — page background */
+  --bg-surface:   #0d111c;   /* primary surface */
+  --bg-elevated:  #141a2a;   /* raised cards */
+  --bg-glass:     rgba(255, 248, 230, 0.025);
+  --bg-glass-strong: rgba(255, 248, 230, 0.05);
+
+  /* ---------- BORDERS ---------- */
+  --border-faint:    rgba(255, 248, 230, 0.045);
+  --border-subtle:   rgba(255, 248, 230, 0.08);
+  --border-strong:   rgba(255, 248, 230, 0.14);
+  --border-gold:     rgba(212, 175, 55, 0.32);
+  --border-gold-strong: rgba(212, 175, 55, 0.55);
+
+  /* ---------- TEXT ---------- */
+  --fg-primary:   #F4EFE2;   /* ivory */
+  --fg-secondary: #B8B2A0;   /* warm grey */
+  --fg-muted:     #6E6A5E;   /* muted grey */
+  --fg-faint:     #43403A;
+
+  /* ---------- METALLIC GOLD PALETTE ---------- */
+  --gold-50:   #FFF7DB;
+  --gold-100:  #FFEDB0;
+  --gold-200:  #F8DE91;
+  --gold-300:  #EDC772;
+  --gold-400:  #DDB055;
+  --gold-500:  #C9982E;   /* core metallic */
+  --gold-600:  #A87E22;
+  --gold-700:  #816016;
+  --gold-glow: rgba(237, 199, 114, 0.18);
+
+  /* gradient for metallic feel */
+  --gold-gradient: linear-gradient(135deg, #FFEDB0 0%, #DDB055 35%, #C9982E 65%, #816016 100%);
+  --gold-gradient-soft: linear-gradient(135deg, rgba(255, 237, 176, 0.85) 0%, rgba(221, 176, 85, 0.85) 100%);
+
+  /* ---------- STATUS COLORS ---------- */
+  /* Positive flows: warm gold-green */
+  --pos-bg:    rgba(101, 196, 142, 0.12);
+  --pos-text:  #7CE0A0;
+  --pos-core:  #4ADE80;
+  --pos-border: rgba(101, 196, 142, 0.35);
+
+  /* Negative flows: rose */
+  --neg-bg:    rgba(244, 114, 144, 0.12);
+  --neg-text:  #FB9CB0;
+  --neg-core:  #F87186;
+  --neg-border: rgba(244, 114, 144, 0.35);
+
+  /* Neutral */
+  --neu-bg:    rgba(180, 168, 140, 0.10);
+  --neu-text:  #C8BFA8;
+  --neu-core:  #A89D80;
+  --neu-border: rgba(180, 168, 140, 0.30);
+
+  /* ---------- BACKGROUND TEXTURES ---------- */
+  /* Vignette overlay used in hero sections */
+  --vignette:
+    radial-gradient(ellipse at 30% 0%, rgba(201, 152, 46, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(33, 50, 90, 0.30) 0%, transparent 60%);
+
+  /* Subtle noise texture as inline SVG */
+  --noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.85 0 0 0 0 0.7 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* ---------- SHADOWS ---------- */
+  --shadow-soft:    0 1px 0 0 rgba(255,248,230,0.04) inset, 0 1px 2px rgba(0,0,0,0.35);
+  --shadow-card:    0 1px 0 0 rgba(255,248,230,0.04) inset, 0 4px 14px -2px rgba(0,0,0,0.5), 0 10px 30px -10px rgba(0,0,0,0.6);
+  --shadow-raised:  0 1px 0 0 rgba(255,248,230,0.05) inset, 0 8px 24px -2px rgba(0,0,0,0.6), 0 24px 50px -16px rgba(0,0,0,0.7);
+  --shadow-gold:    0 0 0 1px rgba(212,175,55,0.25), 0 8px 30px -8px rgba(201,152,46,0.35);
+}
+
+/* ============================================================
+   Tailwind v4 theme bridge — expose CSS vars to utilities
+   ============================================================ */
+@theme inline {
+  --color-bg-base:      var(--bg-base);
+  --color-bg-surface:   var(--bg-surface);
+  --color-bg-elevated:  var(--bg-elevated);
+  --color-bg-glass:     var(--bg-glass);
+
+  --color-border-faint:    var(--border-faint);
+  --color-border-subtle:   var(--border-subtle);
+  --color-border-strong:   var(--border-strong);
+  --color-border-gold:     var(--border-gold);
+
+  --color-fg-primary:   var(--fg-primary);
+  --color-fg-secondary: var(--fg-secondary);
+  --color-fg-muted:     var(--fg-muted);
+  --color-fg-faint:     var(--fg-faint);
+
+  --color-gold-50:   var(--gold-50);
+  --color-gold-100:  var(--gold-100);
+  --color-gold-200:  var(--gold-200);
+  --color-gold-300:  var(--gold-300);
+  --color-gold-400:  var(--gold-400);
+  --color-gold-500:  var(--gold-500);
+  --color-gold-600:  var(--gold-600);
+  --color-gold-700:  var(--gold-700);
+
+  --color-pos:        var(--pos-core);
+  --color-pos-text:   var(--pos-text);
+  --color-neg:        var(--neg-core);
+  --color-neg-text:   var(--neg-text);
+  --color-neu:        var(--neu-core);
+  --color-neu-text:   var(--neu-text);
+
+  --font-sans:    var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-display: var(--font-display), "Fraunces", "Times New Roman", serif;
+  --font-mono:    var(--font-mono-jb), "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+html, body {
+  background: var(--bg-base);
+  color: var(--fg-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-image: var(--vignette);
+  background-attachment: fixed;
+  background-size: cover;
+  min-height: 100vh;
+}
+
+/* Tabular figures for all numbers in data contexts */
+.num,
+.num *,
+[data-num="true"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 248, 230, 0.06);
+  border-radius: 6px;
+  border: 2px solid var(--bg-base);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(212, 175, 55, 0.35); }
+
+/* Selection */
+::selection {
+  background: rgba(212, 175, 55, 0.30);
+  color: var(--fg-primary);
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+.text-gold-gradient {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-gold-gradient {
+  background: var(--gold-gradient);
+}
+
+.bg-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.bg-glass-strong {
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+.surface {
+  background: linear-gradient(180deg, rgba(255,248,230,0.022) 0%, rgba(255,248,230,0.005) 100%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.surface-elevated {
+  background: linear-gradient(180deg, rgba(255,248,230,0.04) 0%, rgba(255,248,230,0.012) 100%);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-raised);
+}
+
+.divider-h {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--border-subtle) 20%, var(--border-subtle) 80%, transparent 100%);
+}
+
+.gold-hair {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--gold-500) 50%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* Subtle inner gold sheen on premium cards */
+.gold-sheen {
+  position: relative;
+  isolation: isolate;
+}
+.gold-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 100% 0%, rgba(237, 199, 114, 0.08) 0%, transparent 45%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Noise texture overlay */
+.noise {
+  position: relative;
+}
+.noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--noise);
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Animated shimmer for skeleton loaders */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,248,230,0.02) 0%,
+    rgba(212,175,55,0.10) 50%,
+    rgba(255,248,230,0.02) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* Smooth focus ring with gold accent */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--bg-base), 0 0 0 3px rgba(212, 175, 55, 0.55);
+  border-radius: inherit;
+}
+
+/* Premium button reset */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+button:disabled { cursor: not-allowed; opacity: 0.4; }

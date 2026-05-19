@@ -290,6 +290,17 @@ def parse_funds(meta_list, dates, holdings, demand, flows, gp, as_of) -> dict:
         per = compute_fund_periods(
             m, dates, holdings[m["ticker"]], demand[m["ticker"]], flows[m["ticker"]], gp, as_of
         )
+        # First and last months where this fund reported holdings (>0)
+        first_active = None
+        last_active = None
+        for d, h in zip(dates, holdings[m["ticker"]]):
+            if h is not None and h > 0:
+                first_active = d
+                break
+        for d, h in zip(reversed(dates), reversed(holdings[m["ticker"]])):
+            if h is not None and h > 0:
+                last_active = d
+                break
         # Skip funds with no holdings AND no flows (inactive + zero history)
         if per["current_holdings_tonnes"] in (None, 0) and all(
             per["periods"][p]["flows_usd_mn"] == 0 for p in PERIODS
@@ -303,6 +314,8 @@ def parse_funds(meta_list, dates, holdings, demand, flows, gp, as_of) -> dict:
                 "country": m["country"],
                 "active": m["active"],
                 "fund_type": m["fund_type"],
+                "first_active_date": first_active.isoformat() if first_active else None,
+                "last_active_date": last_active.isoformat() if last_active else None,
                 "current_holdings_tonnes": per["current_holdings_tonnes"],
                 "current_aum_usd_mn": per["current_aum_usd_mn"],
                 "periods": per["periods"],

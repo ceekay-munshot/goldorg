@@ -42,6 +42,8 @@ export interface Fund {
   country: string | null;
   active: boolean;
   fund_type: string | null;
+  first_active_date: string | null;
+  last_active_date: string | null;
   current_holdings_tonnes: number | null;
   current_aum_usd_mn: number | null;
   periods: Record<PeriodKey, FundPeriodMetrics>;

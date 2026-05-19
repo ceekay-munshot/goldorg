@@ -124,12 +124,22 @@ function OverlayHeader({
           <h2 className="font-display text-[26px] tracking-tight text-fg-primary leading-tight">
             {fund.name}
           </h2>
-          <div className="flex items-center gap-3 mt-1.5">
+          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             <span className="text-[11px] font-mono text-fg-muted uppercase tracking-[0.14em]">
               {fund.ticker}
             </span>
             {fund.fund_type && (
               <span className="text-[11px] text-fg-muted">· {fund.fund_type}</span>
+            )}
+            {fund.first_active_date && (
+              <span className="text-[11px] text-fg-muted">
+                · Listed {fmtDate(fund.first_active_date, "short")}
+              </span>
+            )}
+            {!fund.active && fund.last_active_date && (
+              <span className="text-[11px] text-neg-text font-medium">
+                · Last reported {fmtDate(fund.last_active_date, "short")}
+              </span>
             )}
           </div>
         </div>

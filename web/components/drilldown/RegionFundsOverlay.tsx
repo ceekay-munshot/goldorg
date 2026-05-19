@@ -13,7 +13,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useData } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
-import { fmtPct, fmtTonnes, fmtUsd, signOf } from "@/lib/format";
+import { fmtDate, fmtPct, fmtTonnes, fmtUsd, signOf } from "@/lib/format";
 import { regionAccent } from "@/lib/regions";
 import { cn } from "@/lib/cn";
 import type { Fund, PeriodKey } from "@/lib/types";
@@ -324,12 +324,32 @@ export function RegionFundsOverlay() {
                           <td className="px-3 py-2.5 text-right font-mono tabular-nums text-fg-secondary">
                             {fmtPct(p.demand_pct_of_holdings, { signed: true })}
                           </td>
-                          <td className="px-3 py-2.5 text-center">
-                            {f.active ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 inline text-pos" />
-                            ) : (
-                              <XCircle className="w-3.5 h-3.5 inline text-neg/70" />
-                            )}
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              {f.active ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-pos" />
+                              ) : (
+                                <XCircle className="w-3.5 h-3.5 shrink-0 text-neg/70" />
+                              )}
+                              <div className="leading-tight">
+                                <div className={cn(
+                                  "text-[10px] uppercase tracking-[0.14em] font-semibold",
+                                  f.active ? "text-pos-text" : "text-neg-text",
+                                )}>
+                                  {f.active ? "Active" : "Inactive"}
+                                </div>
+                                {!f.active && f.last_active_date && (
+                                  <div className="text-[9px] text-fg-muted font-mono mt-0.5">
+                                    until {fmtDate(f.last_active_date, "month-year")}
+                                  </div>
+                                )}
+                                {f.active && f.first_active_date && (
+                                  <div className="text-[9px] text-fg-muted font-mono mt-0.5">
+                                    since {fmtDate(f.first_active_date, "month-year")}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </td>
                         </motion.tr>
                       );

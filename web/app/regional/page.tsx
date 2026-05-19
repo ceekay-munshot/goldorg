@@ -1,15 +1,27 @@
 "use client";
 
-import { GlassCard, CardHeader } from "@/components/primitives/GlassCard";
+import { RegionNavigator } from "@/components/regional/RegionNavigator";
+import { RegionalFlowsChart } from "@/components/regional/RegionalFlowsChart";
+import { RegionalCompositionChart } from "@/components/regional/RegionalCompositionChart";
+import { CountryBreakdownTable } from "@/components/regional/CountryBreakdownTable";
+import { RegionalFundConcentration } from "@/components/regional/RegionalFundConcentration";
+import { ActiveInactiveStrip } from "@/components/regional/ActiveInactiveStrip";
 
 export default function RegionalPage() {
   return (
-    <GlassCard variant="elevated" className="p-10">
-      <CardHeader
-        eyebrow="Tab 2 · Regional"
-        title="Deep-dive regional intelligence"
-        subtitle="Coming in Phase 3."
-      />
-    </GlassCard>
+    <div className="flex flex-col gap-6">
+      <RegionNavigator />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <RegionalFlowsChart />
+        <RegionalCompositionChart />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2">
+          <CountryBreakdownTable />
+        </div>
+        <RegionalFundConcentration />
+      </div>
+      <ActiveInactiveStrip />
+    </div>
   );
 }

@@ -14,6 +14,7 @@ export function RegionNavigator() {
   const period = useFilters((s) => s.period);
   const selectedRegion = useFilters((s) => s.region);
   const setRegion = useFilters((s) => s.setRegion);
+  const openRegionFundsList = useFilters((s) => s.openRegionFundsList);
 
   const totalAum = useMemo(
     () =>
@@ -122,8 +123,29 @@ export function RegionNavigator() {
               <RegionSparkline values={sparks[name]} color={tone.hex} />
             </div>
 
-            <div className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.22em] text-fg-muted opacity-0 group-hover:opacity-100 transition-opacity">
-              {active ? "Click to clear" : `${row.fund_count} funds →`}
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-[9.5px] uppercase tracking-[0.22em] text-fg-faint">
+                {active ? "Region is active — click card to clear" : "Click card to filter region"}
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openRegionFundsList(name);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openRegionFundsList(name);
+                  }
+                }}
+                className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.22em] font-semibold transition-colors hover:underline"
+                style={{ color: tone.deep }}
+              >
+                {row.fund_count} funds <span aria-hidden>→</span>
+              </span>
             </div>
           </motion.button>
         );

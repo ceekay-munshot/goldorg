@@ -19,6 +19,7 @@ interface FilterState {
   active: ActiveFilter;
   search: string;
   openFund: string | null;    // ticker for drilldown overlay
+  openRegionFunds: string | null; // region name to show full fund list
 
   setPeriod: (p: PeriodKey) => void;
   setMetric: (m: MetricKey) => void;
@@ -29,6 +30,7 @@ interface FilterState {
   setActive: (a: ActiveFilter) => void;
   setSearch: (s: string) => void;
   openFundDrilldown: (t: string | null) => void;
+  openRegionFundsList: (r: string | null) => void;
 
   resetCrossFilters: () => void;
   resetAll: () => void;
@@ -44,6 +46,7 @@ export const useFilters = create<FilterState>((set) => ({
   active: "active",
   search: "",
   openFund: null,
+  openRegionFunds: null,
 
   setPeriod: (period) => set({ period }),
   setMetric: (metric) => set({ metric }),
@@ -54,6 +57,7 @@ export const useFilters = create<FilterState>((set) => ({
   setActive: (active) => set({ active }),
   setSearch: (search) => set({ search }),
   openFundDrilldown: (openFund) => set({ openFund }),
+  openRegionFundsList: (openRegionFunds) => set({ openRegionFunds }),
 
   resetCrossFilters: () => set({ region: null, country: null, fund: null, search: "" }),
   resetAll: () =>
@@ -67,5 +71,6 @@ export const useFilters = create<FilterState>((set) => ({
       active: "active",
       search: "",
       openFund: null,
+      openRegionFunds: null,
     }),
 }));

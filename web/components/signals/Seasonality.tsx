@@ -66,9 +66,9 @@ export function Seasonality() {
             explain={{
               what: "Twelve tiles, one per calendar month. Each shows gold's average price change in that month over the last 23 years.",
               read: [
-                "Green tile = gold rose on average in that month; rose tile = it fell.",
+                "Green tile = gold rose on average in that month; rose-coloured tile = it fell.",
                 "Deeper colour = a bigger average move.",
-                "'Up X/23' is the hit rate — how many of the 23 years that month was actually positive.",
+                "'Rose in 19 of 23 years' is the reliability — gold gained in that calendar month in 19 of the last 23 Januarys (or Februarys, etc).",
               ],
               takeaway:
                 "Gold has a mild seasonal tilt — strong around the turn of the year and autumn (Lunar New Year and Indian wedding-season buying), softer mid-year. It's a tilt for sizing entries, not a market-timing rule.",
@@ -128,8 +128,12 @@ export function Seasonality() {
                 {isPos ? "+" : ""}
                 {s.avg.toFixed(1)}%
               </div>
-              <div className="text-[10px] text-fg-secondary font-mono mt-1">
-                up {Math.round((s.hitRate / 100) * s.years)}/{s.years} yrs
+              <div className="text-[10px] text-fg-secondary mt-1">
+                rose in{" "}
+                <span className="font-mono text-fg-primary">
+                  {Math.round((s.hitRate / 100) * s.years)} of {s.years}
+                </span>{" "}
+                years
               </div>
             </motion.div>
           );

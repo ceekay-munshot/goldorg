@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   ComposedChart,
@@ -17,17 +17,11 @@ import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
-import { buildForecast, type DriftBasis } from "@/lib/forecast";
+import { buildForecast } from "@/lib/forecast";
 import { ANALYST_TARGETS } from "@/lib/macro";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { PeriodKey } from "@/lib/types";
-
-const BASIS_LABEL: Record<DriftBasis, string> = {
-  all: "Since 2003",
-  "10y": "Last 10Y",
-  "5y": "Last 5Y",
-};
 
 /** Period selector → how many months of price history to draw before
  *  the forecast cone. Max shows the full record back to 2003. */
@@ -41,10 +35,32 @@ const PERIOD_TAIL: Record<PeriodKey, number> = {
   Max: 9999,
 };
 
+/** Period selector → window (months) used to estimate drift & vol.
+ *  Floored so a 3-year projection isn't built on a sliver of data.
+ *  0 = use the full record. */
+const PERIOD_ESTIMATION: Record<PeriodKey, number> = {
+  "1M": 36,
+  QTD: 36,
+  YTD: 36,
+  "1Y": 36,
+  "3Y": 36,
+  "5Y": 60,
+  Max: 0,
+};
+
+const ESTIMATION_LABEL: Record<PeriodKey, string> = {
+  "1M": "3-year window",
+  QTD: "3-year window",
+  YTD: "3-year window",
+  "1Y": "3-year window",
+  "3Y": "3-year window",
+  "5Y": "5-year window",
+  Max: "full history",
+};
+
 export function GoldForecast() {
   const { timeseries } = useDataset();
   const period = useFilters((s) => s.period);
-  const [basis, setBasis] = useState<DriftBasis>("10y");
 
   const history = useMemo(
     () =>
@@ -55,9 +71,10 @@ export function GoldForecast() {
   );
 
   const tail = PERIOD_TAIL[period] ?? 36;
+  const estMonths = PERIOD_ESTIMATION[period] ?? 36;
   const fc = useMemo(
-    () => buildForecast(history, 36, basis, tail),
-    [history, basis, tail],
+    () => buildForecast(history, 36, estMonths, tail),
+    [history, estMonths, tail],
   );
 
   const chartData = useMemo(
@@ -91,23 +108,20 @@ export function GoldForecast() {
       <CardHeader
         eyebrow="Forecast · the next 3 years"
         title="Where gold could trade through 2029"
-        subtitle="Statistical projection — a lognormal drift cone from history, read against published analyst targets. A scenario tool, not a prediction."
+        subtitle="Statistical projection — a lognormal drift cone from history, read against published analyst targets. A scenario tool, not a prediction. The trend and history window follow the period selector above."
         trailing={
-          <div className="flex items-start gap-2.5">
-            <BasisToggle value={basis} onChange={setBasis} />
-            <ChartExplainer
-              explain={{
-                what: "A projection of where gold could trade through 2029. The solid gold area is actual price history; the dashed line is the model's central path; the shaded fan is the range of plausible outcomes.",
-                read: [
-                  "The wide pale band is the ±2σ range — gold should land inside it ~95% of the time if history holds.",
-                  "Coloured dots are real published targets from Goldman, JPMorgan, Wells Fargo and BofA.",
-                  "The 'Drift basis' toggle re-estimates the trend from the last 5Y, 10Y, or full history.",
-                ],
-                takeaway:
-                  "This is a scenario tool, not a forecast — it shows the cone of outcomes implied by gold's own volatility, then lets you sanity-check it against what the big houses actually expect. Use it to frame risk, not to pick a number.",
-              }}
-            />
-          </div>
+          <ChartExplainer
+            explain={{
+              what: "A projection of where gold could trade through 2029. The solid gold area is actual price history; the dashed line is the model's central path; the shaded fan is the range of plausible outcomes.",
+              read: [
+                "The wide pale band is the ±2σ range — gold should land inside it ~95% of the time if history holds.",
+                "Coloured dots are real published targets from Goldman, JPMorgan, Wells Fargo and BofA.",
+                "The period selector at the top sets how much history is shown and which window the trend is estimated from — pick Max for the full record.",
+              ],
+              takeaway:
+                "This is a scenario tool, not a forecast — it shows the cone of outcomes implied by gold's own volatility, then lets you sanity-check it against what the big houses actually expect. Use it to frame risk, not to pick a number.",
+            }}
+          />
         }
       />
 
@@ -118,7 +132,7 @@ export function GoldForecast() {
         <Kpi label="Model median · 2029" sub="+36 months" value={usd(fc.median36)} />
         <Kpi
           label="Drift used"
-          sub={`${BASIS_LABEL[basis]} basis`}
+          sub={`from ${ESTIMATION_LABEL[period]}`}
           value={`${fc.annualDriftPct >= 0 ? "+" : ""}${fc.annualDriftPct.toFixed(1)}%/yr`}
         />
         <Kpi
@@ -290,38 +304,6 @@ function Kpi({
         {value}
       </div>
       <div className="text-[10px] text-fg-secondary mt-0.5">{sub}</div>
-    </div>
-  );
-}
-
-function BasisToggle({
-  value,
-  onChange,
-}: {
-  value: DriftBasis;
-  onChange: (v: DriftBasis) => void;
-}) {
-  return (
-    <div className="inline-flex flex-col items-end gap-1">
-      <span className="text-[9px] uppercase tracking-[0.22em] text-fg-muted">
-        Drift basis
-      </span>
-      <div className="inline-flex h-8 rounded-lg border border-border-subtle bg-bg-surface p-0.5">
-        {(["5y", "10y", "all"] as DriftBasis[]).map((b) => (
-          <button
-            key={b}
-            onClick={() => onChange(b)}
-            className={cn(
-              "px-2.5 text-[10px] uppercase tracking-[0.16em] rounded-md transition-colors",
-              value === b
-                ? "bg-gold-50 text-gold-700"
-                : "text-fg-muted hover:text-fg-primary",
-            )}
-          >
-            {BASIS_LABEL[b]}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

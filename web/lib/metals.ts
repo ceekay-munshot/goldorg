@@ -62,18 +62,21 @@ export function metalYearLabel(year: number): string {
  *  Returns are approximate peak-to-trough over the crisis window. */
 export interface CrisisAlpha {
   id: string;
+  /** full crisis name */
   label: string;
+  /** compact axis label, includes the year */
+  short: string;
   window: string;
   gold_ret_pct: number;
   sp500_ret_pct: number;
 }
 
 export const CRISIS_ALPHA: CrisisAlpha[] = [
-  { id: "gfc", label: "Global Financial Crisis", window: "Oct 2007 – Mar 2009", gold_ret_pct: 25.5, sp500_ret_pct: -56.8 },
-  { id: "euro", label: "Eurozone Debt Crisis", window: "May – Oct 2011", gold_ret_pct: 7.9, sp500_ret_pct: -19.4 },
-  { id: "covid", label: "COVID-19 Crash", window: "Feb – Mar 2020", gold_ret_pct: -3.6, sp500_ret_pct: -33.9 },
-  { id: "bear22", label: "2022 Rate-Shock Bear", window: "Jan – Oct 2022", gold_ret_pct: -0.5, sp500_ret_pct: -25.4 },
-  { id: "svb", label: "US Banking Stress", window: "Mar 2023", gold_ret_pct: 9.2, sp500_ret_pct: -2.5 },
+  { id: "gfc", label: "Global Financial Crisis", short: "GFC ’08", window: "Oct 2007 – Mar 2009", gold_ret_pct: 25.5, sp500_ret_pct: -56.8 },
+  { id: "euro", label: "Eurozone Debt Crisis", short: "Euro ’11", window: "May – Oct 2011", gold_ret_pct: 7.9, sp500_ret_pct: -19.4 },
+  { id: "covid", label: "COVID-19 Crash", short: "COVID ’20", window: "Feb – Mar 2020", gold_ret_pct: -3.6, sp500_ret_pct: -33.9 },
+  { id: "bear22", label: "2022 Rate-Shock Bear", short: "Rate bear ’22", window: "Jan – Oct 2022", gold_ret_pct: -0.5, sp500_ret_pct: -25.4 },
+  { id: "svb", label: "US Banking Stress", short: "SVB ’23", window: "Mar 2023", gold_ret_pct: 9.2, sp500_ret_pct: -2.5 },
 ];
 
 export const METALS_SOURCE_NOTE =

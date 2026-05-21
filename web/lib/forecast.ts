@@ -27,8 +27,6 @@ export interface ForecastPoint {
   hi2?: number;
 }
 
-export type DriftBasis = "all" | "10y" | "5y";
-
 export interface ForecastResult {
   series: ForecastPoint[];
   /** annualised drift used, in % */
@@ -68,18 +66,19 @@ function std(xs: number[]): number {
  * Build a forecast fan.
  * @param history monthly price points, ascending by date
  * @param months horizon in months
- * @param basis which slice of history to estimate drift/vol from
+ * @param estimationMonths months of history to estimate drift/vol from
+ *   (0 = use the full record)
  * @param historyTailMonths how many months of actuals to keep in the series
  */
 export function buildForecast(
   history: PricePoint[],
   months = 36,
-  basis: DriftBasis = "all",
+  estimationMonths = 0,
   historyTailMonths = 60,
 ): ForecastResult {
   const clean = history.filter((p) => p.price != null && p.price > 0);
   // estimation window
-  const windowMonths = basis === "5y" ? 60 : basis === "10y" ? 120 : clean.length;
+  const windowMonths = estimationMonths > 0 ? estimationMonths : clean.length;
   const estSlice = clean.slice(-windowMonths);
 
   const logRets: number[] = [];

@@ -25,7 +25,7 @@ export function CrisisAlpha() {
   const data = CRISIS_ALPHA.map((c) => ({
     id: c.id,
     label: c.label,
-    short: c.label.split(" ")[0],
+    short: c.short,
     window: c.window,
     gold: c.gold_ret_pct,
     sp500: c.sp500_ret_pct,

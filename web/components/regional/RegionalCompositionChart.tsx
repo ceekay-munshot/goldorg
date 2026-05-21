@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -13,10 +13,12 @@ import {
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
+import { ViewToggle } from "@/components/primitives/ViewToggle";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtPct, fmtTonnes } from "@/lib/format";
 import { regionAccent, REGIONS_ORDERED } from "@/lib/regions";
+import type { ViewMode } from "@/lib/types";
 
 /**
  * Stacked area chart of holdings (tonnes) per region, full history.
@@ -25,7 +27,7 @@ import { regionAccent, REGIONS_ORDERED } from "@/lib/regions";
  */
 export function RegionalCompositionChart() {
   const { timeseries } = useDataset();
-  const view = useFilters((s) => s.view);
+  const [view, setView] = useState<ViewMode>("absolute");
   const selectedRegion = useFilters((s) => s.region);
 
   const data = useMemo(() => {
@@ -74,11 +76,7 @@ export function RegionalCompositionChart() {
               ? "Each region's share of total global gold ETF holdings over time"
               : "Tonnes of physical gold held by region, stacked"
         }
-        trailing={
-          <span className="text-[9px] uppercase tracking-[0.22em] font-mono px-2 py-1 rounded-md bg-bg-tint text-fg-muted">
-            {view === "proportionate" && !selectedRegion ? "% share" : "tonnes"}
-          </span>
-        }
+        trailing={<ViewToggle value={view} onChange={setView} id="composition" />}
       />
 
       <div className="h-[320px] -mx-2">

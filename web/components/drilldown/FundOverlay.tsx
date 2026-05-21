@@ -63,7 +63,7 @@ export function FundOverlay() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 grid place-items-center px-4 py-8"
+          className="fixed inset-0 z-[60] grid place-items-center px-4 py-8"
         >
           {/* backdrop */}
           <motion.div

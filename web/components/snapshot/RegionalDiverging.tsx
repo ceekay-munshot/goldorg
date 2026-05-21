@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -14,15 +14,17 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { ViewToggle } from "@/components/primitives/ViewToggle";
 import { useFundsByRegion } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
 import { fmtPct, fmtTonnes, fmtUsd } from "@/lib/format";
 import { regionAccent } from "@/lib/regions";
+import type { ViewMode } from "@/lib/types";
 
 export function RegionalDiverging() {
   const rows = useFundsByRegion({ ignoreRegionFilter: true });
   const metric = useFilters((s) => s.metric);
-  const view = useFilters((s) => s.view);
+  const [view, setView] = useState<ViewMode>("absolute");
   const setRegion = useFilters((s) => s.setRegion);
   const selectedRegion = useFilters((s) => s.region);
 
@@ -68,9 +70,12 @@ export function RegionalDiverging() {
         title="Regional flow direction"
         subtitle="Diverging view across the four regions for the active period"
         trailing={
-          <UnitBadge
-            unit={view === "proportionate" ? "% share" : isUsd ? "USD" : "tonnes"}
-          />
+          <div className="flex items-center gap-2">
+            <UnitBadge
+              unit={view === "proportionate" ? "% share" : isUsd ? "USD" : "tonnes"}
+            />
+            <ViewToggle value={view} onChange={setView} id="diverging" />
+          </div>
         }
       />
       <div className="h-[280px] -mx-2">

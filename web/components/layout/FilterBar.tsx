@@ -7,7 +7,6 @@ import { useData } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { PeriodToggle } from "@/components/primitives/PeriodToggle";
 import { MetricToggle } from "@/components/primitives/MetricToggle";
-import { ViewToggle } from "@/components/primitives/ViewToggle";
 import { SearchInput } from "@/components/primitives/SearchInput";
 import { Select } from "@/components/primitives/Select";
 import { MultiSelect } from "@/components/primitives/MultiSelect";
@@ -109,8 +108,6 @@ export function FilterBar() {
         <PeriodToggle />
         <Divider />
         <MetricToggle />
-        <Divider />
-        <ViewToggle />
         <Divider />
 
         <div className="flex flex-wrap items-center gap-2">

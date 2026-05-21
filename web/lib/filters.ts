@@ -10,14 +10,13 @@
 "use client";
 
 import { create } from "zustand";
-import type { MetricKey, PeriodKey, ViewMode } from "./types";
+import type { MetricKey, PeriodKey } from "./types";
 
 export type ActiveFilter = "all" | "active" | "inactive";
 
 interface FilterState {
   period: PeriodKey;
   metric: MetricKey;
-  view: ViewMode;
   regions: string[];
   countries: string[];
   region: string | null;     // derived: regions[0] when |regions| === 1 else null
@@ -30,7 +29,6 @@ interface FilterState {
 
   setPeriod: (p: PeriodKey) => void;
   setMetric: (m: MetricKey) => void;
-  setView: (v: ViewMode) => void;
 
   setRegions: (r: string[]) => void;
   toggleRegion: (r: string) => void;
@@ -60,7 +58,6 @@ function derive(regions: string[], countries: string[]) {
 export const useFilters = create<FilterState>((set) => ({
   period: "1M",
   metric: "flows",
-  view: "absolute",
   regions: [],
   countries: [],
   region: null,
@@ -73,7 +70,6 @@ export const useFilters = create<FilterState>((set) => ({
 
   setPeriod: (period) => set({ period }),
   setMetric: (metric) => set({ metric }),
-  setView: (view) => set({ view }),
 
   setRegions: (regions) =>
     set({
@@ -149,7 +145,6 @@ export const useFilters = create<FilterState>((set) => ({
     set({
       period: "1M",
       metric: "flows",
-      view: "absolute",
       regions: [],
       countries: [],
       region: null,

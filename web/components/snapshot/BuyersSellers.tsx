@@ -175,42 +175,41 @@ function FundRow({
   max: number;
   tone: "pos" | "neg";
 }) {
-  const setFund = useFilters((s) => s.setFund);
   const openFundDrilldown = useFilters((s) => s.openFundDrilldown);
   const pct = Math.min(Math.abs(item.value) / max, 1);
-  const barCls = tone === "pos" ? "bg-pos/15" : "bg-neg/15";
+  const barCls = tone === "pos" ? "bg-pos/12" : "bg-neg/12";
   return (
     <button
       onClick={() => openFundDrilldown(item.ticker)}
-      className="group relative w-full px-4 py-2.5 flex items-center gap-3 rounded-lg hover:bg-bg-tint/60 transition-colors text-left"
+      className="group relative w-full px-4 py-2.5 flex items-center gap-4 rounded-lg hover:bg-bg-tint/60 transition-colors text-left"
     >
       <motion.span
         initial={{ width: 0 }}
         animate={{ width: `${pct * 100}%` }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className={cn("absolute left-0 top-1 bottom-1 rounded-lg", barCls)}
+        className={cn("absolute left-0 top-1 bottom-1 rounded-lg pointer-events-none", barCls)}
       />
-      <span className="relative w-5 text-[10px] text-fg-faint font-mono">
+      <span className="relative shrink-0 w-5 text-[10px] text-fg-faint font-mono">
         {String(rank).padStart(2, "0")}
       </span>
       <div className="relative flex-1 min-w-0">
         <div className="text-[12.5px] text-fg-primary truncate">{item.name}</div>
-        <div className="text-[10px] text-fg-muted uppercase tracking-[0.12em] mt-0.5">
+        <div className="text-[10px] text-fg-muted uppercase tracking-[0.12em] mt-0.5 truncate">
           {item.country} · {item.region}
         </div>
       </div>
       {item.streak && (
         <div
-          className="relative hidden md:block"
-          title="Monthly flows · last 36m (green = inflow, rose = outflow)"
+          className="relative shrink-0 hidden lg:flex flex-col items-center"
+          title="Monthly flows, last 36 months — green bars = inflow, rose = outflow"
         >
-          <StreakStrip values={item.streak} width={96} height={20} />
-          <div className="text-[8.5px] uppercase tracking-[0.18em] text-fg-faint text-center mt-0.5">
-            36m streak
-          </div>
+          <StreakStrip values={item.streak} width={80} height={18} />
+          <span className="text-[8px] uppercase tracking-[0.16em] text-fg-faint mt-1">
+            36m flow
+          </span>
         </div>
       )}
-      <div className="relative text-right">
+      <div className="relative shrink-0 w-[86px] text-right">
         <div
           className={cn(
             "font-mono tabular-nums text-[13px] font-semibold",
@@ -220,20 +219,11 @@ function FundRow({
           {fmtUsd(item.value, { signed: true })}
         </div>
         {item.secondary != null && (
-          <div className="text-[10px] text-fg-muted font-mono">
-            {fmtTonnes(item.secondary, { decimals: 1 })}
+          <div className="text-[10px] text-fg-muted font-mono mt-0.5">
+            {fmtTonnes(item.secondary, { decimals: 1 })} held
           </div>
         )}
       </div>
-      <span
-        onClick={(e) => {
-          e.stopPropagation();
-          setFund(item.ticker);
-        }}
-        className="relative opacity-0 group-hover:opacity-100 transition-opacity text-[10px] uppercase tracking-[0.18em] text-gold-700 ml-1"
-      >
-        Filter
-      </span>
     </button>
   );
 }

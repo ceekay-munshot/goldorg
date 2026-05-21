@@ -17,6 +17,7 @@ import {
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
+import { MetricToggle, type FlowMetric } from "@/components/primitives/MetricToggle";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes, fmtUsd } from "@/lib/format";
@@ -34,10 +35,10 @@ type ChartMode = "bar" | "line";
  */
 export function RegionalFlowsChart() {
   const { timeseries } = useDataset();
-  const metric = useFilters((s) => s.metric);
   const period = useFilters((s) => s.period);
   const selectedRegion = useFilters((s) => s.region);
 
+  const [metric, setMetric] = useState<FlowMetric>("flows");
   const [range, setRange] = useState<string>("auto");
   const [mode, setMode] = useState<ChartMode>("bar");
 
@@ -63,9 +64,6 @@ export function RegionalFlowsChart() {
 
   // metric toggle decides which series to chart
   const usingDemand = metric === "demand";
-  const usingHoldings = metric === "holdings" || metric === "aum";
-  // For holdings/aum we don't have a "monthly change" chart that fits — fall
-  // back to flows when those are selected (will be visible elsewhere).
   const source = usingDemand
     ? timeseries.monthly_demand_tonnes
     : timeseries.monthly_flows_usd;
@@ -87,22 +85,16 @@ export function RegionalFlowsChart() {
     <GlassCard variant="default" className="p-6">
       <CardHeader
         eyebrow="Trend · regions over time"
-        title={usingHoldings ? "Regional flows (USD)" : usingDemand ? "Regional demand (tonnes)" : "Regional flows (USD)"}
+        title={usingDemand ? "Regional demand (tonnes)" : "Regional flows (USD)"}
         subtitle={`Each colour is one region · ${unitLabel} · positive = inflow, negative = outflow`}
         trailing={
           <div className="flex items-center gap-2">
+            <MetricToggle value={metric} onChange={setMetric} id="regional-flows" />
             <RangeTabs value={range} onChange={setRange} />
             <ModeToggle value={mode} onChange={setMode} />
           </div>
         }
       />
-
-      {usingHoldings && (
-        <div className="text-[10px] uppercase tracking-[0.22em] text-fg-muted mb-2">
-          Note: Holdings & AUM metric → showing flows here as the closest
-          temporal proxy. See the stacked composition below for holdings trends.
-        </div>
-      )}
 
       <div className="h-[300px] -mx-2">
         <ResponsiveContainer width="100%" height="100%">

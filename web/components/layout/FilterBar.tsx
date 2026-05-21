@@ -6,7 +6,6 @@ import { useMemo } from "react";
 import { useData } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { PeriodToggle } from "@/components/primitives/PeriodToggle";
-import { MetricToggle } from "@/components/primitives/MetricToggle";
 import { SearchInput } from "@/components/primitives/SearchInput";
 import { Select } from "@/components/primitives/Select";
 import { MultiSelect } from "@/components/primitives/MultiSelect";
@@ -106,8 +105,6 @@ export function FilterBar() {
     <div className="sticky top-[7.25rem] z-20 bg-bg-base/85 backdrop-blur-xl border-b border-border-subtle">
       <div className="mx-auto max-w-[1600px] px-6 lg:px-10 py-3.5 flex flex-wrap items-center gap-3">
         <PeriodToggle />
-        <Divider />
-        <MetricToggle />
         <Divider />
 
         <div className="flex flex-wrap items-center gap-2">

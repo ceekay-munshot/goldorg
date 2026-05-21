@@ -8,12 +8,12 @@
 
 :root {
   /* ---------- BASE LAYERS ---------- */
-  --bg-base:      #F8EFCD;     /* warm gold-tinted cream */
-  --bg-tint:      #F2E5B5;     /* deeper gold-cream */
-  --bg-surface:   #FFFCF0;     /* near-white card with gold whisper */
-  --bg-elevated:  #FFFAE8;     /* raised card, slightly warmer */
-  --bg-glass:     rgba(255, 252, 232, 0.74);
-  --bg-glass-strong: rgba(255, 250, 222, 0.88);
+  --bg-base:      #EFE1B6;     /* deeper warm gold cream */
+  --bg-tint:      #E5D5A0;     /* deeper gold-cream tint */
+  --bg-surface:   #FFFDF4;     /* bright card — lifts off the deeper base */
+  --bg-elevated:  #FFFEFA;     /* raised card */
+  --bg-glass:     rgba(255, 252, 236, 0.74);
+  --bg-glass-strong: rgba(255, 250, 226, 0.88);
 
   /* ---------- BORDERS ---------- */
   --border-faint:    rgba(28, 28, 46, 0.045);

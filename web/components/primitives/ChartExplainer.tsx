@@ -51,9 +51,9 @@ export function ChartExplainer({ explain }: { explain: ExplainSection }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.18 }}
-            className="absolute right-0 top-full mt-2 z-40 w-[340px] rounded-2xl border border-border-gold bg-bg-surface shadow-[var(--shadow-elevated)] overflow-hidden"
+            className="absolute right-0 top-full mt-2 z-40 w-[340px] max-h-[min(70vh,520px)] flex flex-col rounded-2xl border border-border-gold bg-bg-surface shadow-[var(--shadow-elevated)] overflow-hidden"
           >
-            <div className="flex items-center justify-between px-4 py-2.5 bg-gold-50 border-b border-[var(--border-gold)]">
+            <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-gold-50 border-b border-[var(--border-gold)]">
               <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-gold-700 font-semibold">
                 <Sparkles className="w-3 h-3" />
                 Reading this chart
@@ -65,7 +65,7 @@ export function ChartExplainer({ explain }: { explain: ExplainSection }) {
                 <X className="w-3 h-3" />
               </button>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 overflow-y-auto">
               <Block label="What it is">
                 <p className="text-[12px] text-fg-secondary leading-relaxed">
                   {explain.what}

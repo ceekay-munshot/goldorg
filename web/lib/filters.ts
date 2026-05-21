@@ -10,13 +10,12 @@
 "use client";
 
 import { create } from "zustand";
-import type { MetricKey, PeriodKey } from "./types";
+import type { PeriodKey } from "./types";
 
 export type ActiveFilter = "all" | "active" | "inactive";
 
 interface FilterState {
   period: PeriodKey;
-  metric: MetricKey;
   regions: string[];
   countries: string[];
   region: string | null;     // derived: regions[0] when |regions| === 1 else null
@@ -28,7 +27,6 @@ interface FilterState {
   openRegionFunds: string | null;
 
   setPeriod: (p: PeriodKey) => void;
-  setMetric: (m: MetricKey) => void;
 
   setRegions: (r: string[]) => void;
   toggleRegion: (r: string) => void;
@@ -57,7 +55,6 @@ function derive(regions: string[], countries: string[]) {
 
 export const useFilters = create<FilterState>((set) => ({
   period: "1M",
-  metric: "flows",
   regions: [],
   countries: [],
   region: null,
@@ -69,7 +66,6 @@ export const useFilters = create<FilterState>((set) => ({
   openRegionFunds: null,
 
   setPeriod: (period) => set({ period }),
-  setMetric: (metric) => set({ metric }),
 
   setRegions: (regions) =>
     set({
@@ -144,7 +140,6 @@ export const useFilters = create<FilterState>((set) => ({
   resetAll: () =>
     set({
       period: "1M",
-      metric: "flows",
       regions: [],
       countries: [],
       region: null,

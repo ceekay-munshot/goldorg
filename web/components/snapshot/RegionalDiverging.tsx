@@ -15,6 +15,7 @@ import {
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ViewToggle } from "@/components/primitives/ViewToggle";
+import { MetricToggle, type FlowMetric } from "@/components/primitives/MetricToggle";
 import { useFundsByRegion } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
 import { fmtPct, fmtTonnes, fmtUsd } from "@/lib/format";
@@ -23,13 +24,13 @@ import type { ViewMode } from "@/lib/types";
 
 export function RegionalDiverging() {
   const rows = useFundsByRegion({ ignoreRegionFilter: true });
-  const metric = useFilters((s) => s.metric);
+  const [metric, setMetric] = useState<FlowMetric>("flows");
   const [view, setView] = useState<ViewMode>("absolute");
   const setRegion = useFilters((s) => s.setRegion);
   const selectedRegion = useFilters((s) => s.region);
 
   const valueKey = metric === "demand" ? "demand_tonnes" : "flows_usd_mn";
-  const isUsd = metric === "flows" || metric === "aum";
+  const isUsd = metric === "flows";
   const totalAbs = useMemo(
     () => rows.reduce((s, r) => s + Math.abs(r[valueKey]), 0),
     [rows, valueKey],
@@ -71,9 +72,7 @@ export function RegionalDiverging() {
         subtitle="Diverging view across the four regions for the active period"
         trailing={
           <div className="flex items-center gap-2">
-            <UnitBadge
-              unit={view === "proportionate" ? "% share" : isUsd ? "USD" : "tonnes"}
-            />
+            <MetricToggle value={metric} onChange={setMetric} id="diverging" />
             <ViewToggle value={view} onChange={setView} id="diverging" />
           </div>
         }
@@ -189,14 +188,6 @@ function DivergingTooltip({ active, payload, metric, view }: TooltipProps) {
         { label: "Funds", value: String(p.fundCount) },
       ]}
     />
-  );
-}
-
-function UnitBadge({ unit }: { unit: string }) {
-  return (
-    <span className="text-[9px] uppercase tracking-[0.22em] text-fg-muted font-mono px-2 py-1 rounded-md bg-bg-tint">
-      {unit}
-    </span>
   );
 }
 

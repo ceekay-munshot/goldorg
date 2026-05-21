@@ -1,20 +1,23 @@
 "use client";
 
-import { GlassCard, CardHeader } from "@/components/primitives/GlassCard";
+import { GoldForecast } from "@/components/signals/GoldForecast";
+import { GoldMasterChart } from "@/components/signals/GoldMasterChart";
+import { DriverBoard } from "@/components/signals/DriverBoard";
+import { CentralBankDemand } from "@/components/signals/CentralBankDemand";
+import { MinerMargin } from "@/components/signals/MinerMargin";
 
 export default function SignalsPage() {
   return (
-    <GlassCard variant="hero" className="p-10">
-      <CardHeader
-        eyebrow="Tab 3 · Signals"
-        title="The future of gold"
-        subtitle="Price history, forecasts, precious-metal comparisons and macro drivers — build in progress."
-      />
-      <p className="text-fg-secondary text-sm max-w-2xl">
-        This tab will host the long-range gold price chart, multi-year forecast,
-        precious-metal relative-value views and the macro drivers that move
-        gold. Scope is being finalised.
-      </p>
-    </GlassCard>
+    <div className="flex flex-col gap-6">
+      {/* Future first */}
+      <GoldForecast />
+      {/* Then the context that justifies it */}
+      <GoldMasterChart />
+      <DriverBoard />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <CentralBankDemand />
+        <MinerMargin />
+      </div>
+    </div>
   );
 }

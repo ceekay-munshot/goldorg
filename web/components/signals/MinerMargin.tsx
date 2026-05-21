@@ -15,7 +15,7 @@ import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
-import { MACRO } from "@/lib/macro";
+import { MACRO, macroYearLabel } from "@/lib/macro";
 
 /**
  * Miner economics — all-in sustaining cost (AISC) vs gold price.
@@ -35,7 +35,7 @@ export function MinerMargin() {
       const gold = goldByYear.get(m.year) ?? 0;
       const aisc = m.aisc_usd_oz ?? 0;
       return {
-        year: String(m.year),
+        year: macroYearLabel(m.year),
         aisc,
         gold,
         margin: gold - aisc,

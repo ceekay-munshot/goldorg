@@ -22,6 +22,8 @@ export interface MetalYear {
   gold_demand_t: number;
   /** S&P 500 year-end close */
   sp500: number;
+  /** true → current-year estimate */
+  estimate?: boolean;
 }
 
 export const METALS: MetalYear[] = [
@@ -48,7 +50,13 @@ export const METALS: MetalYear[] = [
   { year: 2023, silver: 23.4, platinum: 967, palladium: 1337, gold_demand_t: 4448, sp500: 4770 },
   { year: 2024, silver: 28.3, platinum: 950, palladium: 1000, gold_demand_t: 4554, sp500: 5882 },
   { year: 2025, silver: 48.0, platinum: 1400, palladium: 1300, gold_demand_t: 4760, sp500: 6900 },
+  { year: 2026, silver: 72.0, platinum: 1850, palladium: 1450, gold_demand_t: 4850, sp500: 7050, estimate: true },
 ];
+
+/** Year label for axes — appends "E" to estimate years. */
+export function metalYearLabel(year: number): string {
+  return METALS.find((m) => m.year === year)?.estimate ? `${year}E` : String(year);
+}
 
 /** Gold's behaviour through equity drawdowns — "crisis alpha".
  *  Returns are approximate peak-to-trough over the crisis window. */

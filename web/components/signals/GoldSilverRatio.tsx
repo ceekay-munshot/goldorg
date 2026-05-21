@@ -15,7 +15,7 @@ import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
-import { METALS, METALS_SOURCE_NOTE } from "@/lib/metals";
+import { METALS, METALS_SOURCE_NOTE, metalYearLabel } from "@/lib/metals";
 
 /**
  * Gold-to-silver ratio — how many ounces of silver buy one ounce
@@ -33,7 +33,7 @@ export function GoldSilverRatio() {
     return METALS.map((m) => {
       const gold = goldByYear.get(m.year) ?? 0;
       return {
-        year: String(m.year),
+        year: metalYearLabel(m.year),
         ratio: m.silver ? gold / m.silver : 0,
         gold,
         silver: m.silver,

@@ -17,7 +17,7 @@ import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
-import { MACRO } from "@/lib/macro";
+import { MACRO, macroYearLabel } from "@/lib/macro";
 import { fmtTonnes } from "@/lib/format";
 
 /**
@@ -35,7 +35,7 @@ export function CentralBankDemand() {
       goldByYear.set(Number(p.date.slice(0, 4)), p.gold_price_usd_oz ?? 0);
     }
     return MACRO.map((m) => ({
-      year: String(m.year),
+      year: macroYearLabel(m.year),
       cb: m.cb_demand_t,
       gold: goldByYear.get(m.year) ?? null,
     }));

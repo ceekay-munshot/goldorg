@@ -16,10 +16,12 @@ import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
+import { useFilters } from "@/lib/filters";
 import { buildForecast, type DriftBasis } from "@/lib/forecast";
 import { ANALYST_TARGETS } from "@/lib/macro";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import type { PeriodKey } from "@/lib/types";
 
 const BASIS_LABEL: Record<DriftBasis, string> = {
   all: "Since 2003",
@@ -27,8 +29,21 @@ const BASIS_LABEL: Record<DriftBasis, string> = {
   "5y": "Last 5Y",
 };
 
+/** Period selector → how many months of price history to draw before
+ *  the forecast cone. Max shows the full record back to 2003. */
+const PERIOD_TAIL: Record<PeriodKey, number> = {
+  "1M": 24,
+  QTD: 24,
+  YTD: 24,
+  "1Y": 24,
+  "3Y": 36,
+  "5Y": 60,
+  Max: 9999,
+};
+
 export function GoldForecast() {
   const { timeseries } = useDataset();
+  const period = useFilters((s) => s.period);
   const [basis, setBasis] = useState<DriftBasis>("10y");
 
   const history = useMemo(
@@ -39,7 +54,11 @@ export function GoldForecast() {
     [timeseries],
   );
 
-  const fc = useMemo(() => buildForecast(history, 36, basis, 48), [history, basis]);
+  const tail = PERIOD_TAIL[period] ?? 36;
+  const fc = useMemo(
+    () => buildForecast(history, 36, basis, tail),
+    [history, basis, tail],
+  );
 
   const chartData = useMemo(
     () =>
@@ -50,6 +69,18 @@ export function GoldForecast() {
       })),
     [fc],
   );
+
+  // Round y-axis: ticks every $2k from 0 up to a clean ceiling
+  const { yMax, yTicks } = useMemo(() => {
+    let m = 0;
+    for (const p of chartData) {
+      m = Math.max(m, p.actual ?? 0, p.hi2 ?? 0, p.median ?? 0);
+    }
+    const ceil = Math.ceil(m / 2000) * 2000;
+    const ticks: number[] = [];
+    for (let t = 0; t <= ceil; t += 2000) ticks.push(t);
+    return { yMax: ceil, yTicks: ticks };
+  }, [chartData]);
 
   // analyst targets that fall inside the forecast horizon
   const horizonEnd = fc.series[fc.series.length - 1]?.date ?? "";
@@ -119,9 +150,13 @@ export function GoldForecast() {
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
-              tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`}
-              width={48}
-              domain={["dataMin * 0.9", "dataMax * 1.05"]}
+              tickFormatter={(v: number) =>
+                v === 0 ? "$0" : `$${(v / 1000).toFixed(0)}k`
+              }
+              width={44}
+              domain={[0, yMax]}
+              ticks={yTicks}
+              allowDataOverflow={false}
             />
             <Tooltip content={(p) => <ForecastTooltip {...p} />} />
 

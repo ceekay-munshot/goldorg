@@ -14,7 +14,7 @@ import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
-import { METALS, METALS_SOURCE_NOTE } from "@/lib/metals";
+import { METALS, METALS_SOURCE_NOTE, metalYearLabel } from "@/lib/metals";
 
 const SERIES = [
   { key: "gold", label: "Gold", color: "var(--gold-600)" },
@@ -43,7 +43,7 @@ export function MetalsRelativeValue() {
     };
     const gold0 = goldByYear.get(2003) ?? 363;
     return METALS.map((m) => ({
-      year: String(m.year),
+      year: metalYearLabel(m.year),
       gold: ((goldByYear.get(m.year) ?? gold0) / gold0) * 100,
       silver: (m.silver / base.silver) * 100,
       platinum: (m.platinum / base.platinum) * 100,

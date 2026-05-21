@@ -23,6 +23,8 @@ export interface MacroYear {
   mine_supply_t: number;
   /** US 10Y TIPS real yield, annual average % */
   real_yield_pct: number;
+  /** true → figures are a current-year estimate, not a final number */
+  estimate?: boolean;
 }
 
 export const MACRO: MacroYear[] = [
@@ -49,7 +51,13 @@ export const MACRO: MacroYear[] = [
   { year: 2023, cb_demand_t: 1051, aisc_usd_oz: 1343, mine_supply_t: 3422, real_yield_pct: 1.5 },
   { year: 2024, cb_demand_t: 1045, aisc_usd_oz: 1456, mine_supply_t: 3475, real_yield_pct: 1.9 },
   { year: 2025, cb_demand_t: 1010, aisc_usd_oz: 1605, mine_supply_t: 3530, real_yield_pct: 1.9 },
+  { year: 2026, cb_demand_t: 920, aisc_usd_oz: 1720, mine_supply_t: 3560, real_yield_pct: 1.7, estimate: true },
 ];
+
+/** Year label for axes — appends "E" to estimate years. */
+export function macroYearLabel(year: number): string {
+  return MACRO.find((m) => m.year === year)?.estimate ? `${year}E` : String(year);
+}
 
 export interface AnalystTarget {
   house: string;
@@ -69,4 +77,4 @@ export const ANALYST_TARGETS: AnalystTarget[] = [
 ];
 
 export const MACRO_SOURCE_NOTE =
-  "Annual figures: World Gold Council (central-bank demand, AISC, mine supply) and US 10Y TIPS real yield (FRED). Updated periodically.";
+  "Annual figures: World Gold Council (central-bank demand, AISC, mine supply) and US 10Y TIPS real yield (FRED). 2026 values are estimates (marked E). Updated periodically.";

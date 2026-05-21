@@ -14,7 +14,7 @@ import {
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
-import { MACRO } from "@/lib/macro";
+import { MACRO, macroYearLabel } from "@/lib/macro";
 import { METALS, METALS_SOURCE_NOTE } from "@/lib/metals";
 import { fmtTonnes } from "@/lib/format";
 
@@ -29,7 +29,7 @@ export function PeakGold() {
     return MACRO.map((m) => {
       const demand = demandByYear.get(m.year) ?? 0;
       return {
-        year: String(m.year),
+        year: macroYearLabel(m.year),
         mine: m.mine_supply_t,
         demand,
         gap: Math.max(demand - m.mine_supply_t, 0),
@@ -53,11 +53,11 @@ export function PeakGold() {
         subtitle={`Mine output has grown just ${mineCagr.toFixed(1)}%/yr since 2003 while demand climbed ${demandGrowth.toFixed(0)}%. The widening gap is filled by recycling and stock draw.`}
         trailing={
           <div className="flex items-center gap-3">
-            <Stat label="Mine growth" value={`+${mineGrowth.toFixed(0)}%`} note="2003→25" />
-            <Stat label="Demand growth" value={`+${demandGrowth.toFixed(0)}%`} note="2003→25" tone="pos" />
+            <Stat label="Mine growth" value={`+${mineGrowth.toFixed(0)}%`} note="2003→26E" />
+            <Stat label="Demand growth" value={`+${demandGrowth.toFixed(0)}%`} note="2003→26E" tone="pos" />
             <ChartExplainer
               explain={{
-                what: "Annual global gold mine production (filled area) against total world gold demand (line), 2003 to 2025.",
+                what: "Annual global gold mine production (filled area) against total world gold demand (line), 2003 to 2026 (the final year is an estimate).",
                 read: [
                   "The gold area is what miners dug out of the ground each year.",
                   "The line is total demand — jewellery, bars, coins, ETFs, central banks.",

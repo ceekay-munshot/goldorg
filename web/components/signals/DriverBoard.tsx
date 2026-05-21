@@ -1,47 +1,35 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  CartesianGrid,
-  Cell,
-  ReferenceLine,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-  ZAxis,
-} from "recharts";
+import { motion } from "framer-motion";
+import { TrendingUp, Landmark, Percent } from "lucide-react";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
-import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { MACRO, MACRO_SOURCE_NOTE } from "@/lib/macro";
+import { cn } from "@/lib/cn";
 
-interface Point {
-  x: number;
-  y: number;
-  year: number;
-  recent: boolean; // 2022+ — the decoupling era
-}
-
-interface Panel {
+interface DriverRow {
   key: string;
-  title: string;
-  xLabel: string;
-  xFmt: (v: number) => string;
-  points: Point[];
-  reading: string;
+  Icon: typeof TrendingUp;
+  name: string;
+  whatItIs: string;
+  r: number;
+  verdict: string;
+  verdictTone: "strong" | "mid" | "weak";
+  meaning: string;
 }
 
-const RECENT_FROM = 2022;
-
+/**
+ * "What drives gold" — a plain-language scorecard. For each candidate
+ * driver we measure how tightly gold's annual return tracked it
+ * (2004-2025), then present a strength meter + verdict + one-line read.
+ * No scatter plots — just the answer.
+ */
 export function DriverBoard() {
   const { timeseries } = useDataset();
 
-  const panels = useMemo<Panel[]>(() => {
-    // annual year-end gold price → annual % returns
+  const rows = useMemo<DriverRow[]>(() => {
     const annualGold = timeseries.annual_holdings_tonnes
       .map((p) => ({ year: Number(p.date.slice(0, 4)), price: p.gold_price_usd_oz ?? 0 }))
       .filter((p) => p.price > 0)
@@ -50,11 +38,9 @@ export function DriverBoard() {
     for (let i = 1; i < annualGold.length; i++) {
       goldRet.set(
         annualGold[i].year,
-        (annualGold[i].price / annualGold[i - 1].price - 1) * 100,
+        annualGold[i].price / annualGold[i - 1].price - 1,
       );
     }
-
-    // annual total ETF demand tonnes
     const etfDemand = new Map<number, number>();
     for (const p of timeseries.annual_demand_tonnes) {
       etfDemand.set(
@@ -62,54 +48,106 @@ export function DriverBoard() {
         (p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0),
       );
     }
+    // complete years only — drop the 2026 estimate
+    const complete = MACRO.filter((m) => !m.estimate);
 
-    // year-over-year change in real yield
-    const dYield = new Map<number, number>();
-    for (let i = 1; i < MACRO.length; i++) {
-      dYield.set(MACRO[i].year, MACRO[i].real_yield_pct - MACRO[i - 1].real_yield_pct);
-    }
+    const pairs = (pick: (m: (typeof complete)[number]) => number | null) => {
+      const xs: number[] = [];
+      const ys: number[] = [];
+      let prevYield: number | null = null;
+      for (let i = 0; i < complete.length; i++) {
+        const m = complete[i];
+        const ret = goldRet.get(m.year);
+        const xv = pick(m);
+        if (ret != null && xv != null) {
+          xs.push(xv);
+          ys.push(ret);
+        }
+        prevYield = m.real_yield_pct;
+      }
+      void prevYield;
+      return { xs, ys };
+    };
 
-    const yld: Point[] = [];
-    const etf: Point[] = [];
-    const cb: Point[] = [];
-    for (const m of MACRO) {
-      const ret = goldRet.get(m.year);
+    const pearson = (xs: number[], ys: number[]) => {
+      const n = xs.length;
+      if (n < 3) return 0;
+      const mx = xs.reduce((s, x) => s + x, 0) / n;
+      const my = ys.reduce((s, y) => s + y, 0) / n;
+      let num = 0,
+        dx = 0,
+        dy = 0;
+      for (let i = 0; i < n; i++) {
+        num += (xs[i] - mx) * (ys[i] - my);
+        dx += (xs[i] - mx) ** 2;
+        dy += (ys[i] - my) ** 2;
+      }
+      const den = Math.sqrt(dx * dy);
+      return den ? num / den : 0;
+    };
+
+    // ETF demand
+    const etf = pairs((m) => etfDemand.get(m.year) ?? null);
+    const rEtf = pearson(etf.xs, etf.ys);
+
+    // central-bank demand
+    const cb = pairs((m) => m.cb_demand_t);
+    const rCb = pearson(cb.xs, cb.ys);
+
+    // real-yield CHANGE
+    const dyXs: number[] = [];
+    const dyYs: number[] = [];
+    for (let i = 1; i < complete.length; i++) {
+      const ret = goldRet.get(complete[i].year);
       if (ret == null) continue;
-      const recent = m.year >= RECENT_FROM;
-      const dy = dYield.get(m.year);
-      if (dy != null) yld.push({ x: dy, y: ret, year: m.year, recent });
-      cb.push({ x: m.cb_demand_t, y: ret, year: m.year, recent });
-      const d = etfDemand.get(m.year);
-      if (d != null) etf.push({ x: d, y: ret, year: m.year, recent });
+      dyXs.push(complete[i].real_yield_pct - complete[i - 1].real_yield_pct);
+      dyYs.push(ret);
     }
+    const rYield = pearson(dyXs, dyYs);
+
+    const verdictOf = (r: number): { v: string; t: "strong" | "mid" | "weak" } => {
+      const a = Math.abs(r);
+      if (a >= 0.6) return { v: "Strong link", t: "strong" };
+      if (a >= 0.35) return { v: "Moderate link", t: "mid" };
+      return { v: "Barely linked", t: "weak" };
+    };
+
+    const etfV = verdictOf(rEtf);
+    const cbV = verdictOf(rCb);
 
     return [
       {
-        key: "yield",
-        title: "vs change in real yields",
-        xLabel: "Real yield change (pts/yr)",
-        xFmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}`,
-        points: yld,
-        reading:
-          "Textbook: when real yields fall (left side) gold rises. The link is real but noisy year-to-year — and the 2022-25 dots break it entirely.",
-      },
-      {
         key: "etf",
-        title: "vs ETF investor demand",
-        xLabel: "ETF demand (tonnes/yr)",
-        xFmt: (v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${v.toFixed(0)}`),
-        points: etf,
-        reading:
-          "Tight positive link: when ETF investors buy, price is up. ETF demand amplifies moves — it rarely starts them.",
+        Icon: TrendingUp,
+        name: "ETF investor demand",
+        whatItIs: "How much gold the world's ETFs gained or lost to investor buying.",
+        r: rEtf,
+        verdict: etfV.v,
+        verdictTone: etfV.t,
+        meaning:
+          "Moves tightly with the price — but it's sentiment. ETF flows amplify a trend that's already running; they rarely start one.",
       },
       {
         key: "cb",
-        title: "vs central-bank demand",
-        xLabel: "CB net purchases (tonnes/yr)",
-        xFmt: (v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${v.toFixed(0)}`),
-        points: cb,
-        reading:
-          "Almost no link — central banks buy for reserve policy, not price. A near price-insensitive, structural bid.",
+        Icon: Landmark,
+        name: "Central-bank demand",
+        whatItIs: "Net gold bought by the world's central banks each year.",
+        r: rCb,
+        verdict: cbV.v,
+        verdictTone: cbV.t,
+        meaning:
+          "Almost no link to price — central banks buy to diversify reserves regardless of where gold trades. A structural, price-insensitive bid that just keeps coming.",
+      },
+      {
+        key: "yield",
+        Icon: Percent,
+        name: "Real interest rates",
+        whatItIs: "The yearly change in inflation-adjusted US 10-year bond yields.",
+        r: rYield,
+        verdict: "Link has broken",
+        verdictTone: "weak",
+        meaning:
+          "The textbook driver — low real yields used to lift gold. But since 2022 gold soared even as real yields rose. Central-bank buying replaced it as the dominant force.",
       },
     ];
   }, [timeseries]);
@@ -118,184 +156,117 @@ export function DriverBoard() {
     <GlassCard variant="default" className="p-6">
       <CardHeader
         eyebrow="What drives gold"
-        title="The forces behind the price"
-        subtitle="Each dot is one year. Up the chart = gold returned more. Across = the driver's value that year."
+        title="The forces behind the price — scored"
+        subtitle="How tightly gold's yearly return tracked each candidate driver, 2004–2025. Longer bar = stronger link."
         trailing={
           <ChartExplainer
             explain={{
-              what: "Three scatter plots. In each, every dot is one calendar year (2004-2025) plotted by gold's return that year (vertical) against one possible driver (horizontal).",
+              what: "A scorecard of three things that could move the gold price. For each, we measured how closely gold's annual return followed it over 22 years.",
               read: [
-                "The dashed line is the best-fit trend; r (from -1 to +1) measures how tightly the dots follow it.",
-                "Gold dots are 2004-2021; coral dots are 2022-2025 — the recent 'decoupling' years.",
-                "A near-flat cloud (r near 0) means that driver has little to do with gold's return.",
+                "The bar shows link strength — full bar means gold moved almost lock-step with that driver.",
+                "The verdict label and the r number (0 = no link, 1 = perfect link) say the same thing in two ways.",
+                "A short bar means that factor explains little of gold's moves.",
               ],
               takeaway:
-                "ETF demand tracks price tightly (sentiment). Central-bank demand barely correlates — they buy regardless of price. And the once-dominant real-yield link has broken down since 2022. Read together: gold's current driver is structural official-sector buying, not the old macro playbook.",
+                "Investor ETF demand tracks price tightly but only as a sentiment amplifier. Central-bank demand barely correlates — yet it's the bid that never stops. And the once-dominant real-yield link has broken. Net read: gold's price is now set by structural official-sector buying, not the old macro playbook.",
             }}
           />
         }
       />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {panels.map((p) => (
-          <ScatterPanel key={p.key} panel={p} />
+
+      <div className="flex flex-col gap-3">
+        {rows.map((row, i) => (
+          <DriverRowCard key={row.key} row={row} index={i} />
         ))}
       </div>
-      <div className="flex items-center gap-4 mt-4">
-        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-fg-muted">
-          <span className="w-2.5 h-2.5 rounded-full bg-gold-500" /> 2004-2021
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-fg-muted">
-          <span className="w-2.5 h-2.5 rounded-full bg-c-asia" /> 2022-2025 · decoupling
-        </span>
-        <span className="text-[10px] text-fg-muted ml-auto">{MACRO_SOURCE_NOTE}</span>
-      </div>
+
+      <p className="text-[10px] text-fg-muted mt-4">{MACRO_SOURCE_NOTE}</p>
     </GlassCard>
   );
 }
 
-function pearson(pts: Point[]): number {
-  const n = pts.length;
-  if (n < 3) return 0;
-  const mx = pts.reduce((s, p) => s + p.x, 0) / n;
-  const my = pts.reduce((s, p) => s + p.y, 0) / n;
-  let num = 0,
-    dx = 0,
-    dy = 0;
-  for (const p of pts) {
-    num += (p.x - mx) * (p.y - my);
-    dx += (p.x - mx) ** 2;
-    dy += (p.y - my) ** 2;
-  }
-  const den = Math.sqrt(dx * dy);
-  return den ? num / den : 0;
-}
-
-function regression(pts: Point[]): { slope: number; intercept: number } {
-  const n = pts.length;
-  const mx = pts.reduce((s, p) => s + p.x, 0) / n;
-  const my = pts.reduce((s, p) => s + p.y, 0) / n;
-  let num = 0,
-    den = 0;
-  for (const p of pts) {
-    num += (p.x - mx) * (p.y - my);
-    den += (p.x - mx) ** 2;
-  }
-  const slope = den ? num / den : 0;
-  return { slope, intercept: my - slope * mx };
-}
-
-function ScatterPanel({ panel }: { panel: Panel }) {
-  const r = pearson(panel.points);
-  const { slope, intercept } = regression(panel.points);
-  const xs = panel.points.map((p) => p.x);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const strength = Math.abs(r);
-  const strengthLabel =
-    strength > 0.6 ? "Strong" : strength > 0.3 ? "Moderate" : "Weak / none";
-  const rColor =
-    r > 0.3 ? "var(--pos-text)" : r < -0.3 ? "var(--neg-text)" : "var(--fg-muted)";
+function DriverRowCard({ row, index }: { row: DriverRow; index: number }) {
+  const strength = Math.min(Math.abs(row.r), 1);
+  const toneColor =
+    row.verdictTone === "strong"
+      ? "var(--pos)"
+      : row.verdictTone === "mid"
+        ? "var(--gold-500)"
+        : "var(--neu)";
+  const toneText =
+    row.verdictTone === "strong"
+      ? "text-pos-text"
+      : row.verdictTone === "mid"
+        ? "text-gold-700"
+        : "text-fg-muted";
+  const toneBg =
+    row.verdictTone === "strong"
+      ? "bg-pos-soft border-[var(--pos-border)]"
+      : row.verdictTone === "mid"
+        ? "bg-gold-50 border-[var(--border-gold)]"
+        : "bg-neu-soft border-[var(--neu-border)]";
+  const Icon = row.Icon;
 
   return (
-    <div className="rounded-2xl border border-border-subtle bg-bg-surface p-4">
-      <h4 className="font-display text-[14.5px] tracking-tight text-fg-primary">
-        Gold return {panel.title}
-      </h4>
-      <div className="flex items-center gap-2 mt-1.5 mb-2">
-        <span
-          className="text-[17px] font-display tabular-nums tracking-tight"
-          style={{ color: rColor }}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 + index * 0.07, duration: 0.35 }}
+      className="rounded-2xl border border-border-subtle bg-bg-surface p-5"
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className="shrink-0 w-10 h-10 rounded-xl grid place-items-center"
+          style={{ background: `${toneColor}1f` }}
         >
-          r = {r >= 0 ? "+" : ""}
-          {r.toFixed(2)}
-        </span>
-        <span className="text-[9px] uppercase tracking-[0.16em] text-fg-muted px-1.5 py-0.5 rounded bg-bg-tint">
-          {strengthLabel}
-        </span>
+          <Icon className="w-5 h-5" style={{ color: toneColor }} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h4 className="font-display text-[17px] tracking-tight text-fg-primary">
+              {row.name}
+            </h4>
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center h-6 px-2.5 rounded-full border text-[10px] uppercase tracking-[0.16em] font-semibold",
+                  toneBg,
+                  toneText,
+                )}
+              >
+                {row.verdict}
+              </span>
+              <span className="text-[12px] font-mono tabular-nums text-fg-muted">
+                r&nbsp;{row.r >= 0 ? "+" : ""}
+                {row.r.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[11.5px] text-fg-muted mt-0.5">{row.whatItIs}</p>
+
+          {/* strength meter */}
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex-1 h-2.5 rounded-full bg-bg-tint overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${strength * 100}%` }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+                className="h-full rounded-full"
+                style={{ background: toneColor }}
+              />
+            </div>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-fg-muted w-24 text-right">
+              {Math.round(strength * 100)}% link
+            </span>
+          </div>
+
+          <p className="text-[12.5px] text-fg-secondary leading-snug mt-2.5">
+            {row.meaning}
+          </p>
+        </div>
       </div>
-
-      <div className="h-[180px] -mx-1">
-        <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 6, right: 12, bottom: 20, left: -6 }}>
-            <CartesianGrid stroke="var(--border-faint)" />
-            <XAxis
-              type="number"
-              dataKey="x"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 9, fill: "var(--fg-muted)" }}
-              tickFormatter={panel.xFmt}
-              label={{
-                value: panel.xLabel,
-                position: "insideBottom",
-                offset: -12,
-                fontSize: 9,
-                fill: "var(--fg-muted)",
-              }}
-            />
-            <YAxis
-              type="number"
-              dataKey="y"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 9, fill: "var(--fg-muted)" }}
-              tickFormatter={(v: number) => `${v}%`}
-              width={34}
-            />
-            <ZAxis range={[130, 130]} />
-            <ReferenceLine y={0} stroke="var(--border-strong)" />
-            <ReferenceLine
-              segment={[
-                { x: minX, y: slope * minX + intercept },
-                { x: maxX, y: slope * maxX + intercept },
-              ]}
-              stroke="var(--gold-600)"
-              strokeWidth={1.5}
-              strokeDasharray="4 3"
-            />
-            <Tooltip
-              cursor={{ strokeDasharray: "3 3", stroke: "var(--gold-500)" }}
-              content={(p) => <ScatterTip {...p} xLabel={panel.xLabel} xFmt={panel.xFmt} />}
-            />
-            <Scatter data={panel.points} isAnimationActive animationDuration={800}>
-              {panel.points.map((p) => (
-                <Cell
-                  key={p.year}
-                  fill={p.recent ? "var(--c-asia)" : "var(--gold-500)"}
-                  fillOpacity={0.82}
-                />
-              ))}
-            </Scatter>
-          </ScatterChart>
-        </ResponsiveContainer>
-      </div>
-      <p className="text-[11px] text-fg-secondary leading-snug mt-2">{panel.reading}</p>
-    </div>
-  );
-}
-
-interface TipProps {
-  active?: boolean;
-  payload?: readonly { payload?: Point }[];
-  xLabel?: string;
-  xFmt?: (v: number) => string;
-}
-
-function ScatterTip({ active, payload, xLabel, xFmt }: TipProps) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0]?.payload;
-  if (!p) return null;
-  return (
-    <PremiumTooltip
-      title={`${p.year}${p.recent ? " · decoupling era" : ""}`}
-      rows={[
-        { label: xLabel ?? "Driver", value: xFmt ? xFmt(p.x) : p.x.toFixed(1) },
-        {
-          label: "Gold return",
-          value: `${p.y >= 0 ? "+" : ""}${p.y.toFixed(1)}%`,
-          accent: true,
-        },
-      ]}
-    />
+    </motion.div>
   );
 }

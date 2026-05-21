@@ -1,42 +1,37 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  LabelList,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { motion } from "framer-motion";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
-import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
+import { cn } from "@/lib/cn";
 
 const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
+interface MonthStat {
+  month: string;
+  short: string;
+  avg: number;
+  hitRate: number;
+  years: number;
+}
+
 /**
- * Gold seasonality — average monthly return by calendar month
- * across the full 2003→now history, plus a hit rate (share of
- * years that month was positive).
+ * Gold seasonality — a clean 12-tile calendar. Each tile is one
+ * calendar month: its average return across 23 years, colour-coded,
+ * with how often that month was actually positive.
  */
 export function Seasonality() {
   const { timeseries } = useDataset();
 
-  const data = useMemo(() => {
+  const stats = useMemo<MonthStat[]>(() => {
     const prices = timeseries.monthly_holdings_tonnes
       .map((p) => ({ date: p.date, price: p.gold_price_usd_oz ?? 0 }))
       .filter((p) => p.price > 0);
-
-    // monthly returns bucketed by calendar month
     const buckets: number[][] = Array.from({ length: 12 }, () => []);
     for (let i = 1; i < prices.length; i++) {
       const ret = (prices[i].price / prices[i - 1].price - 1) * 100;
@@ -48,6 +43,7 @@ export function Seasonality() {
       const hits = rets.filter((r) => r > 0).length;
       return {
         month: MONTHS[m],
+        short: MONTHS[m].slice(0, 3),
         avg,
         hitRate: rets.length ? (hits / rets.length) * 100 : 0,
         years: rets.length,
@@ -55,99 +51,124 @@ export function Seasonality() {
     });
   }, [timeseries]);
 
-  const best = [...data].sort((a, b) => b.avg - a.avg)[0];
-  const worst = [...data].sort((a, b) => a.avg - b.avg)[0];
+  const maxAbs = Math.max(...stats.map((s) => Math.abs(s.avg)), 0.01);
+  const best = [...stats].sort((a, b) => b.avg - a.avg)[0];
+  const worst = [...stats].sort((a, b) => a.avg - b.avg)[0];
 
   return (
     <GlassCard variant="default" className="p-6">
       <CardHeader
         eyebrow="Seasonality"
         title="Gold's calendar pattern"
-        subtitle={`Average monthly return across 23 years. Strongest month: ${best.month} (+${best.avg.toFixed(1)}%). Weakest: ${worst.month} (${worst.avg.toFixed(1)}%).`}
+        subtitle="How gold has performed in each month, averaged over 23 years. Green = historically up, rose = historically down."
         trailing={
           <ChartExplainer
             explain={{
-              what: "Gold's average price move in each calendar month, averaged over every year since 2003.",
+              what: "Twelve tiles, one per calendar month. Each shows gold's average price change in that month over the last 23 years.",
               read: [
-                "Each bar is one month — gold = positive average, rose = negative.",
-                "Taller bar = a historically stronger (or weaker) month.",
-                "Hover for the 'hit rate' — how often that month was actually positive.",
+                "Green tile = gold rose on average in that month; rose tile = it fell.",
+                "Deeper colour = a bigger average move.",
+                "'Up X/23' is the hit rate — how many of the 23 years that month was actually positive.",
               ],
               takeaway:
-                "Gold has a mild seasonal tilt — strength around the turn of the year and autumn (Lunar New Year and Indian wedding-season buying). It's a tilt, not a timing rule: useful for sizing entries, not for calling the market.",
+                "Gold has a mild seasonal tilt — strong around the turn of the year and autumn (Lunar New Year and Indian wedding-season buying), softer mid-year. It's a tilt for sizing entries, not a market-timing rule.",
             }}
           />
         }
       />
-      <div className="h-[280px] -mx-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 18, right: 12, bottom: 6, left: 0 }}>
-            <CartesianGrid stroke="var(--border-faint)" vertical={false} />
-            <XAxis
-              dataKey="month"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: "var(--fg-secondary)" }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
-              tickFormatter={(v: number) => `${v.toFixed(1)}%`}
-              width={42}
-            />
-            <ReferenceLine y={0} stroke="var(--border-strong)" />
-            <Tooltip
-              cursor={{ fill: "var(--bg-tint)", opacity: 0.4 }}
-              content={(p) => <SeasonTooltip {...p} />}
-            />
-            <Bar dataKey="avg" radius={[3, 3, 0, 0]} maxBarSize={36} isAnimationActive animationDuration={800}>
-              {data.map((d) => (
-                <Cell
-                  key={d.month}
-                  fill={d.avg >= 0 ? "var(--gold-500)" : "var(--neg)"}
-                  fillOpacity={d.avg >= 0 ? 0.92 : 0.6}
-                />
-              ))}
-              <LabelList
-                dataKey="avg"
-                position="top"
-                formatter={(v) => {
-                  const n = typeof v === "number" ? v : Number(v);
-                  return Number.isFinite(n) ? `${n > 0 ? "+" : ""}${n.toFixed(1)}` : "";
-                }}
-                style={{ fontSize: 9, fill: "var(--fg-muted)", fontFamily: "var(--font-mono)" }}
-              />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+
+      {/* summary chips */}
+      <div className="flex flex-wrap gap-2.5 mb-4">
+        <SummaryChip
+          label="Strongest month"
+          month={best.month}
+          value={`+${best.avg.toFixed(1)}%`}
+          tone="pos"
+        />
+        <SummaryChip
+          label="Weakest month"
+          month={worst.month}
+          value={`${worst.avg.toFixed(1)}%`}
+          tone={worst.avg < 0 ? "neg" : "neu"}
+        />
+        <SummaryChip
+          label="Positive months"
+          month={`${stats.filter((s) => s.avg > 0).length} of 12`}
+          value="on average"
+          tone="neu"
+        />
+      </div>
+
+      {/* 12-tile calendar */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+        {stats.map((s, i) => {
+          const isPos = s.avg >= 0;
+          const intensity = Math.min(Math.abs(s.avg) / maxAbs, 1);
+          const bg = isPos
+            ? `color-mix(in srgb, var(--pos-soft) ${100 - intensity * 62}%, var(--pos) ${intensity * 62}%)`
+            : `color-mix(in srgb, var(--neg-soft) ${100 - intensity * 62}%, var(--neg) ${intensity * 62}%)`;
+          return (
+            <motion.div
+              key={s.month}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.03, duration: 0.3 }}
+              className="rounded-xl border border-border-faint p-3"
+              style={{ background: bg }}
+            >
+              <div className="text-[10px] uppercase tracking-[0.2em] text-fg-muted">
+                {s.short}
+              </div>
+              <div
+                className={cn(
+                  "font-display text-[22px] tabular-nums tracking-tight mt-1",
+                  isPos ? "text-pos-text" : "text-neg-text",
+                )}
+              >
+                {isPos ? "+" : ""}
+                {s.avg.toFixed(1)}%
+              </div>
+              <div className="text-[10px] text-fg-secondary font-mono mt-1">
+                up {Math.round((s.hitRate / 100) * s.years)}/{s.years} yrs
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </GlassCard>
   );
 }
 
-interface TipProps {
-  active?: boolean;
-  payload?: readonly { payload?: { month: string; avg: number; hitRate: number; years: number } }[];
-}
-
-function SeasonTooltip({ active, payload }: TipProps) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0]?.payload;
-  if (!d) return null;
+function SummaryChip({
+  label,
+  month,
+  value,
+  tone,
+}: {
+  label: string;
+  month: string;
+  value: string;
+  tone: "pos" | "neg" | "neu";
+}) {
+  const cls =
+    tone === "pos"
+      ? "border-[var(--pos-border)] bg-pos-soft/50"
+      : tone === "neg"
+        ? "border-[var(--neg-border)] bg-neg-soft/50"
+        : "border-border-subtle bg-bg-surface";
+  const textCls =
+    tone === "pos" ? "text-pos-text" : tone === "neg" ? "text-neg-text" : "text-fg-primary";
   return (
-    <PremiumTooltip
-      title={d.month}
-      rows={[
-        {
-          label: "Avg return",
-          value: `${d.avg > 0 ? "+" : ""}${d.avg.toFixed(2)}%`,
-          color: d.avg >= 0 ? "var(--gold-500)" : "var(--neg)",
-          accent: true,
-        },
-        { label: "Hit rate", value: `${d.hitRate.toFixed(0)}% positive` },
-        { label: "Sample", value: `${d.years} years` },
-      ]}
-    />
+    <div className={cn("rounded-xl border px-3.5 py-2", cls)}>
+      <div className="text-[9px] uppercase tracking-[0.2em] text-fg-muted">{label}</div>
+      <div className="flex items-baseline gap-1.5 mt-0.5">
+        <span className={cn("font-display text-[15px] tracking-tight", textCls)}>
+          {month}
+        </span>
+        <span className="text-[11px] font-mono tabular-nums text-fg-secondary">
+          {value}
+        </span>
+      </div>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   CartesianGrid,
@@ -18,7 +18,6 @@ import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes } from "@/lib/format";
-import { cn } from "@/lib/cn";
 import type { PeriodKey } from "@/lib/types";
 
 /** Period selector → how many months of price history to show. */
@@ -44,7 +43,6 @@ const PERIOD_MONTHS: Record<PeriodKey, number> = {
 export function GoldMasterChart() {
   const { timeseries } = useDataset();
   const period = useFilters((s) => s.period);
-  const [logScale, setLogScale] = useState(false);
 
   const data = useMemo(() => {
     const full = timeseries.monthly_holdings_tonnes
@@ -78,17 +76,6 @@ export function GoldMasterChart() {
           <div className="flex items-center gap-2.5">
             <Legend color="var(--gold-600)" label="Gold · USD/oz" />
             <Legend color="var(--c-eu)" label="ETF holdings · t" />
-            <button
-              onClick={() => setLogScale((v) => !v)}
-              className={cn(
-                "h-8 px-2.5 rounded-lg border text-[10px] uppercase tracking-[0.16em] transition-colors",
-                logScale
-                  ? "border-border-gold bg-gold-50 text-gold-700"
-                  : "border-border-subtle bg-bg-surface text-fg-muted hover:text-fg-primary",
-              )}
-            >
-              Log
-            </button>
             <ChartExplainer
               explain={{
                 what: "Two lines on one timeline: the gold price (gold, left axis) and total tonnes of gold held by all ETFs worldwide (green, right axis). The window follows the period selector at the top — pick Max for the full run back to 2003.",
@@ -124,8 +111,7 @@ export function GoldMasterChart() {
             />
             <YAxis
               yAxisId="price"
-              scale={logScale ? "log" : "auto"}
-              domain={logScale ? ["auto", "auto"] : [0, "dataMax * 1.1"]}
+              domain={[0, "dataMax * 1.1"]}
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 10, fill: "var(--fg-muted)" }}

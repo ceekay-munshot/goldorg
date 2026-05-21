@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { useMemo } from "react";
 import { GlassCard } from "@/components/primitives/GlassCard";
 import { AnimatedNumber } from "@/components/primitives/AnimatedNumber";
+import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { useTotals } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
@@ -64,12 +65,27 @@ export function Hero() {
         {/* LEFT — headline */}
         <div className="lg:col-span-7 flex flex-col justify-between gap-8">
           <div>
-            <Eyebrow
-              periodLabel={periodMeta.label}
-              fromDate={periodMeta.from}
-              toDate={periodMeta.to}
-              scope={scopeLabel}
-            />
+            <div className="flex items-start justify-between gap-4">
+              <Eyebrow
+                periodLabel={periodMeta.label}
+                fromDate={periodMeta.from}
+                toDate={periodMeta.to}
+                scope={scopeLabel}
+              />
+              <ChartExplainer
+                explain={{
+                  what: "The headline number is the net money that flowed into (or out of) gold ETFs over the period you've selected at the top.",
+                  read: [
+                    "Net flow and Net demand are PERIOD figures — switch the period (1M, YTD, Max…) and they recalculate. 1M = last month, Max = since 2003.",
+                    "Net demand is the physical gold ETFs added or shed, in tonnes; net flow is the same thing valued in dollars.",
+                    "Total holdings and Total AUM are 'right now' totals — the size of the whole pile. They do NOT change when you switch period.",
+                    "Demand vs pile = this period's buying as a % of that total pile.",
+                  ],
+                  takeaway:
+                    "Flow tells you the direction and force of money moving over your chosen window; holdings and AUM tell you how big the pile is that the money is moving. Two are about the period, two are about today.",
+                }}
+              />
+            </div>
             <h1 className="font-display text-[28px] lg:text-[32px] leading-[1.15] text-fg-primary tracking-tight">
               {scopeLabel === "Global"
                 ? "Global gold ETFs"
@@ -101,23 +117,31 @@ export function Hero() {
             </p>
           </div>
 
-          {/* Inline stat strip */}
+          {/* Inline stat strip — period-flow vs current-snapshot clearly split */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 pt-6 border-t border-border-subtle">
             <StatInline
-              label="Demand"
+              label="Net demand"
+              basis={`${periodMeta.label} · changes with period`}
               value={fmtTonnes(t.demand_tonnes, { signed: true })}
               tone={signOf(t.demand_tonnes)}
             />
             <StatInline
-              label="Holdings"
+              label="Demand vs pile"
+              basis={`${periodMeta.label} · changes with period`}
+              value={fmtPct(t.demand_tonnes / (t.holdings_tonnes || 1), { signed: true })}
+              tone={signOf(t.demand_tonnes)}
+            />
+            <StatInline
+              label="Total holdings"
+              basis="held today · fixed"
               value={fmtTonnes(t.holdings_tonnes)}
               tone="neu"
             />
-            <StatInline label="AUM" value={fmtUsd(t.aum_usd_mn)} tone="neu" />
             <StatInline
-              label="Demand % of holdings"
-              value={fmtPct(t.demand_tonnes / (t.holdings_tonnes || 1), { signed: true })}
-              tone={signOf(t.demand_tonnes)}
+              label="Total AUM"
+              basis="value today · fixed"
+              value={fmtUsd(t.aum_usd_mn)}
+              tone="neu"
             />
           </div>
         </div>
@@ -197,23 +221,26 @@ function DirectionBadge({ direction }: { direction: "pos" | "neg" | "neu" }) {
 
 function StatInline({
   label,
+  basis,
   value,
   tone,
 }: {
   label: string;
+  basis: string;
   value: string;
   tone: "pos" | "neg" | "neu";
 }) {
   const toneCls =
     tone === "pos" ? "text-pos-text" : tone === "neg" ? "text-neg-text" : "text-fg-primary";
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-0.5">
       <span className="text-[10px] uppercase tracking-[0.22em] text-fg-muted">
         {label}
       </span>
       <span className={`font-display text-[20px] tabular-nums tracking-tight ${toneCls}`}>
         {value}
       </span>
+      <span className="text-[9.5px] text-fg-faint leading-tight">{basis}</span>
     </div>
   );
 }

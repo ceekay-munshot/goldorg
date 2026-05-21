@@ -14,22 +14,40 @@ import {
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { CrisisOverlay } from "@/components/primitives/CrisisOverlay";
+import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
+import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import type { PeriodKey } from "@/lib/types";
+
+/** Period selector → how many months of price history to show. */
+const PERIOD_MONTHS: Record<PeriodKey, number> = {
+  "1M": 12,
+  QTD: 12,
+  YTD: 12,
+  "1Y": 12,
+  "3Y": 36,
+  "5Y": 60,
+  Max: 0, // 0 = all
+};
 
 /**
- * The setup chart — 23 years of gold price with crisis regime bands
- * and a global ETF-holdings overlay. The point: see the 2024-25
+ * The setup chart — gold price with crisis regime bands and a
+ * global ETF-holdings overlay. The point: see the 2024-25
  * decoupling, where holdings flattened but price kept climbing as
  * central banks replaced ETFs as the marginal buyer.
+ *
+ * Visible window follows the global period selector — pick Max for
+ * the full history back to 2003.
  */
 export function GoldMasterChart() {
   const { timeseries } = useDataset();
+  const period = useFilters((s) => s.period);
   const [logScale, setLogScale] = useState(false);
 
   const data = useMemo(() => {
-    return timeseries.monthly_holdings_tonnes
+    const full = timeseries.monthly_holdings_tonnes
       .map((p) => ({
         date: p.date,
         price: p.gold_price_usd_oz ?? null,
@@ -40,20 +58,24 @@ export function GoldMasterChart() {
           (p.other ?? 0),
       }))
       .filter((p) => p.price != null);
-  }, [timeseries]);
+    const months = PERIOD_MONTHS[period] ?? 0;
+    return months > 0 ? full.slice(-months) : full;
+  }, [timeseries, period]);
 
-  const first = data[0]?.price ?? 0;
-  const last = data[data.length - 1]?.price ?? 0;
-  const multiple = first ? last / first : 0;
+  const first = data[0];
+  const last = data[data.length - 1];
+  const multiple = first?.price && last?.price ? last.price / first.price : 0;
+  const windowLabel =
+    period === "Max" ? "since 2003" : `last ${PERIOD_MONTHS[period] ?? 0}m`;
 
   return (
     <GlassCard variant="default" className="p-6">
       <CardHeader
-        eyebrow="The setup · 2003 → today"
+        eyebrow={`The setup · ${windowLabel}`}
         title="Gold price & the ETF bid"
-        subtitle={`Gold is up ${multiple.toFixed(1)}× since 2003. Watch 2024-25: holdings flat-line while price keeps climbing — central banks took over as the marginal buyer.`}
+        subtitle={`Gold is ${multiple.toFixed(1)}× over this window. Watch the right edge: holdings flat-line while price keeps climbing — central banks took over as the marginal buyer.`}
         trailing={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <Legend color="var(--gold-600)" label="Gold · USD/oz" />
             <Legend color="var(--c-eu)" label="ETF holdings · t" />
             <button
@@ -67,6 +89,18 @@ export function GoldMasterChart() {
             >
               Log
             </button>
+            <ChartExplainer
+              explain={{
+                what: "Two lines on one timeline: the gold price (gold, left axis) and total tonnes of gold held by all ETFs worldwide (green, right axis). The window follows the period selector at the top — pick Max for the full run back to 2003.",
+                read: [
+                  "Faint rose bands mark macro crises (GFC, COVID, etc.) for context.",
+                  "When both lines move together, ETF investors are driving the price.",
+                  "When the green line flattens but gold keeps rising, someone else is the buyer.",
+                ],
+                takeaway:
+                  "For two decades ETF flows and price moved as one. Since 2024 they decoupled — gold hit records while ETF holdings stalled. The marginal buyer is now central banks, whose demand is structural and far less likely to reverse on sentiment.",
+              }}
+            />
           </div>
         }
       />

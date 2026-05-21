@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { MACRO } from "@/lib/macro";
 
@@ -59,6 +60,18 @@ export function MinerMargin() {
           <div className="flex items-center gap-3">
             <Stat label="Margin now" value={`$${marginNow.toFixed(0)}/oz`} tone="pos" />
             <Stat label="Margin vs cost" value={`+${marginPctNow.toFixed(0)}%`} tone="pos" />
+            <ChartExplainer
+              explain={{
+                what: "What it costs miners to produce an ounce of gold (AISC — all-in sustaining cost) versus what that ounce sells for. The shaded green gap is the industry's profit margin.",
+                read: [
+                  "The coral line is the cost floor — total cost to keep mines running.",
+                  "The gold line is the market price.",
+                  "The green band between them is margin: wider band = fatter miner profits.",
+                ],
+                takeaway:
+                  "Mining costs only ever ratchet up, so AISC acts as a soft floor under the gold price — miners curtail output below it. Today price has run far ahead of cost, so margins are at records. For a buy-side investor that's the bull signal for gold miners specifically, and a reason a deep price crash is unlikely.",
+              }}
+            />
           </div>
         }
       />

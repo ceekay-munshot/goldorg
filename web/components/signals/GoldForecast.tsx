@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { buildForecast, type DriftBasis } from "@/lib/forecast";
 import { ANALYST_TARGETS } from "@/lib/macro";
@@ -60,7 +61,23 @@ export function GoldForecast() {
         eyebrow="Forecast · the next 3 years"
         title="Where gold could trade through 2029"
         subtitle="Statistical projection — a lognormal drift cone from history, read against published analyst targets. A scenario tool, not a prediction."
-        trailing={<BasisToggle value={basis} onChange={setBasis} />}
+        trailing={
+          <div className="flex items-start gap-2.5">
+            <BasisToggle value={basis} onChange={setBasis} />
+            <ChartExplainer
+              explain={{
+                what: "A projection of where gold could trade through 2029. The solid gold area is actual price history; the dashed line is the model's central path; the shaded fan is the range of plausible outcomes.",
+                read: [
+                  "The wide pale band is the ±2σ range — gold should land inside it ~95% of the time if history holds.",
+                  "Coloured dots are real published targets from Goldman, JPMorgan, Wells Fargo and BofA.",
+                  "The 'Drift basis' toggle re-estimates the trend from the last 5Y, 10Y, or full history.",
+                ],
+                takeaway:
+                  "This is a scenario tool, not a forecast — it shows the cone of outcomes implied by gold's own volatility, then lets you sanity-check it against what the big houses actually expect. Use it to frame risk, not to pick a number.",
+              }}
+            />
+          </div>
+        }
       />
 
       {/* KPI strip */}

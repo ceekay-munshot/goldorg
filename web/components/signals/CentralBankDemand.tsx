@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
+import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
 import { MACRO } from "@/lib/macro";
 import { fmtTonnes } from "@/lib/format";
@@ -56,6 +57,18 @@ export function CentralBankDemand() {
           <div className="flex items-center gap-3">
             <Stat label="1,000t+ years" value={`${MACRO.filter((m) => m.cb_demand_t >= 1000).length}`} />
             <Stat label="Bought since 2022" value={fmtTonnes(totalSince2022, { decimals: 0 })} tone="pos" />
+            <ChartExplainer
+              explain={{
+                what: "How much gold the world's central banks bought (or sold) on net each year, with the gold price overlaid as a line.",
+                read: [
+                  "Gold bars above zero = central banks were net buyers; rose bars below zero = net sellers.",
+                  "Pre-2010 they were steady sellers; since 2022 they've bought 1,000+ tonnes every year.",
+                  "The price line shows gold climbing alongside this buying wave.",
+                ],
+                takeaway:
+                  "This is the structural engine of the current bull market. Central banks buy to diversify reserves away from the US dollar — a policy decision, not a trade. That makes their demand sticky and price-insensitive, a very different foundation than fickle investor flows.",
+              }}
+            />
           </div>
         }
       />

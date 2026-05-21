@@ -131,6 +131,24 @@ export function countryDisplay(c: string | null | undefined): string {
   return COUNTRY_DISPLAY[c] ?? c;
 }
 
+/** Compact country label for dense tables. */
+const COUNTRY_SHORT: Record<string, string> = {
+  "China P.R. Mainland": "China",
+  "Hong Kong SAR": "Hong Kong",
+  "United States": "US",
+  "United Kingdom": "UK",
+  "United Arab Emirates": "UAE",
+  "South Africa": "S. Africa",
+  "South Korea": "S. Korea",
+  Liechtenstein: "Liecht.",
+  Switzerland: "Switz.",
+};
+
+export function countryShort(c: string | null | undefined): string {
+  if (!c) return "—";
+  return COUNTRY_SHORT[c] ?? c;
+}
+
 /** ISO-3166 codes for common ones — used by the flag/heatmap layer. */
 const COUNTRY_ISO: Record<string, string> = {
   "United States": "US",

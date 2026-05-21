@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { useFilteredFunds } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
-import { fmtPct, fmtTonnes, fmtUsd, signOf } from "@/lib/format";
+import { countryShort, fmtPct, fmtTonnes, fmtUsd, signOf } from "@/lib/format";
 import { regionAccent } from "@/lib/regions";
 import { cn } from "@/lib/cn";
 import type { Fund } from "@/lib/types";
@@ -14,13 +14,15 @@ import type { Fund } from "@/lib/types";
 type SortKey = "flows" | "demand" | "demandPct" | "aum" | "holdings";
 type SortDir = "asc" | "desc";
 
+const DEFAULT_LIMIT = 7;
+
 export function FundLeaderboard() {
   const funds = useFilteredFunds();
   const period = useFilters((s) => s.period);
   const openFundDrilldown = useFilters((s) => s.openFundDrilldown);
   const [sortKey, setSortKey] = useState<SortKey>("flows");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [limit, setLimit] = useState(15);
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
 
   const sorted = useMemo(() => {
     const get = (f: Fund) => {
@@ -46,49 +48,55 @@ export function FundLeaderboard() {
   }, [funds, period, sortKey, sortDir]);
 
   const shown = sorted.slice(0, limit);
+  const expanded = limit > DEFAULT_LIMIT;
+  const remaining = sorted.length - shown.length;
+
+  const onSort = (k: SortKey, d: SortDir) => {
+    setSortKey(k);
+    setSortDir(d);
+  };
 
   return (
     <GlassCard variant="default" className="p-6">
       <CardHeader
         eyebrow="Fund leaderboard"
         title="Every fund, ranked"
-        subtitle={`${funds.length.toLocaleString()} funds in scope · sortable columns · click row to open drilldown`}
-        trailing={
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-fg-muted">
-            Showing
-            <select
-              value={limit}
-              onChange={(e) => setLimit(Number(e.target.value))}
-              className="bg-bg-tint border border-border-subtle text-fg-primary px-2 py-1 rounded-md font-mono text-[11px]"
-            >
-              {[10, 15, 25, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            of {funds.length.toLocaleString()}
-          </div>
-        }
+        subtitle={`${funds.length.toLocaleString()} funds in scope · sortable · click a row for the drilldown`}
       />
 
-      <div className="overflow-x-auto -mx-2">
-        <table className="w-full text-[12px]">
+      <div className="-mx-2">
+        <table className="w-full text-[11.5px] table-fixed">
+          <colgroup>
+            <col style={{ width: "2.1rem" }} />
+            <col />
+            <col style={{ width: "4.6rem" }} />
+            <col style={{ width: "5rem" }} />
+            <col style={{ width: "4.6rem" }} />
+            <col style={{ width: "4rem" }} />
+            <col style={{ width: "4.6rem" }} />
+            <col style={{ width: "5rem" }} />
+          </colgroup>
           <thead>
-            <tr className="text-[10px] uppercase tracking-[0.18em] text-fg-muted border-b border-border-subtle">
-              <Th width="2.5rem">#</Th>
+            <tr className="text-[9.5px] uppercase tracking-[0.14em] text-fg-muted border-b border-border-subtle">
+              <Th>#</Th>
               <Th align="left">Fund</Th>
-              <Th align="left" width="6rem">Country</Th>
-              <SortableTh label="Flows" sortKey="flows" current={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} unit="USD" />
-              <SortableTh label="Demand" sortKey="demand" current={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} unit="tonnes" />
-              <SortableTh label="Demand %" sortKey="demandPct" current={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} unit="of held" />
-              <SortableTh label="Holdings" sortKey="holdings" current={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} unit="tonnes" />
-              <SortableTh label="AUM" sortKey="aum" current={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} unit="USD" />
+              <Th align="left">Country</Th>
+              <SortableTh label="Flows" unit="USD" sortKey="flows" current={sortKey} dir={sortDir} onChange={onSort} />
+              <SortableTh label="Demand" unit="t" sortKey="demand" current={sortKey} dir={sortDir} onChange={onSort} />
+              <SortableTh label="Dem %" unit="held" sortKey="demandPct" current={sortKey} dir={sortDir} onChange={onSort} />
+              <SortableTh label="Holdings" unit="t" sortKey="holdings" current={sortKey} dir={sortDir} onChange={onSort} />
+              <SortableTh label="AUM" unit="USD" sortKey="aum" current={sortKey} dir={sortDir} onChange={onSort} />
             </tr>
           </thead>
           <tbody>
             {shown.map((f, i) => (
-              <Row key={f.ticker} fund={f} rank={i + 1} period={period} onClick={() => openFundDrilldown(f.ticker)} />
+              <Row
+                key={f.ticker}
+                fund={f}
+                rank={i + 1}
+                period={period}
+                onClick={() => openFundDrilldown(f.ticker)}
+              />
             ))}
           </tbody>
         </table>
@@ -99,6 +107,28 @@ export function FundLeaderboard() {
           No funds match the current filters.
         </div>
       )}
+
+      {sorted.length > DEFAULT_LIMIT && (
+        <div className="pt-4 mt-1 flex items-center justify-center">
+          {!expanded ? (
+            <button
+              onClick={() => setLimit(sorted.length)}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-border-subtle bg-bg-surface hover:border-border-gold hover:bg-gold-50 text-[11px] uppercase tracking-[0.18em] text-fg-secondary hover:text-gold-700 transition-all"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+              Show {remaining} more
+            </button>
+          ) : (
+            <button
+              onClick={() => setLimit(DEFAULT_LIMIT)}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-border-subtle bg-bg-surface hover:border-border-gold hover:bg-gold-50 text-[11px] uppercase tracking-[0.18em] text-fg-secondary hover:text-gold-700 transition-all"
+            >
+              <ChevronDown className="w-3.5 h-3.5 rotate-180" />
+              Show top {DEFAULT_LIMIT}
+            </button>
+          )}
+        </div>
+      )}
     </GlassCard>
   );
 }
@@ -106,16 +136,13 @@ export function FundLeaderboard() {
 function Th({
   children,
   align = "right",
-  width,
 }: {
   children: React.ReactNode;
   align?: "left" | "right";
-  width?: string;
 }) {
   return (
     <th
-      style={width ? { width } : undefined}
-      className={`py-2.5 px-3 text-${align === "left" ? "left" : "right"} font-semibold`}
+      className={`py-2.5 px-2 font-semibold ${align === "left" ? "text-left" : "text-right"}`}
     >
       {children}
     </th>
@@ -140,23 +167,23 @@ function SortableTh({
   const isActive = current === sortKey;
   const Icon = isActive ? (dir === "desc" ? ArrowDown : ArrowUp) : ArrowUpDown;
   return (
-    <th className="py-2.5 px-3 text-right font-semibold whitespace-nowrap">
+    <th className="py-2.5 px-2 text-right font-semibold whitespace-nowrap">
       <button
         onClick={() =>
           onChange(sortKey, isActive ? (dir === "desc" ? "asc" : "desc") : "desc")
         }
         className={cn(
-          "inline-flex items-center gap-1 transition-colors",
+          "inline-flex items-center gap-0.5 transition-colors",
           isActive ? "text-gold-700" : "text-fg-muted hover:text-fg-primary",
         )}
       >
         <span className="flex flex-col items-end leading-none">
           <span>{label}</span>
-          <span className="text-[8px] font-mono normal-case tracking-normal mt-0.5 text-fg-faint">
+          <span className="text-[7.5px] font-mono normal-case tracking-normal mt-0.5 text-fg-faint">
             {unit}
           </span>
         </span>
-        <Icon className="w-3 h-3" />
+        <Icon className="w-2.5 h-2.5" />
       </button>
     </th>
   );
@@ -185,46 +212,46 @@ function Row({
       onClick={onClick}
       className="border-b border-border-faint last:border-0 cursor-pointer hover:bg-bg-tint/60 transition-colors"
     >
-      <td className="px-3 py-2.5 text-fg-faint font-mono text-[10px] text-right">
+      <td className="px-2 py-2.5 text-fg-faint font-mono text-[9.5px] text-right">
         {String(rank).padStart(2, "0")}
       </td>
-      <td className="px-3 py-2.5">
-        <div className="flex items-center gap-2 min-w-0">
+      <td className="px-2 py-2.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span
             className="w-1.5 h-1.5 rounded-full shrink-0"
             style={{ background: tint.hex }}
           />
           <div className="min-w-0">
-            <div className="text-[12.5px] text-fg-primary truncate">{fund.name}</div>
-            <div className="text-[9.5px] text-fg-muted font-mono uppercase tracking-[0.12em] mt-0.5">
+            <div className="text-[12px] text-fg-primary truncate">{fund.name}</div>
+            <div className="text-[9px] text-fg-muted font-mono uppercase tracking-[0.1em] mt-0.5 truncate">
               {fund.ticker}
-              {!fund.active && (
-                <span className="ml-2 text-neg-text/70 not-italic">· inactive</span>
-              )}
+              {!fund.active && <span className="ml-1.5 text-neg-text/70">· inactive</span>}
             </div>
           </div>
         </div>
       </td>
-      <td className="px-3 py-2.5 text-fg-secondary text-[11.5px]">{fund.country}</td>
+      <td className="px-2 py-2.5 text-fg-secondary text-[11px] truncate">
+        {countryShort(fund.country)}
+      </td>
       <td
-        className="px-3 py-2.5 text-right font-mono tabular-nums text-[12px] font-semibold"
+        className="px-2 py-2.5 text-right font-mono tabular-nums font-semibold"
         style={{ color: flowsTone === "pos" ? "var(--pos-text)" : flowsTone === "neg" ? "var(--neg-text)" : undefined }}
       >
         {fmtUsd(p.flows_usd_mn, { signed: true })}
       </td>
       <td
-        className="px-3 py-2.5 text-right font-mono tabular-nums text-[12px]"
+        className="px-2 py-2.5 text-right font-mono tabular-nums"
         style={{ color: demandTone === "pos" ? "var(--pos-text)" : demandTone === "neg" ? "var(--neg-text)" : undefined }}
       >
         {fmtTonnes(p.demand_tonnes, { signed: true })}
       </td>
-      <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[12px] text-fg-secondary">
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-fg-secondary">
         {fmtPct(p.demand_pct_of_holdings, { signed: true })}
       </td>
-      <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[12px] text-fg-primary">
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-fg-primary">
         {fmtTonnes(fund.current_holdings_tonnes)}
       </td>
-      <td className="px-3 py-2.5 text-right font-mono tabular-nums text-[12px] text-fg-primary">
+      <td className="px-2 py-2.5 text-right font-mono tabular-nums text-fg-primary">
         {fmtUsd(fund.current_aum_usd_mn)}
       </td>
     </motion.tr>

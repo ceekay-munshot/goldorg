@@ -239,13 +239,24 @@ export interface CountryDominance {
   top_share_pct: number;
 }
 
-/** For each country, total AUM, the largest fund and its share of country AUM. */
+/** For each country, total AUM, the largest fund and its share of country AUM.
+ *  Respects the global region / active / search filters (country filter is
+ *  ignored on purpose — the Countries tab is a country-level browse). */
 export function useCountryDominance(): CountryDominance[] {
   const { funds } = useDataset();
+  const { regions, active, search } = useFilters();
   return useMemo(() => {
+    const q = search.trim().toLowerCase();
     const byCountry = new Map<string, Fund[]>();
     for (const f of funds.funds) {
       if (!f.country || !f.current_aum_usd_mn) continue;
+      if (regions.length && (!f.region || !regions.includes(f.region))) continue;
+      if (active === "active" && !f.active) continue;
+      if (active === "inactive" && f.active) continue;
+      if (q) {
+        const hay = `${f.name ?? ""} ${f.ticker} ${f.country ?? ""} ${f.region ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
       if (!byCountry.has(f.country)) byCountry.set(f.country, []);
       byCountry.get(f.country)!.push(f);
     }
@@ -268,7 +279,7 @@ export function useCountryDominance(): CountryDominance[] {
       });
     }
     return rows.sort((a, b) => b.total_aum_usd_mn - a.total_aum_usd_mn);
-  }, [funds]);
+  }, [funds, regions, active, search]);
 }
 
 /** Persistent buyer / seller / mixed for a country across recent periods. */
@@ -294,10 +305,19 @@ const TRACKED_PERIODS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y"];
 
 export function useCountryFlowConsistency(): CountryFlowConsistency[] {
   const { funds } = useDataset();
+  const { regions, active, search } = useFilters();
   return useMemo(() => {
+    const q = search.trim().toLowerCase();
     const byCountry = new Map<string, Fund[]>();
     for (const f of funds.funds) {
       if (!f.country) continue;
+      if (regions.length && (!f.region || !regions.includes(f.region))) continue;
+      if (active === "active" && !f.active) continue;
+      if (active === "inactive" && f.active) continue;
+      if (q) {
+        const hay = `${f.name ?? ""} ${f.ticker} ${f.country ?? ""} ${f.region ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
       if (!byCountry.has(f.country)) byCountry.set(f.country, []);
       byCountry.get(f.country)!.push(f);
     }
@@ -345,6 +365,6 @@ export function useCountryFlowConsistency(): CountryFlowConsistency[] {
       });
     }
     return rows.sort((a, b) => b.total_aum_usd_mn - a.total_aum_usd_mn);
-  }, [funds]);
+  }, [funds, regions, active, search]);
 }
 

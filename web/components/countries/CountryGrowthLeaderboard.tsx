@@ -30,6 +30,9 @@ export function CountryGrowthLeaderboard() {
   const { funds } = useDataset();
   const { history, loading } = useFundHistory();
   const openCountryDrilldown = useFilters((s) => s.openCountryDrilldown);
+  const regions = useFilters((s) => s.regions);
+  const active = useFilters((s) => s.active);
+  const search = useFilters((s) => s.search);
   const [horizon, setHorizon] = useState<Horizon>("3Y");
 
   const rows = useMemo(() => {
@@ -38,9 +41,17 @@ export function CountryGrowthLeaderboard() {
     const lastIdx = history.dates.length - 1;
     const startIdx = Math.max(0, lastIdx - months);
     const byCountry = new Map<string, { country: string; region: string; start: number; end: number }>();
+    const q = search.trim().toLowerCase();
 
     for (const f of funds.funds) {
       if (!f.country) continue;
+      if (regions.length && (!f.region || !regions.includes(f.region))) continue;
+      if (active === "active" && !f.active) continue;
+      if (active === "inactive" && f.active) continue;
+      if (q) {
+        const hay = `${f.name ?? ""} ${f.ticker} ${f.country ?? ""} ${f.region ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
       const series = history.funds[f.ticker];
       if (!series) continue;
       const start = series.holdings_tonnes[startIdx] ?? 0;
@@ -71,7 +82,7 @@ export function CountryGrowthLeaderboard() {
         // sort by absolute tonnes added so we don't overweight tiny bases
         return b.absChange - a.absChange;
       });
-  }, [funds, history, horizon]);
+  }, [funds, history, horizon, regions, active, search]);
 
   const top = rows.slice(0, 8);
   const maxAbs = Math.max(...top.map((r) => Math.abs(r.absChange)), 1);

@@ -28,12 +28,25 @@ import { cn } from "@/lib/cn";
 export function CountryComparison() {
   const countries = useFilters((s) => s.countries);
   const period = useFilters((s) => s.period);
+  const regions = useFilters((s) => s.regions);
+  const active = useFilters((s) => s.active);
   const { funds } = useDataset();
   const { history, loading } = useFundHistory();
 
+  const fundInScope = useMemo(
+    () =>
+      funds.funds.filter((f) => {
+        if (regions.length && (!f.region || !regions.includes(f.region))) return false;
+        if (active === "active" && !f.active) return false;
+        if (active === "inactive" && f.active) return false;
+        return true;
+      }),
+    [funds, regions, active],
+  );
+
   const stats = useMemo(() => {
     return countries.map((country) => {
-      const countryFunds = funds.funds.filter((f) => f.country === country);
+      const countryFunds = fundInScope.filter((f) => f.country === country);
       const aum = countryFunds.reduce((s, f) => s + (f.current_aum_usd_mn ?? 0), 0);
       const holdings = countryFunds.reduce(
         (s, f) => s + (f.current_holdings_tonnes ?? 0),
@@ -46,7 +59,7 @@ export function CountryComparison() {
       const region = (countryFunds[0]?.region as string) ?? "Unknown";
       return { country, region, fund_count: countryFunds.length, aum, holdings, periodFlow };
     });
-  }, [countries, funds, period]);
+  }, [countries, fundInScope, period]);
 
   // overlay holdings history
   const historyData = useMemo(() => {
@@ -54,7 +67,7 @@ export function CountryComparison() {
     return history.dates.map((d, i) => {
       const row: Record<string, number | string> = { date: d };
       for (const c of countries) {
-        const countryFunds = funds.funds.filter((f) => f.country === c);
+        const countryFunds = fundInScope.filter((f) => f.country === c);
         let h = 0;
         for (const f of countryFunds) {
           const v = history.funds[f.ticker]?.holdings_tonnes[i] ?? 0;
@@ -64,7 +77,7 @@ export function CountryComparison() {
       }
       return row;
     }).filter((r) => countries.some((c) => (r[c] as number) > 0));
-  }, [history, funds, countries]);
+  }, [history, fundInScope, countries]);
 
   const colors = countries.map((c) => regionAccent((stats.find((s) => s.country === c)?.region ?? "Unknown")).hex);
 

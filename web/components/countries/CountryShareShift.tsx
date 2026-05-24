@@ -14,6 +14,7 @@ import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { PremiumTooltip } from "@/components/primitives/PremiumTooltip";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset, useFundHistory } from "@/lib/data-provider";
+import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtPct } from "@/lib/format";
 
 const TOP_N = 6;
@@ -35,6 +36,21 @@ const COUNTRY_COLORS = [
 export function CountryShareShift() {
   const { funds } = useDataset();
   const { history, loading } = useFundHistory();
+  const regions = useFilters((s) => s.regions);
+  const active = useFilters((s) => s.active);
+
+  // funds in scope after region / active filters (country filter ignored here
+  // — this chart IS the country breakdown)
+  const scopedFunds = useMemo(
+    () =>
+      funds.funds.filter((f) => {
+        if (regions.length && (!f.region || !regions.includes(f.region))) return false;
+        if (active === "active" && !f.active) return false;
+        if (active === "inactive" && f.active) return false;
+        return true;
+      }),
+    [funds, regions, active],
+  );
 
   const { data, countries } = useMemo(() => {
     if (!history) return { data: [], countries: [] as string[] };
@@ -42,7 +58,7 @@ export function CountryShareShift() {
     // total holdings now per country → pick top N
     const totalNow = new Map<string, number>();
     const last = history.dates.length - 1;
-    for (const f of funds.funds) {
+    for (const f of scopedFunds) {
       if (!f.country) continue;
       const v = history.funds[f.ticker]?.holdings_tonnes[last] ?? 0;
       totalNow.set(f.country, (totalNow.get(f.country) ?? 0) + v);
@@ -55,7 +71,7 @@ export function CountryShareShift() {
       const row: Record<string, number | string> = { date: d };
       let total = 0;
       const perCountry = new Map<string, number>();
-      for (const f of funds.funds) {
+      for (const f of scopedFunds) {
         if (!f.country) continue;
         const v = history.funds[f.ticker]?.holdings_tonnes[i] ?? 0;
         perCountry.set(f.country, (perCountry.get(f.country) ?? 0) + v);
@@ -74,7 +90,7 @@ export function CountryShareShift() {
     });
 
     return { data: series, countries: [...topCountries, "Other"] };
-  }, [funds, history]);
+  }, [scopedFunds, history]);
 
   return (
     <GlassCard variant="default" className="p-6">

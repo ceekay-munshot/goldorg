@@ -38,14 +38,27 @@ export function CountryOverlay() {
     return () => document.removeEventListener("keydown", onKey);
   }, [country, close]);
 
+  const active = useFilters((s) => s.active);
+  const search = useFilters((s) => s.search);
+
   const funds = useMemo(() => {
     if (!country || !data) return [];
+    const q = search.trim().toLowerCase();
     return data.funds.funds
-      .filter((f) => f.country === country)
+      .filter((f) => {
+        if (f.country !== country) return false;
+        if (active === "active" && !f.active) return false;
+        if (active === "inactive" && f.active) return false;
+        if (q) {
+          const hay = `${f.name ?? ""} ${f.ticker}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
       .sort(
         (a, b) => (b.current_aum_usd_mn ?? 0) - (a.current_aum_usd_mn ?? 0),
       );
-  }, [country, data]);
+  }, [country, data, active, search]);
 
   const totals = useMemo(() => {
     let aum = 0,

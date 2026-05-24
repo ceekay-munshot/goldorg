@@ -7,7 +7,7 @@ import { GlassCard } from "@/components/primitives/GlassCard";
 import { AnimatedNumber } from "@/components/primitives/AnimatedNumber";
 import { ChartExplainer } from "@/components/primitives/ChartExplainer";
 import { useDataset } from "@/lib/data-provider";
-import { useTotals } from "@/lib/derive";
+import { useActiveWindow, useTotals } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
 import {
   fmtDate,
@@ -26,6 +26,7 @@ export function Hero() {
   const fund = useFilters((s) => s.fund);
   const t = useTotals();
 
+  const window = useActiveWindow();
   const periodMeta = metadata.periods[period];
   const direction = signOf(t.flows_usd_mn);
   const scopeLabel = fund
@@ -67,9 +68,9 @@ export function Hero() {
           <div>
             <div className="flex items-start justify-between gap-4">
               <Eyebrow
-                periodLabel={periodMeta.label}
-                fromDate={periodMeta.from}
-                toDate={periodMeta.to}
+                periodLabel={window.label}
+                fromDate={window.from}
+                toDate={window.to}
                 scope={scopeLabel}
               />
               <ChartExplainer
@@ -121,13 +122,13 @@ export function Hero() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4 pt-6 border-t border-border-subtle">
             <StatInline
               label="Net demand"
-              basis={`${periodMeta.label} · changes with period`}
+              basis={`${window.label} · changes with window`}
               value={fmtTonnes(t.demand_tonnes, { signed: true })}
               tone={signOf(t.demand_tonnes)}
             />
             <StatInline
               label="Demand vs pile"
-              basis={`${periodMeta.label} · changes with period`}
+              basis={`${window.label} · changes with window`}
               value={fmtPct(t.demand_tonnes / (t.holdings_tonnes || 1), { signed: true })}
               tone={signOf(t.demand_tonnes)}
             />

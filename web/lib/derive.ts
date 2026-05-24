@@ -5,10 +5,173 @@
 "use client";
 
 import { useMemo } from "react";
-import { useDataset } from "./data-provider";
+import { useData, useDataset, useFundHistory } from "./data-provider";
 import { useFilters } from "./filters";
 import { PERIOD_KEYS } from "./types";
 import type { Fund, MetricKey, PeriodKey, RegionAggregate } from "./types";
+
+/* ============================================================
+   Active window — preset period OR custom from/to range
+   ============================================================ */
+
+export interface ActiveWindow {
+  /** True when user has picked a custom range that overrides the preset */
+  isCustom: boolean;
+  /** Effective from-date for the active window (ISO YYYY-MM-DD) */
+  from: string;
+  /** Effective to-date for the active window (ISO YYYY-MM-DD) */
+  to: string;
+  /** Short label suitable for KPI sublabels: "1M" or "Apr 26" or "2010-01 → 2015-12" */
+  label: string;
+  /** Long-form label for headers */
+  longLabel: string;
+}
+
+function shortYm(iso: string): string {
+  return iso.slice(0, 7);
+}
+
+export function useActiveWindow(): ActiveWindow {
+  const { data } = useData();
+  const period = useFilters((s) => s.period);
+  const fromDate = useFilters((s) => s.fromDate);
+  const toDate = useFilters((s) => s.toDate);
+
+  return useMemo(() => {
+    const isCustom = !!(fromDate || toDate);
+    if (!data) {
+      return {
+        isCustom,
+        from: fromDate ?? "2003-01-01",
+        to: toDate ?? "",
+        label: isCustom ? "Custom" : period,
+        longLabel: period,
+      };
+    }
+    if (isCustom) {
+      const asOf = data.metadata.as_of_date;
+      const from = fromDate ?? "2003-01-01";
+      const to = toDate ?? asOf;
+      return {
+        isCustom: true,
+        from,
+        to,
+        label: `${shortYm(from)} → ${shortYm(to)}`,
+        longLabel: `Custom · ${shortYm(from)} → ${shortYm(to)}`,
+      };
+    }
+    const pm = data.metadata.periods[period];
+    return {
+      isCustom: false,
+      from: pm.from,
+      to: pm.to,
+      label: pm.label,
+      longLabel: pm.label,
+    };
+  }, [data, period, fromDate, toDate]);
+}
+
+/* ============================================================
+   Scoped fund metrics — single source of truth for "flows /
+   demand / demand% per fund for the active window".
+   In preset mode: O(1) lookup against f.periods[period].
+   In custom mode: O(N months) sum of fund_history.
+   ============================================================ */
+
+export interface ScopedFundMetrics {
+  flows_usd_mn: number;
+  demand_tonnes: number;
+  demand_pct_of_holdings: number;
+}
+
+/** Find the index of the date in `dates` that's closest to (or just
+ *  past) `target`, depending on edge direction. Used to map a user
+ *  ISO date onto our monthly history. */
+function findDateIndex(
+  dates: string[],
+  target: string,
+  edge: "start" | "end",
+): number {
+  if (!dates.length) return -1;
+  if (target <= dates[0]) return edge === "start" ? 0 : -1;
+  if (target >= dates[dates.length - 1])
+    return edge === "end" ? dates.length - 1 : dates.length;
+  if (edge === "start") {
+    // first date >= target
+    for (let i = 0; i < dates.length; i++) if (dates[i] >= target) return i;
+    return dates.length;
+  }
+  // edge === "end": last date <= target
+  for (let i = dates.length - 1; i >= 0; i--) if (dates[i] <= target) return i;
+  return -1;
+}
+
+export function useScopedFundMetrics(): Map<string, ScopedFundMetrics> {
+  const { data } = useData();
+  const period = useFilters((s) => s.period);
+  const fromDate = useFilters((s) => s.fromDate);
+  const toDate = useFilters((s) => s.toDate);
+  const { history } = useFundHistory();
+
+  return useMemo(() => {
+    const map = new Map<string, ScopedFundMetrics>();
+    if (!data) return map;
+    const funds = data.funds;
+    const isCustom = !!(fromDate || toDate);
+
+    if (!isCustom) {
+      for (const f of funds.funds) {
+        const p = f.periods[period];
+        map.set(f.ticker, {
+          flows_usd_mn: p.flows_usd_mn ?? 0,
+          demand_tonnes: p.demand_tonnes ?? 0,
+          demand_pct_of_holdings: p.demand_pct_of_holdings ?? 0,
+        });
+      }
+      return map;
+    }
+
+    // Custom range needs the history file. If still loading, fall back
+    // to the preset bucket so the UI doesn't show zeros while waiting.
+    if (!history) {
+      for (const f of funds.funds) {
+        const p = f.periods[period];
+        map.set(f.ticker, {
+          flows_usd_mn: p.flows_usd_mn ?? 0,
+          demand_tonnes: p.demand_tonnes ?? 0,
+          demand_pct_of_holdings: p.demand_pct_of_holdings ?? 0,
+        });
+      }
+      return map;
+    }
+
+    const fromI = findDateIndex(history.dates, fromDate ?? "2003-01-01", "start");
+    const toI = findDateIndex(
+      history.dates,
+      toDate ?? history.dates[history.dates.length - 1],
+      "end",
+    );
+
+    for (const f of funds.funds) {
+      const series = history.funds[f.ticker];
+      let flows = 0;
+      let demand = 0;
+      if (series) {
+        for (let i = fromI; i <= toI; i++) {
+          flows += series.flows_usd_mn[i] ?? 0;
+          demand += series.demand_tonnes[i] ?? 0;
+        }
+      }
+      const holdings = f.current_holdings_tonnes ?? 0;
+      map.set(f.ticker, {
+        flows_usd_mn: flows,
+        demand_tonnes: demand,
+        demand_pct_of_holdings: holdings ? demand / holdings : 0,
+      });
+    }
+    return map;
+  }, [data, period, fromDate, toDate, history]);
+}
 
 /** Filter the full fund universe by region(s)/country(ies)/fund/active/search. */
 export function useFilteredFunds(): Fund[] {
@@ -41,34 +204,36 @@ export interface Totals {
   outflows_usd_mn: number;
 }
 
-export function aggregateTotals(funds: Fund[], period: PeriodKey): Totals {
-  let flows = 0, demand = 0, holdings = 0, aum = 0;
-  let inflows = 0, outflows = 0;
-  for (const f of funds) {
-    const p = f.periods[period];
-    const fl = p.flows_usd_mn ?? 0;
-    flows += fl;
-    if (fl > 0) inflows += fl;
-    else outflows += fl;
-    demand += p.demand_tonnes ?? 0;
-    holdings += f.current_holdings_tonnes ?? 0;
-    aum += f.current_aum_usd_mn ?? 0;
-  }
-  return {
-    flows_usd_mn: flows,
-    demand_tonnes: demand,
-    holdings_tonnes: holdings,
-    aum_usd_mn: aum,
-    fund_count: funds.length,
-    inflows_usd_mn: inflows,
-    outflows_usd_mn: outflows,
-  };
-}
-
 export function useTotals(): Totals {
-  const period = useFilters((s) => s.period);
   const funds = useFilteredFunds();
-  return useMemo(() => aggregateTotals(funds, period), [funds, period]);
+  const metrics = useScopedFundMetrics();
+  return useMemo(() => {
+    let flows = 0,
+      demand = 0,
+      holdings = 0,
+      aum = 0;
+    let inflows = 0,
+      outflows = 0;
+    for (const f of funds) {
+      const m = metrics.get(f.ticker);
+      const fl = m?.flows_usd_mn ?? 0;
+      flows += fl;
+      if (fl > 0) inflows += fl;
+      else outflows += fl;
+      demand += m?.demand_tonnes ?? 0;
+      holdings += f.current_holdings_tonnes ?? 0;
+      aum += f.current_aum_usd_mn ?? 0;
+    }
+    return {
+      flows_usd_mn: flows,
+      demand_tonnes: demand,
+      holdings_tonnes: holdings,
+      aum_usd_mn: aum,
+      fund_count: funds.length,
+      inflows_usd_mn: inflows,
+      outflows_usd_mn: outflows,
+    };
+  }, [funds, metrics]);
 }
 
 /** Group filtered funds by region + sum metric for the current period. */
@@ -82,9 +247,9 @@ export interface RegionRow {
 }
 
 export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): RegionRow[] {
-  const period = useFilters((s) => s.period);
   const { funds } = useDataset();
   const { regions, countries, active, search } = useFilters();
+  const metrics = useScopedFundMetrics();
   return useMemo(() => {
     const q = search.trim().toLowerCase();
     const buckets = new Map<string, RegionRow>();
@@ -98,7 +263,7 @@ export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): Regio
         if (!hay.includes(q)) continue;
       }
       const key = f.region ?? "Unknown";
-      const p = f.periods[period];
+      const m = metrics.get(f.ticker);
       let bucket = buckets.get(key);
       if (!bucket) {
         bucket = {
@@ -111,8 +276,8 @@ export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): Regio
         };
         buckets.set(key, bucket);
       }
-      bucket.flows_usd_mn += p.flows_usd_mn ?? 0;
-      bucket.demand_tonnes += p.demand_tonnes ?? 0;
+      bucket.flows_usd_mn += m?.flows_usd_mn ?? 0;
+      bucket.demand_tonnes += m?.demand_tonnes ?? 0;
       bucket.holdings_tonnes += f.current_holdings_tonnes ?? 0;
       bucket.aum_usd_mn += f.current_aum_usd_mn ?? 0;
       bucket.fund_count += 1;
@@ -120,7 +285,7 @@ export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): Regio
     return Array.from(buckets.values()).sort(
       (a, b) => b.aum_usd_mn - a.aum_usd_mn,
     );
-  }, [funds, opts?.ignoreRegionFilter, regions, countries, active, search, period]);
+  }, [funds, opts?.ignoreRegionFilter, regions, countries, active, search, metrics]);
 }
 
 /** Group filtered funds by country. */
@@ -129,9 +294,9 @@ export interface CountryRow extends RegionRow {
 }
 
 export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): CountryRow[] {
-  const period = useFilters((s) => s.period);
   const { funds } = useDataset();
   const { regions, countries, active, search } = useFilters();
+  const metrics = useScopedFundMetrics();
   return useMemo(() => {
     const q = search.trim().toLowerCase();
     const buckets = new Map<string, CountryRow>();
@@ -145,7 +310,7 @@ export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): Cou
         if (!hay.includes(q)) continue;
       }
       const key = f.country ?? "Unknown";
-      const p = f.periods[period];
+      const m = metrics.get(f.ticker);
       let bucket = buckets.get(key);
       if (!bucket) {
         bucket = {
@@ -159,8 +324,8 @@ export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): Cou
         };
         buckets.set(key, bucket);
       }
-      bucket.flows_usd_mn += p.flows_usd_mn ?? 0;
-      bucket.demand_tonnes += p.demand_tonnes ?? 0;
+      bucket.flows_usd_mn += m?.flows_usd_mn ?? 0;
+      bucket.demand_tonnes += m?.demand_tonnes ?? 0;
       bucket.holdings_tonnes += f.current_holdings_tonnes ?? 0;
       bucket.aum_usd_mn += f.current_aum_usd_mn ?? 0;
       bucket.fund_count += 1;
@@ -168,26 +333,29 @@ export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): Cou
     return Array.from(buckets.values()).sort(
       (a, b) => b.aum_usd_mn - a.aum_usd_mn,
     );
-  }, [funds, opts?.ignoreCountryFilter, regions, countries, active, search, period]);
+  }, [funds, opts?.ignoreCountryFilter, regions, countries, active, search, metrics]);
 }
 
-/** Rank funds by a metric for the current period (top N inflow / outflow). */
+/** Rank funds by a metric for the active window (top N inflow / outflow). */
 export function useTopFunds(
   metric: "flows" | "demand",
   count = 10,
 ): { top: Fund[]; bottom: Fund[] } {
-  const period = useFilters((s) => s.period);
   const funds = useFilteredFunds();
+  const scoped = useScopedFundMetrics();
   return useMemo(() => {
     const key = metric === "flows" ? "flows_usd_mn" : "demand_tonnes";
     const sorted = [...funds]
-      .filter((f) => f.periods[period][key] != null)
-      .sort((a, b) => (b.periods[period][key] ?? 0) - (a.periods[period][key] ?? 0));
+      .filter((f) => scoped.get(f.ticker) != null)
+      .sort(
+        (a, b) =>
+          (scoped.get(b.ticker)?.[key] ?? 0) - (scoped.get(a.ticker)?.[key] ?? 0),
+      );
     return {
       top: sorted.slice(0, count),
       bottom: sorted.slice(-count).reverse(),
     };
-  }, [funds, period, metric, count]);
+  }, [funds, scoped, metric, count]);
 }
 
 /** Metric value resolver for a fund in current period. */

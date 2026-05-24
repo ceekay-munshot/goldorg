@@ -6,15 +6,33 @@ import { PERIOD_KEYS } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 export function PeriodToggle() {
-  const { period, setPeriod } = useFilters();
+  const period = useFilters((s) => s.period);
+  const setPeriod = useFilters((s) => s.setPeriod);
+  const fromDate = useFilters((s) => s.fromDate);
+  const toDate = useFilters((s) => s.toDate);
+  const clearDateRange = useFilters((s) => s.clearDateRange);
+  const isCustom = !!(fromDate || toDate);
+
+  function pick(p: typeof period) {
+    setPeriod(p);
+    // picking a preset clears any custom range
+    if (isCustom) clearDateRange();
+  }
+
   return (
-    <div className="inline-flex h-9 rounded-lg border border-border-subtle bg-bg-surface p-0.5 relative shadow-[var(--shadow-soft)]">
+    <div
+      className={cn(
+        "inline-flex h-9 rounded-lg border bg-bg-surface p-0.5 relative shadow-[var(--shadow-soft)] transition-opacity",
+        isCustom ? "border-border-faint opacity-55" : "border-border-subtle",
+      )}
+      title={isCustom ? "Click any preset to clear the custom range" : undefined}
+    >
       {PERIOD_KEYS.map((p) => {
-        const isActive = period === p;
+        const isActive = !isCustom && period === p;
         return (
           <button
             key={p}
-            onClick={() => setPeriod(p)}
+            onClick={() => pick(p)}
             className={cn(
               "relative z-10 px-3 text-[11px] uppercase tracking-[0.18em] rounded-md transition-colors duration-200",
               isActive

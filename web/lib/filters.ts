@@ -23,6 +23,9 @@ interface FilterState {
   fund: string | null;
   active: ActiveFilter;
   search: string;
+  /** Custom range — when either is set, takes precedence over `period` */
+  fromDate: string | null;     // ISO YYYY-MM-DD
+  toDate: string | null;       // ISO YYYY-MM-DD
   openFund: string | null;
   openRegionFunds: string | null;
   openCountry: string | null;
@@ -40,6 +43,8 @@ interface FilterState {
   setFund: (t: string | null) => void;
   setActive: (a: ActiveFilter) => void;
   setSearch: (s: string) => void;
+  setDateRange: (from: string | null, to: string | null) => void;
+  clearDateRange: () => void;
   openFundDrilldown: (t: string | null) => void;
   openRegionFundsList: (r: string | null) => void;
   openCountryDrilldown: (c: string | null) => void;
@@ -64,6 +69,8 @@ export const useFilters = create<FilterState>((set) => ({
   fund: null,
   active: "active",
   search: "",
+  fromDate: null,
+  toDate: null,
   openFund: null,
   openRegionFunds: null,
   openCountry: null,
@@ -128,6 +135,8 @@ export const useFilters = create<FilterState>((set) => ({
   setFund: (fund) => set({ fund }),
   setActive: (active) => set({ active }),
   setSearch: (search) => set({ search }),
+  setDateRange: (fromDate, toDate) => set({ fromDate, toDate }),
+  clearDateRange: () => set({ fromDate: null, toDate: null }),
   openFundDrilldown: (openFund) => set({ openFund }),
   openRegionFundsList: (openRegionFunds) => set({ openRegionFunds }),
   openCountryDrilldown: (openCountry) => set({ openCountry }),
@@ -151,6 +160,8 @@ export const useFilters = create<FilterState>((set) => ({
       fund: null,
       active: "active",
       search: "",
+      fromDate: null,
+      toDate: null,
       openFund: null,
       openRegionFunds: null,
       openCountry: null,

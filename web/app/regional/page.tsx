@@ -3,7 +3,6 @@
 import { RegionNavigator } from "@/components/regional/RegionNavigator";
 import { RegionalFlowsChart } from "@/components/regional/RegionalFlowsChart";
 import { RegionalCompositionChart } from "@/components/regional/RegionalCompositionChart";
-import { CountryBreakdownTable } from "@/components/regional/CountryBreakdownTable";
 import { RegionalFundConcentration } from "@/components/regional/RegionalFundConcentration";
 import { ActiveInactiveStrip } from "@/components/regional/ActiveInactiveStrip";
 
@@ -15,12 +14,7 @@ export default function RegionalPage() {
         <RegionalFlowsChart />
         <RegionalCompositionChart />
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <CountryBreakdownTable />
-        </div>
-        <RegionalFundConcentration />
-      </div>
+      <RegionalFundConcentration />
       <ActiveInactiveStrip />
     </div>
   );

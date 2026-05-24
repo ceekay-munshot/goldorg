@@ -4,7 +4,12 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
-import { useFundsByCountry } from "@/lib/derive";
+import { ChartExplainer } from "@/components/primitives/ChartExplainer";
+import {
+  useCountryFlowConsistency,
+  useFundsByCountry,
+  type FlowConsistencyVerdict,
+} from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
 import { fmtPct, fmtTonnes, fmtUsd, signOf } from "@/lib/format";
 import { regionAccent } from "@/lib/regions";
@@ -13,17 +18,48 @@ import { cn } from "@/lib/cn";
 type SortKey = "country" | "flows" | "demand" | "demandPct" | "holdings" | "aum" | "funds";
 type SortDir = "asc" | "desc";
 
-export function CountryBreakdownTable() {
-  const rows = useFundsByCountry({ ignoreCountryFilter: true });
+interface Row {
+  country: string;
+  region: string;
+  fund_count: number;
+  holdings_tonnes: number;
+  aum_usd_mn: number;
+  flows_usd_mn: number;
+  demand_tonnes: number;
+  demand_pct_of_holdings: number;
+  verdict: FlowConsistencyVerdict;
+}
+
+export function CountryLeaderboard() {
+  const aggregates = useFundsByCountry({ ignoreCountryFilter: true });
+  const consistency = useCountryFlowConsistency();
   const period = useFilters((s) => s.period);
-  const setCountry = useFilters((s) => s.setCountry);
-  const selectedRegion = useFilters((s) => s.region);
+  const openCountryDrilldown = useFilters((s) => s.openCountryDrilldown);
 
   const [sortKey, setSortKey] = useState<SortKey>("aum");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
+  const rows = useMemo<Row[]>(() => {
+    const verdictByCountry = new Map(
+      consistency.map((c) => [c.country, c.verdict]),
+    );
+    return aggregates.map((r) => ({
+      country: r.country,
+      region: r.region,
+      fund_count: r.fund_count,
+      holdings_tonnes: r.holdings_tonnes,
+      aum_usd_mn: r.aum_usd_mn,
+      flows_usd_mn: r.flows_usd_mn,
+      demand_tonnes: r.demand_tonnes,
+      demand_pct_of_holdings: r.holdings_tonnes
+        ? r.demand_tonnes / r.holdings_tonnes
+        : 0,
+      verdict: verdictByCountry.get(r.country) ?? "mixed",
+    }));
+  }, [aggregates, consistency]);
+
   const sorted = useMemo(() => {
-    const get = (r: (typeof rows)[number]) => {
+    const get = (r: Row) => {
       switch (sortKey) {
         case "country":
           return r.country;
@@ -32,7 +68,7 @@ export function CountryBreakdownTable() {
         case "demand":
           return r.demand_tonnes;
         case "demandPct":
-          return r.holdings_tonnes ? r.demand_tonnes / r.holdings_tonnes : 0;
+          return r.demand_pct_of_holdings;
         case "holdings":
           return r.holdings_tonnes;
         case "aum":
@@ -55,7 +91,8 @@ export function CountryBreakdownTable() {
     const headers = [
       "country",
       "region",
-      "funds",
+      "verdict",
+      "fund_count",
       "holdings_tonnes",
       "aum_usd_mn",
       "flows_usd_mn",
@@ -64,17 +101,17 @@ export function CountryBreakdownTable() {
     ];
     const lines = [headers.join(",")];
     for (const r of sorted) {
-      const pct = r.holdings_tonnes ? r.demand_tonnes / r.holdings_tonnes : 0;
       lines.push(
         [
           `"${r.country}"`,
           `"${r.region}"`,
+          r.verdict,
           r.fund_count,
           r.holdings_tonnes.toFixed(3),
           r.aum_usd_mn.toFixed(2),
           r.flows_usd_mn.toFixed(2),
           r.demand_tonnes.toFixed(3),
-          (pct * 100).toFixed(3),
+          (r.demand_pct_of_holdings * 100).toFixed(3),
         ].join(","),
       );
     }
@@ -82,7 +119,7 @@ export function CountryBreakdownTable() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `country-breakdown-${period}.csv`;
+    a.download = `countries-${period}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -90,17 +127,31 @@ export function CountryBreakdownTable() {
   return (
     <GlassCard variant="default" className="p-6">
       <CardHeader
-        eyebrow="Drilldown"
-        title={selectedRegion ? `Countries in ${selectedRegion}` : "All countries"}
-        subtitle={`${sorted.length} jurisdictions · sortable columns · click row to drill down`}
+        eyebrow="Every country, ranked"
+        title="Country leaderboard"
+        subtitle={`${sorted.length} jurisdictions · click any row to drill into all its funds and history. The Signal column reads each country's flow direction across 1M / QTD / YTD / 1Y / 3Y combined.`}
         trailing={
-          <button
-            onClick={exportCsv}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border-subtle bg-bg-surface hover:border-border-gold hover:bg-gold-50 text-[10px] uppercase tracking-[0.18em] text-fg-secondary hover:text-gold-700 transition-all"
-          >
-            <Download className="w-3 h-3" />
-            CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCsv}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border-subtle bg-bg-surface hover:border-border-gold hover:bg-gold-50 text-[10px] uppercase tracking-[0.18em] text-fg-secondary hover:text-gold-700 transition-all"
+            >
+              <Download className="w-3 h-3" />
+              CSV
+            </button>
+            <ChartExplainer
+              explain={{
+                what: "Every country with active gold ETFs, ranked. Click any row to open the full country drilldown.",
+                read: [
+                  "Sort by clicking any column header.",
+                  "The Signal column is an inference — it looks at flow direction across 5 periods (1M, QTD, YTD, 1Y, 3Y) and labels each country as a persistent buyer, persistent seller, mostly one way, or mixed.",
+                  "Persistent buyers = structurally adding gold; persistent sellers = structurally exiting. Mixed = tactical/transactional flow.",
+                ],
+                takeaway:
+                  "The Signal lets you spot durable demand without scrolling through every period. Persistent buyers are where structural capital is going; persistent sellers may be reaching capacity or losing investor interest.",
+              }}
+            />
+          </div>
         }
       />
 
@@ -110,7 +161,8 @@ export function CountryBreakdownTable() {
             <tr className="text-[10px] uppercase tracking-[0.18em] text-fg-muted border-b border-border-subtle">
               <Th width="2.5rem">#</Th>
               <SortHead label="Country" k="country" alignLeft cur={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} />
-              <Th align="left" width="6.5rem">Region</Th>
+              <Th align="left" width="6rem">Region</Th>
+              <Th align="left" width="9.5rem">Signal</Th>
               <SortHead label="Funds" k="funds" cur={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} />
               <SortHead label="AUM" unit="USD" k="aum" cur={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} />
               <SortHead label="Holdings" unit="tonnes" k="holdings" cur={sortKey} dir={sortDir} onChange={(k, d) => { setSortKey(k); setSortDir(d); }} />
@@ -122,7 +174,6 @@ export function CountryBreakdownTable() {
           <tbody>
             {sorted.map((r, i) => {
               const tint = regionAccent(r.region);
-              const pct = r.holdings_tonnes ? r.demand_tonnes / r.holdings_tonnes : 0;
               const flowTone = signOf(r.flows_usd_mn);
               const demandTone = signOf(r.demand_tonnes);
               return (
@@ -130,8 +181,8 @@ export function CountryBreakdownTable() {
                   key={r.country}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.25, delay: Math.min(i * 0.012, 0.3) }}
-                  onClick={() => setCountry(r.country)}
+                  transition={{ duration: 0.22, delay: Math.min(i * 0.011, 0.3) }}
+                  onClick={() => openCountryDrilldown(r.country)}
                   className="border-b border-border-faint last:border-0 cursor-pointer hover:bg-bg-tint/60 transition-colors"
                 >
                   <td className="px-3 py-2.5 text-fg-faint font-mono text-[10px] text-right">
@@ -144,6 +195,9 @@ export function CountryBreakdownTable() {
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-[11.5px] text-fg-secondary">{r.region}</td>
+                  <td className="px-3 py-2.5">
+                    <VerdictBadge verdict={r.verdict} />
+                  </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums text-fg-secondary">{r.fund_count}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums text-fg-primary">{fmtUsd(r.aum_usd_mn)}</td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums text-fg-primary">{fmtTonnes(r.holdings_tonnes)}</td>
@@ -160,20 +214,63 @@ export function CountryBreakdownTable() {
                     {fmtTonnes(r.demand_tonnes, { signed: true })}
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono tabular-nums text-fg-secondary">
-                    {fmtPct(pct, { signed: true })}
+                    {fmtPct(r.demand_pct_of_holdings, { signed: true })}
                   </td>
                 </motion.tr>
               );
             })}
           </tbody>
         </table>
-        {sorted.length === 0 && (
-          <div className="py-12 text-center text-fg-muted text-[12px]">
-            No countries match the current filters.
-          </div>
-        )}
       </div>
     </GlassCard>
+  );
+}
+
+function VerdictBadge({ verdict }: { verdict: FlowConsistencyVerdict }) {
+  const cfg: Record<FlowConsistencyVerdict, { label: string; bg: string; text: string; border: string }> = {
+    persistent_buyer: {
+      label: "Persistent buyer",
+      bg: "bg-pos-soft",
+      text: "text-pos-text",
+      border: "border-[var(--pos-border)]",
+    },
+    mostly_buying: {
+      label: "Mostly buying",
+      bg: "bg-pos-soft/55",
+      text: "text-pos-text",
+      border: "border-[var(--pos-border)]",
+    },
+    mixed: {
+      label: "Mixed",
+      bg: "bg-neu-soft",
+      text: "text-neu-text",
+      border: "border-[var(--neu-border)]",
+    },
+    mostly_selling: {
+      label: "Mostly selling",
+      bg: "bg-neg-soft/55",
+      text: "text-neg-text",
+      border: "border-[var(--neg-border)]",
+    },
+    persistent_seller: {
+      label: "Persistent seller",
+      bg: "bg-neg-soft",
+      text: "text-neg-text",
+      border: "border-[var(--neg-border)]",
+    },
+  };
+  const c = cfg[verdict];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center h-6 px-2 rounded-full border text-[9.5px] uppercase tracking-[0.16em] font-semibold whitespace-nowrap",
+        c.bg,
+        c.text,
+        c.border,
+      )}
+    >
+      {c.label}
+    </span>
   );
 }
 
@@ -189,7 +286,7 @@ function Th({
   return (
     <th
       style={width ? { width } : undefined}
-      className={`py-2.5 px-3 text-${align === "left" ? "left" : "right"} font-semibold`}
+      className={`py-2.5 px-3 font-semibold ${align === "left" ? "text-left" : "text-right"}`}
     >
       {children}
     </th>

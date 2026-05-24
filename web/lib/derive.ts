@@ -7,6 +7,7 @@
 import { useMemo } from "react";
 import { useDataset } from "./data-provider";
 import { useFilters } from "./filters";
+import { PERIOD_KEYS } from "./types";
 import type { Fund, MetricKey, PeriodKey, RegionAggregate } from "./types";
 
 /** Filter the full fund universe by region(s)/country(ies)/fund/active/search. */
@@ -222,3 +223,128 @@ export function useRegionAggregates(): RegionAggregate[] {
   const { regions } = useDataset();
   return regions.regions;
 }
+
+/* ============================================================
+   Country-level helpers (used by the Countries tab)
+   ============================================================ */
+
+export interface CountryDominance {
+  country: string;
+  region: string;
+  fund_count: number;
+  total_aum_usd_mn: number;
+  top_fund_name: string;
+  top_fund_ticker: string;
+  top_fund_aum_usd_mn: number;
+  top_share_pct: number;
+}
+
+/** For each country, total AUM, the largest fund and its share of country AUM. */
+export function useCountryDominance(): CountryDominance[] {
+  const { funds } = useDataset();
+  return useMemo(() => {
+    const byCountry = new Map<string, Fund[]>();
+    for (const f of funds.funds) {
+      if (!f.country || !f.current_aum_usd_mn) continue;
+      if (!byCountry.has(f.country)) byCountry.set(f.country, []);
+      byCountry.get(f.country)!.push(f);
+    }
+    const rows: CountryDominance[] = [];
+    for (const [country, list] of byCountry) {
+      const sorted = [...list].sort(
+        (a, b) => (b.current_aum_usd_mn ?? 0) - (a.current_aum_usd_mn ?? 0),
+      );
+      const total = sorted.reduce((s, f) => s + (f.current_aum_usd_mn ?? 0), 0);
+      const top = sorted[0];
+      rows.push({
+        country,
+        region: (top.region as string) ?? "Unknown",
+        fund_count: list.length,
+        total_aum_usd_mn: total,
+        top_fund_name: top.name ?? top.ticker,
+        top_fund_ticker: top.ticker,
+        top_fund_aum_usd_mn: top.current_aum_usd_mn ?? 0,
+        top_share_pct: total ? (top.current_aum_usd_mn ?? 0) / total : 0,
+      });
+    }
+    return rows.sort((a, b) => b.total_aum_usd_mn - a.total_aum_usd_mn);
+  }, [funds]);
+}
+
+/** Persistent buyer / seller / mixed for a country across recent periods. */
+export type FlowConsistencyVerdict =
+  | "persistent_buyer"
+  | "persistent_seller"
+  | "mostly_buying"
+  | "mostly_selling"
+  | "mixed";
+
+export interface CountryFlowConsistency {
+  country: string;
+  region: string;
+  fund_count: number;
+  flows_by_period: Record<PeriodKey, number>;
+  positives: number;
+  negatives: number;
+  verdict: FlowConsistencyVerdict;
+  total_aum_usd_mn: number;
+}
+
+const TRACKED_PERIODS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y"];
+
+export function useCountryFlowConsistency(): CountryFlowConsistency[] {
+  const { funds } = useDataset();
+  return useMemo(() => {
+    const byCountry = new Map<string, Fund[]>();
+    for (const f of funds.funds) {
+      if (!f.country) continue;
+      if (!byCountry.has(f.country)) byCountry.set(f.country, []);
+      byCountry.get(f.country)!.push(f);
+    }
+    const rows: CountryFlowConsistency[] = [];
+    for (const [country, list] of byCountry) {
+      const flows: Record<PeriodKey, number> = {} as Record<PeriodKey, number>;
+      let positives = 0;
+      let negatives = 0;
+      for (const p of TRACKED_PERIODS) {
+        const sum = list.reduce(
+          (s, f) => s + (f.periods[p].flows_usd_mn ?? 0),
+          0,
+        );
+        flows[p] = sum;
+        if (sum > 0.1) positives += 1;
+        else if (sum < -0.1) negatives += 1;
+      }
+      // fill the remaining period keys (5Y/Max) so the type is satisfied
+      for (const p of PERIOD_KEYS) {
+        if (!(p in flows)) {
+          flows[p] = list.reduce((s, f) => s + (f.periods[p].flows_usd_mn ?? 0), 0);
+        }
+      }
+      let verdict: FlowConsistencyVerdict;
+      if (positives === TRACKED_PERIODS.length) verdict = "persistent_buyer";
+      else if (negatives === TRACKED_PERIODS.length) verdict = "persistent_seller";
+      else if (positives >= negatives + 2) verdict = "mostly_buying";
+      else if (negatives >= positives + 2) verdict = "mostly_selling";
+      else verdict = "mixed";
+
+      const total_aum_usd_mn = list.reduce(
+        (s, f) => s + (f.current_aum_usd_mn ?? 0),
+        0,
+      );
+      const region = (list[0].region as string) ?? "Unknown";
+      rows.push({
+        country,
+        region,
+        fund_count: list.length,
+        flows_by_period: flows,
+        positives,
+        negatives,
+        verdict,
+        total_aum_usd_mn,
+      });
+    }
+    return rows.sort((a, b) => b.total_aum_usd_mn - a.total_aum_usd_mn);
+  }, [funds]);
+}
+

@@ -8,6 +8,7 @@ import { useData } from "@/lib/data-provider";
 import { LoadingScreen } from "@/components/primitives/LoadingScreen";
 import { FundOverlay } from "@/components/drilldown/FundOverlay";
 import { RegionFundsOverlay } from "@/components/drilldown/RegionFundsOverlay";
+import { CountryOverlay } from "@/components/drilldown/CountryOverlay";
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const { data, loading, error } = useData();
@@ -34,6 +35,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
       <FundOverlay />
       <RegionFundsOverlay />
+      <CountryOverlay />
     </div>
   );
 }

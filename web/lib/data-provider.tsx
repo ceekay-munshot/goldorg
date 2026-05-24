@@ -103,3 +103,34 @@ async function fetchJson<T>(url: string): Promise<T> {
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return (await res.json()) as T;
 }
+
+/**
+ * Eagerly load fund_history and expose it. Used by the Countries
+ * tab where historical per-country aggregation matters everywhere.
+ */
+export function useFundHistory(): {
+  history: FundHistoryFile | null;
+  loading: boolean;
+} {
+  const { loadFundHistory } = useData();
+  const [history, setHistory] = useState<FundHistoryFile | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let aborted = false;
+    setLoading(true);
+    loadFundHistory()
+      .then((h) => {
+        if (!aborted) {
+          setHistory(h);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!aborted) setLoading(false);
+      });
+    return () => {
+      aborted = true;
+    };
+  }, [loadFundHistory]);
+  return { history, loading };
+}

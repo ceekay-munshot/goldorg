@@ -25,6 +25,7 @@ interface FilterState {
   search: string;
   openFund: string | null;
   openRegionFunds: string | null;
+  openCountry: string | null;
 
   setPeriod: (p: PeriodKey) => void;
 
@@ -41,6 +42,7 @@ interface FilterState {
   setSearch: (s: string) => void;
   openFundDrilldown: (t: string | null) => void;
   openRegionFundsList: (r: string | null) => void;
+  openCountryDrilldown: (c: string | null) => void;
 
   resetCrossFilters: () => void;
   resetAll: () => void;
@@ -64,6 +66,7 @@ export const useFilters = create<FilterState>((set) => ({
   search: "",
   openFund: null,
   openRegionFunds: null,
+  openCountry: null,
 
   setPeriod: (period) => set({ period }),
 
@@ -127,6 +130,7 @@ export const useFilters = create<FilterState>((set) => ({
   setSearch: (search) => set({ search }),
   openFundDrilldown: (openFund) => set({ openFund }),
   openRegionFundsList: (openRegionFunds) => set({ openRegionFunds }),
+  openCountryDrilldown: (openCountry) => set({ openCountry }),
 
   resetCrossFilters: () =>
     set({
@@ -149,5 +153,6 @@ export const useFilters = create<FilterState>((set) => ({
       search: "",
       openFund: null,
       openRegionFunds: null,
+      openCountry: null,
     }),
 }));

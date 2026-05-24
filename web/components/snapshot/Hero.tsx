@@ -79,7 +79,7 @@ export function Hero() {
                   read: [
                     "Net flow and Net demand are PERIOD figures — switch the period (1M, YTD, Max…) and they recalculate. 1M = last month, Max = since 2003.",
                     "Net demand is the physical gold ETFs added or shed, in tonnes; net flow is the same thing valued in dollars.",
-                    "Total holdings and Total AUM are 'right now' totals — the size of the whole pile. They do NOT change when you switch period.",
+                    "Total holdings and Total AUM are the pile size at the END of your active window — they always read 'today' on a preset period, and time-travel to the chosen end date if you set a custom date range.",
                     "Demand vs pile = this period's buying as a % of that total pile.",
                   ],
                   takeaway:
@@ -134,13 +134,21 @@ export function Hero() {
             />
             <StatInline
               label="Total holdings"
-              basis="held today · fixed"
+              basis={
+                window.isCustom
+                  ? `as of ${window.to.slice(0, 7)} · end of window`
+                  : "held today"
+              }
               value={fmtTonnes(t.holdings_tonnes)}
               tone="neu"
             />
             <StatInline
               label="Total AUM"
-              basis="value today · fixed"
+              basis={
+                window.isCustom
+                  ? `as of ${window.to.slice(0, 7)} · end of window`
+                  : "value today"
+              }
               value={fmtUsd(t.aum_usd_mn)}
               tone="neu"
             />

@@ -82,6 +82,10 @@ export interface ScopedFundMetrics {
   flows_usd_mn: number;
   demand_tonnes: number;
   demand_pct_of_holdings: number;
+  /** Holdings (tonnes) at the window's END date */
+  holdings_tonnes: number;
+  /** AUM (USD mn) at the window's END date — holdings × gold price at end */
+  aum_usd_mn: number;
 }
 
 /** Find the index of the date in `dates` that's closest to (or just
@@ -126,6 +130,8 @@ export function useScopedFundMetrics(): Map<string, ScopedFundMetrics> {
           flows_usd_mn: p.flows_usd_mn ?? 0,
           demand_tonnes: p.demand_tonnes ?? 0,
           demand_pct_of_holdings: p.demand_pct_of_holdings ?? 0,
+          holdings_tonnes: f.current_holdings_tonnes ?? 0,
+          aum_usd_mn: f.current_aum_usd_mn ?? 0,
         });
       }
       return map;
@@ -140,6 +146,8 @@ export function useScopedFundMetrics(): Map<string, ScopedFundMetrics> {
           flows_usd_mn: p.flows_usd_mn ?? 0,
           demand_tonnes: p.demand_tonnes ?? 0,
           demand_pct_of_holdings: p.demand_pct_of_holdings ?? 0,
+          holdings_tonnes: f.current_holdings_tonnes ?? 0,
+          aum_usd_mn: f.current_aum_usd_mn ?? 0,
         });
       }
       return map;
@@ -152,21 +160,38 @@ export function useScopedFundMetrics(): Map<string, ScopedFundMetrics> {
       "end",
     );
 
+    // Gold price at the window's end (for time-travelling AUM).
+    // Build a {date → price} map once.
+    const goldByDate = new Map<string, number>();
+    for (const p of data.timeseries.monthly_holdings_tonnes) {
+      goldByDate.set(p.date, p.gold_price_usd_oz ?? 0);
+    }
+    const windowEndDate =
+      toI >= 0 ? history.dates[toI] : history.dates[history.dates.length - 1];
+    const goldPriceAtEnd = goldByDate.get(windowEndDate) ?? 0;
+    // tonnes → ounces conversion
+    const OZ_PER_TONNE = 32150.7466;
+
     for (const f of funds.funds) {
       const series = history.funds[f.ticker];
       let flows = 0;
       let demand = 0;
+      let holdingsAtEnd = 0;
       if (series) {
         for (let i = fromI; i <= toI; i++) {
           flows += series.flows_usd_mn[i] ?? 0;
           demand += series.demand_tonnes[i] ?? 0;
         }
+        holdingsAtEnd =
+          toI >= 0 ? series.holdings_tonnes[toI] ?? 0 : 0;
       }
-      const holdings = f.current_holdings_tonnes ?? 0;
+      const aumAtEnd = (holdingsAtEnd * OZ_PER_TONNE * goldPriceAtEnd) / 1e6;
       map.set(f.ticker, {
         flows_usd_mn: flows,
         demand_tonnes: demand,
-        demand_pct_of_holdings: holdings ? demand / holdings : 0,
+        demand_pct_of_holdings: holdingsAtEnd ? demand / holdingsAtEnd : 0,
+        holdings_tonnes: holdingsAtEnd,
+        aum_usd_mn: aumAtEnd,
       });
     }
     return map;
@@ -221,8 +246,8 @@ export function useTotals(): Totals {
       if (fl > 0) inflows += fl;
       else outflows += fl;
       demand += m?.demand_tonnes ?? 0;
-      holdings += f.current_holdings_tonnes ?? 0;
-      aum += f.current_aum_usd_mn ?? 0;
+      holdings += m?.holdings_tonnes ?? 0;
+      aum += m?.aum_usd_mn ?? 0;
     }
     return {
       flows_usd_mn: flows,
@@ -278,8 +303,8 @@ export function useFundsByRegion(opts?: { ignoreRegionFilter?: boolean }): Regio
       }
       bucket.flows_usd_mn += m?.flows_usd_mn ?? 0;
       bucket.demand_tonnes += m?.demand_tonnes ?? 0;
-      bucket.holdings_tonnes += f.current_holdings_tonnes ?? 0;
-      bucket.aum_usd_mn += f.current_aum_usd_mn ?? 0;
+      bucket.holdings_tonnes += m?.holdings_tonnes ?? 0;
+      bucket.aum_usd_mn += m?.aum_usd_mn ?? 0;
       bucket.fund_count += 1;
     }
     return Array.from(buckets.values()).sort(
@@ -326,8 +351,8 @@ export function useFundsByCountry(opts?: { ignoreCountryFilter?: boolean }): Cou
       }
       bucket.flows_usd_mn += m?.flows_usd_mn ?? 0;
       bucket.demand_tonnes += m?.demand_tonnes ?? 0;
-      bucket.holdings_tonnes += f.current_holdings_tonnes ?? 0;
-      bucket.aum_usd_mn += f.current_aum_usd_mn ?? 0;
+      bucket.holdings_tonnes += m?.holdings_tonnes ?? 0;
+      bucket.aum_usd_mn += m?.aum_usd_mn ?? 0;
       bucket.fund_count += 1;
     }
     return Array.from(buckets.values()).sort(

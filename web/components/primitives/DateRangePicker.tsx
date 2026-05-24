@@ -124,9 +124,10 @@ export function DateRangePicker() {
 
               <div className="text-[10px] text-fg-muted leading-relaxed">
                 Defaults: {fmtDate(DEFAULT_FROM, "short")} → today (
-                {fmtDate(asOf, "short")}). Flows and demand
-                across the dashboard recalculate from the per-fund monthly
-                history within this window. Holdings and AUM stay as "today".
+                {fmtDate(asOf, "short")}). Flows and demand are summed across
+                the chosen window; holdings and AUM are valued at the window's
+                end date (so picking "to: Dec 2010" gives you that month's
+                pile, not today's). All from the per-fund monthly history.
               </div>
 
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-subtle">

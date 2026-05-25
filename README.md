@@ -1,8 +1,7 @@
 # goldorg
 
-Dashboard for the World Gold Council's
-[Gold ETF holdings and flows](https://www.gold.org/goldhub/research/gold-etfs-holdings-and-flows)
-dataset.
+Dashboard for the World Gold Council's Gold ETF data — built for buy-side
+intelligence on flows, holdings, AUM and structural drivers.
 
 ## What it does
 

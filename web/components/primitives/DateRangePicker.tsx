@@ -35,10 +35,6 @@ export function DateRangePicker() {
     setDraftTo(toDate ?? asOf);
   }, [fromDate, toDate, asOf]);
 
-  // Don't render the picker until the dataset has loaded — it needs
-  // the as-of date to bound the calendar.
-  if (!data) return null;
-
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
@@ -46,6 +42,10 @@ export function DateRangePicker() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  // Don't render the picker until the dataset has loaded — it needs
+  // the as-of date to bound the calendar.
+  if (!data) return null;
 
   const isActive = !!(fromDate || toDate);
 

@@ -5,7 +5,7 @@
   "scripts": {
     "copy-data": "node -e \"const fs=require('fs');const path=require('path');const src=path.resolve(__dirname,'../data/parsed');const dest=path.resolve(__dirname,'public/data');fs.mkdirSync(dest,{recursive:true});for(const f of fs.readdirSync(src)){if(f.endsWith('.json')){fs.copyFileSync(path.join(src,f),path.join(dest,f));console.log('copied',f);}}\"",
     "dev": "npm run copy-data && next dev",
-    "build": "npm run copy-data && next build",
+    "build": "npm run copy-data && next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },

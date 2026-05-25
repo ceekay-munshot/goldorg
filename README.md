@@ -1,6 +1,6 @@
 # goldorg
 
-Dashboard data pipeline for the World Gold Council's
+Dashboard for the World Gold Council's
 [Gold ETF holdings and flows](https://www.gold.org/goldhub/research/gold-etfs-holdings-and-flows)
 dataset.
 

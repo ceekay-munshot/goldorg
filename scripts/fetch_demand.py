@@ -24,10 +24,15 @@ CANDIDATE_PAGES = [
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,*/*;q=0.8"
+    ),
     "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
 }
 # Match XLSX links whose filename or path mentions demand
 DEMAND_PATTERN = re.compile(
@@ -86,19 +91,48 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str, str] | No
 
 
 def download(url: str, dest: Path, session: requests.Session, referer: str) -> None:
-    # gold.org's CDN rejects direct hits on /download/file/* with 403
-    # unless the request looks like it's coming from a goldhub page —
-    # a real Referer header is the missing piece.
+    # gold.org's CDN (Akamai/CF behind the scenes) returns 403 on raw
+    # /download/file/* hits unless the request looks like a logged-in
+    # Chrome session navigating from a goldhub page. Send the full
+    # Sec-CH-UA-* set + a fresh cookie-bearing GET on the referer first
+    # so the response cookies are attached to the file request.
+    pre = session.get(referer, headers=HEADERS, timeout=30)
+    print(
+        f"[fetch-demand] pre-warm GET {referer} -> "
+        f"{pre.status_code} ({len(session.cookies)} cookies)"
+    )
+
     headers = {
         **HEADERS,
         "Referer": referer,
-        "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
-        "application/octet-stream,application/vnd.ms-excel,*/*;q=0.8",
+        "Accept": (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+            "application/octet-stream,application/vnd.ms-excel,"
+            "application/zip,application/x-zip-compressed,*/*;q=0.8"
+        ),
         "Sec-Fetch-Dest": "document",
         "Sec-Fetch-Mode": "navigate",
         "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-CH-UA": (
+            '"Not?A_Brand";v="99", "Chromium";v="130", "Google Chrome";v="130"'
+        ),
+        "Sec-CH-UA-Mobile": "?0",
+        "Sec-CH-UA-Platform": '"Windows"',
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "DNT": "1",
     }
-    resp = session.get(url, headers=headers, timeout=60, stream=True, allow_redirects=True)
+    resp = session.get(
+        url, headers=headers, timeout=60, stream=True, allow_redirects=True
+    )
+    # Surface the failure URL chain so the next iteration knows what we tried
+    if resp.status_code >= 400:
+        chain = " -> ".join(
+            f"{r.status_code} {r.url}" for r in (*resp.history, resp)
+        )
+        print(f"[fetch-demand] download chain: {chain}", file=sys.stderr)
     resp.raise_for_status()
     dest.parent.mkdir(parents=True, exist_ok=True)
     with open(dest, "wb") as f:

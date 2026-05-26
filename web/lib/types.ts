@@ -180,12 +180,18 @@ export interface CountryDemand {
   annual_tonnes: Record<string, number>; // "2023" -> tonnes
 }
 
+export interface DemandAnnual {
+  year: string; // "2024"
+  demand_tonnes: Record<DemandCategory, number | null>;
+}
+
 export interface DemandFile {
   as_of_quarter: string | null;
   as_of_note?: string;
   source_file?: string;
   categories: DemandCategory[];
   quarters: DemandQuarter[];
+  annual: DemandAnnual[];
   by_country_jewellery: CountryDemand[];
   by_country_bar_and_coin: CountryDemand[];
 }

@@ -118,6 +118,7 @@ function emptyDemand(): DemandFile {
     as_of_note: "demand.json missing — first deploy or fetch failed",
     categories: ["jewellery", "bar_and_coin", "etf", "central_banks", "technology"],
     quarters: [],
+    annual: [],
     by_country_jewellery: [],
     by_country_bar_and_coin: [],
   };

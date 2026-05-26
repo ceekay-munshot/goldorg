@@ -20,7 +20,7 @@ import { regionAccent } from "@/lib/regions";
 import { cn } from "@/lib/cn";
 import type { PeriodKey } from "@/lib/types";
 
-const TRACKED_PERIODS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "Max"];
+const TRACKED_PERIODS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "10Y", "15Y", "Max"];
 
 export function CountryOverlay() {
   const country = useFilters((s) => s.openCountry);
@@ -66,7 +66,7 @@ export function CountryOverlay() {
       active = 0,
       inactive = 0;
     const periodFlows: Record<PeriodKey, number> = {
-      "1M": 0, QTD: 0, YTD: 0, "1Y": 0, "3Y": 0, "5Y": 0, Max: 0,
+      "1M": 0, QTD: 0, YTD: 0, "1Y": 0, "3Y": 0, "5Y": 0, "10Y": 0, "15Y": 0, Max: 0,
     };
     for (const f of funds) {
       aum += f.current_aum_usd_mn ?? 0;

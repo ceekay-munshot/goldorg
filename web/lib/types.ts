@@ -2,9 +2,9 @@
    TypeScript types matching the parsed JSON contracts
    ============================================================ */
 
-export type PeriodKey = "1M" | "QTD" | "YTD" | "1Y" | "3Y" | "5Y" | "Max";
+export type PeriodKey = "1M" | "QTD" | "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "15Y" | "Max";
 
-export const PERIOD_KEYS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "Max"];
+export const PERIOD_KEYS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "10Y", "15Y", "Max"];
 
 export type MetricKey = "flows" | "demand" | "holdings" | "aum";
 

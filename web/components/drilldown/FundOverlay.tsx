@@ -389,8 +389,8 @@ function PeriodGrid({ fund }: { fund: import("@/lib/types").Fund }) {
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-        {(["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "Max"] as const).map((p) => {
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2.5">
+        {(["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "10Y", "15Y", "Max"] as const).map((p) => {
           const m = fund.periods[p];
           const periodFrom = data?.metadata.periods[p]?.from;
           // The whole period window starts AFTER the fund stopped reporting →

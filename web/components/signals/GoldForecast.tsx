@@ -32,6 +32,8 @@ const PERIOD_TAIL: Record<PeriodKey, number> = {
   "1Y": 24,
   "3Y": 36,
   "5Y": 60,
+  "10Y": 120,
+  "15Y": 180,
   Max: 9999,
 };
 
@@ -45,6 +47,8 @@ const PERIOD_ESTIMATION: Record<PeriodKey, number> = {
   "1Y": 36,
   "3Y": 36,
   "5Y": 60,
+  "10Y": 120,
+  "15Y": 180,
   Max: 0,
 };
 
@@ -55,6 +59,8 @@ const ESTIMATION_LABEL: Record<PeriodKey, string> = {
   "1Y": "3-year window",
   "3Y": "3-year window",
   "5Y": "5-year window",
+  "10Y": "10-year window",
+  "15Y": "15-year window",
   Max: "full history",
 };
 

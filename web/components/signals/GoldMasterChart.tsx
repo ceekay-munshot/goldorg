@@ -28,6 +28,8 @@ const PERIOD_MONTHS: Record<PeriodKey, number> = {
   "1Y": 12,
   "3Y": 36,
   "5Y": 60,
+  "10Y": 120,
+  "15Y": 180,
   Max: 0, // 0 = all
 };
 

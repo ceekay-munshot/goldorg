@@ -9,7 +9,7 @@ Outputs (under data/parsed/):
   - timeseries.json     monthly + annual regional series (full history)
   - fund_history.json   per-fund monthly history for drilldown overlay
 
-Periods supported: 1M, QTD, YTD, 1Y, 3Y, 5Y, Max
+Periods supported: 1M, QTD, YTD, 1Y, 3Y, 5Y, 10Y, 15Y, Max
 """
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 OUT_DIR = ROOT / "data" / "parsed"
 
-PERIODS = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "Max"]
+PERIODS = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "10Y", "15Y", "Max"]
 
 
 # ============================================================
@@ -101,8 +101,12 @@ def period_window(as_of: date, period: str) -> tuple[date, date]:
         return date(as_of.year - 3, as_of.month, min(as_of.day, 28)), as_of
     if period == "5Y":
         return date(as_of.year - 5, as_of.month, min(as_of.day, 28)), as_of
+    if period == "10Y":
+        return date(as_of.year - 10, as_of.month, min(as_of.day, 28)), as_of
+    if period == "15Y":
+        return date(as_of.year - 15, as_of.month, min(as_of.day, 28)), as_of
     if period == "Max":
-        return date(1900, 1, 1), as_of
+        return date(2003, 1, 1), as_of
     raise ValueError(period)
 
 
@@ -121,6 +125,10 @@ def period_label(period: str, as_of: date) -> str:
         return "Trailing 3Y"
     if period == "5Y":
         return "Trailing 5Y"
+    if period == "10Y":
+        return "Trailing 10Y"
+    if period == "15Y":
+        return "Trailing 15Y"
     if period == "Max":
         return "Since 2003"
     return period

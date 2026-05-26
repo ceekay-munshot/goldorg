@@ -6,11 +6,11 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 const TABS = [
-  { href: "/", label: "Snapshot", hint: "Global flow situation" },
-  { href: "/regional", label: "Regional", hint: "Four regions, head-to-head" },
-  { href: "/demand", label: "Demand", hint: "Jewellery, coin, central banks" },
-  { href: "/countries", label: "Countries", hint: "Every country, every fund" },
-  { href: "/signals", label: "Signals", hint: "The future of gold" },
+  { href: "/", label: "Snapshot", hint: "Global flow" },
+  { href: "/regional", label: "Regional", hint: "Region vs region" },
+  { href: "/demand", label: "Demand", hint: "Jewellery & coin" },
+  { href: "/countries", label: "Countries", hint: "Country drilldown" },
+  { href: "/signals", label: "Signals", hint: "Forward outlook" },
 ];
 
 export function TabNav() {
@@ -26,18 +26,20 @@ export function TabNav() {
               key={t.href}
               href={t.href}
               className={cn(
-                "relative px-5 py-3.5 group transition-colors",
+                "relative px-5 py-3 group transition-colors",
                 active ? "text-fg-primary" : "text-fg-muted hover:text-fg-secondary",
               )}
             >
-              <div className="flex items-baseline gap-2.5">
-                <span className={cn(
-                  "font-display text-[16px] tracking-tight",
-                  active && "text-gold-gradient",
-                )}>
+              <div className="flex flex-col gap-0.5 leading-tight">
+                <span
+                  className={cn(
+                    "font-display text-[16px] tracking-tight whitespace-nowrap",
+                    active && "text-gold-gradient",
+                  )}
+                >
                   {t.label}
                 </span>
-                <span className="hidden sm:inline text-[10px] uppercase tracking-[0.18em] text-fg-faint group-hover:text-fg-muted transition-colors">
+                <span className="hidden sm:block text-[9.5px] uppercase tracking-[0.2em] text-fg-faint group-hover:text-fg-muted transition-colors whitespace-nowrap">
                   {t.hint}
                 </span>
               </div>

@@ -185,6 +185,61 @@ export interface DemandAnnual {
   demand_tonnes: Record<DemandCategory, number | null>;
 }
 
+export type SupplyKey =
+  | "mine_production"
+  | "recycled_gold"
+  | "net_producer_hedging"
+  | "total_supply";
+
+export const SUPPLY_KEYS: SupplyKey[] = [
+  "mine_production",
+  "recycled_gold",
+  "net_producer_hedging",
+  "total_supply",
+];
+
+export interface SupplyQuarter {
+  quarter: string;
+  tonnes: Record<SupplyKey, number | null>;
+}
+export interface SupplyAnnual {
+  year: string;
+  tonnes: Record<SupplyKey, number | null>;
+}
+export interface SupplyBlock {
+  quarters: SupplyQuarter[];
+  annual: SupplyAnnual[];
+}
+
+export type CurrencyKey =
+  | "usd_oz"
+  | "eur_oz"
+  | "gbp_oz"
+  | "chf_kg"
+  | "jpy_g"
+  | "inr_10g"
+  | "rmb_g"
+  | "try_g";
+
+export interface CurrencyDef {
+  key: CurrencyKey;
+  label: string;
+  unit: string;
+}
+export interface GoldPricePoint {
+  prices: Record<CurrencyKey, number | null>;
+}
+export interface GoldPricesBlock {
+  currencies: CurrencyDef[];
+  annual: (GoldPricePoint & { year: string })[];
+  quarters: (GoldPricePoint & { quarter: string })[];
+}
+
+export interface PerCapitaCountry {
+  country: string;
+  annual_grams: Record<string, number>;
+}
+
 export interface DemandFile {
   as_of_quarter: string | null;
   as_of_note?: string;
@@ -194,6 +249,9 @@ export interface DemandFile {
   annual: DemandAnnual[];
   by_country_jewellery: CountryDemand[];
   by_country_bar_and_coin: CountryDemand[];
+  supply: SupplyBlock;
+  gold_prices: GoldPricesBlock | null;
+  per_capita_grams: PerCapitaCountry[];
 }
 
 // ─────────────────────────────────────────────────────────────────────

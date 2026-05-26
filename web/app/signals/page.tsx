@@ -11,6 +11,9 @@ import { GoldSilverRatio } from "@/components/signals/GoldSilverRatio";
 import { CrisisAlpha } from "@/components/signals/CrisisAlpha";
 import { Seasonality } from "@/components/signals/Seasonality";
 import { SpeculatorPositioning } from "@/components/signals/SpeculatorPositioning";
+import { SpecCrowding } from "@/components/signals/SpecCrowding";
+import { CommercialsVsSpecs } from "@/components/signals/CommercialsVsSpecs";
+import { GoldInCurrencies } from "@/components/signals/GoldInCurrencies";
 
 export default function SignalsPage() {
   return (
@@ -19,8 +22,14 @@ export default function SignalsPage() {
       <GoldForecast />
       {/* The setup */}
       <GoldMasterChart />
-      {/* Smart money */}
+      {/* Currency-lens cross-check */}
+      <GoldInCurrencies />
+      {/* Smart money positioning */}
       <SpeculatorPositioning />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <SpecCrowding />
+        <CommercialsVsSpecs />
+      </div>
       {/* Why — drivers */}
       <DriverBoard />
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

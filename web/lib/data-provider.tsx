@@ -121,6 +121,9 @@ function emptyDemand(): DemandFile {
     annual: [],
     by_country_jewellery: [],
     by_country_bar_and_coin: [],
+    supply: { quarters: [], annual: [] },
+    gold_prices: null,
+    per_capita_grams: [],
   };
 }
 

@@ -56,6 +56,30 @@ CATEGORY_ROW_HINTS: dict[str, list[str]] = {
     "central_banks": ["central bank and other institutions", "central bank"],
 }
 
+# Supply-side rows from Gold Balance — these tell the supply story
+# (mine output ceiling, recycled-gold spikes at price tops, producer
+# hedging when miners turn bearish).
+SUPPLY_KEYS = ["mine_production", "recycled_gold", "net_producer_hedging", "total_supply"]
+SUPPLY_ROW_HINTS: dict[str, list[str]] = {
+    "mine_production":      ["mine production"],
+    "recycled_gold":        ["recycled gold"],
+    "net_producer_hedging": ["net producer hedging"],
+    "total_supply":         ["total supply"],
+}
+
+# Gold Prices sheet — taxonomy labels → compact keys + display unit.
+PRICE_CURRENCIES: list[tuple[str, str, str, str]] = [
+    # (key, taxonomy_substring, display_label, unit_text)
+    ("usd_oz",  "us$/oz",  "USD",  "$/oz"),
+    ("eur_oz",  "€/oz",    "EUR",  "€/oz"),
+    ("gbp_oz",  "£/oz",    "GBP",  "£/oz"),
+    ("chf_kg",  "chf/kg",  "CHF",  "CHF/kg"),
+    ("jpy_g",   "¥/g",     "JPY",  "¥/g"),
+    ("inr_10g", "rs/10g",  "INR",  "₹/10g"),
+    ("rmb_g",   "rmb/g",   "CNY",  "¥/g"),
+    ("try_g",   "tl/g",    "TRY",  "₺/g"),
+]
+
 # Country-sheet rows to drop (region roll-ups, residual buckets, and
 # grand totals — would double-count against the leaf countries below).
 EXCLUDE_LABELS = {
@@ -234,6 +258,144 @@ def parse_country_sheet(wb, sheet_name: str) -> list[dict]:
 
 
 # ────────────────────────────────────────────────────────────────────
+# Gold Balance — supply rows (mine, recycled, producer hedging, total)
+# ────────────────────────────────────────────────────────────────────
+def parse_supply(wb) -> tuple[list[dict], list[dict]]:
+    if "Gold Balance" not in wb.sheetnames:
+        return [], []
+    ws = wb["Gold Balance"]
+    rows = list(ws.iter_rows(values_only=True))
+    header_idx = find_header_row(rows)
+    if header_idx is None:
+        return [], []
+    year_cols, quarter_cols = column_indices(rows[header_idx])
+
+    supply_rows: dict[str, tuple[Any, ...]] = {}
+    for r_idx in range(header_idx + 1, len(rows)):
+        row = rows[r_idx]
+        label = row[1] if len(row) > 1 else None
+        if not isinstance(label, str) or not label.strip():
+            continue
+        norm = label.lstrip().lower().strip()
+        for key, hints in SUPPLY_ROW_HINTS.items():
+            if key in supply_rows:
+                continue
+            for h in hints:
+                if norm == h or norm.startswith(h):
+                    supply_rows[key] = row
+                    break
+
+    def build(col_map: dict[int, str]) -> list[dict]:
+        out: dict[str, dict[str, float | None]] = {}
+        for col_idx, key in col_map.items():
+            bucket = out.setdefault(key, {k: None for k in SUPPLY_KEYS})
+            for sk, row in supply_rows.items():
+                bucket[sk] = num(row[col_idx]) if col_idx < len(row) else None
+        def sort_key(k: str):
+            if "Q" in k:
+                y, q = k.split("Q")
+                return (int(y), int(q))
+            return (int(k), 0)
+        return [{"key": k, "tonnes": out[k]} for k in sorted(out.keys(), key=sort_key)]
+
+    qs = build(quarter_cols)
+    ans = build(year_cols)
+    quarters = [{"quarter": p["key"], "tonnes": p["tonnes"]} for p in qs]
+    annual = [{"year": p["key"], "tonnes": p["tonnes"]} for p in ans]
+    return quarters, annual
+
+
+# ────────────────────────────────────────────────────────────────────
+# Gold Prices — multi-currency annual + quarterly prices
+# ────────────────────────────────────────────────────────────────────
+def parse_gold_prices(wb) -> dict | None:
+    if "Gold Prices" not in wb.sheetnames:
+        return None
+    ws = wb["Gold Prices"]
+    rows = list(ws.iter_rows(values_only=True))
+    header_idx = find_header_row(rows)
+    if header_idx is None:
+        return None
+    year_cols, quarter_cols = column_indices(rows[header_idx])
+
+    # Build a {currency_key: row_tuple} map by matching the Taxonomy cell
+    price_rows: dict[str, tuple[Any, ...]] = {}
+    for r_idx in range(header_idx + 1, len(rows)):
+        row = rows[r_idx]
+        label = row[1] if len(row) > 1 else None
+        if not isinstance(label, str):
+            continue
+        norm = label.lower().replace(" ", "")
+        for key, sub, _, _ in PRICE_CURRENCIES:
+            if key in price_rows:
+                continue
+            if sub.replace(" ", "") in norm:
+                price_rows[key] = row
+
+    def build(col_map: dict[int, str]) -> list[dict]:
+        out: dict[str, dict[str, float | None]] = {}
+        for col_idx, period_key in col_map.items():
+            bucket = out.setdefault(period_key, {})
+            for ck, _, _, _ in PRICE_CURRENCIES:
+                row = price_rows.get(ck)
+                bucket[ck] = num(row[col_idx]) if row is not None and col_idx < len(row) else None
+        def sort_key(k: str):
+            if "Q" in k:
+                y, q = k.split("Q")
+                return (int(y), int(q))
+            return (int(k), 0)
+        return [{"key": k, "prices": out[k]} for k in sorted(out.keys(), key=sort_key)]
+
+    quarters = [{"quarter": p["key"], "prices": p["prices"]} for p in build(quarter_cols)]
+    annual = [{"year": p["key"], "prices": p["prices"]} for p in build(year_cols)]
+    return {
+        "currencies": [
+            {"key": k, "label": lbl, "unit": unit}
+            for k, _, lbl, unit in PRICE_CURRENCIES
+        ],
+        "annual": annual,
+        "quarters": quarters,
+    }
+
+
+# ────────────────────────────────────────────────────────────────────
+# Consumer per Capita — country-level grams per capita
+# ────────────────────────────────────────────────────────────────────
+def parse_per_capita(wb) -> list[dict]:
+    if "Consumer per Capita" not in wb.sheetnames:
+        return []
+    ws = wb["Consumer per Capita"]
+    rows = list(ws.iter_rows(values_only=True))
+    header_idx = find_header_row(rows)
+    if header_idx is None:
+        return []
+    year_cols, _ = column_indices(rows[header_idx])
+    if not year_cols:
+        return []
+    out: list[dict] = []
+    for r_idx in range(header_idx + 1, len(rows)):
+        row = rows[r_idx]
+        label = row[1] if len(row) > 1 else None
+        if not isinstance(label, str) or not label.strip():
+            continue
+        norm = label.strip().lower()
+        if norm in EXCLUDE_LABELS:
+            continue
+        annual: dict[str, float] = {}
+        for c_idx, year in year_cols.items():
+            v = num(row[c_idx]) if c_idx < len(row) else None
+            if v is not None:
+                annual[year] = v
+        if not annual:
+            continue
+        out.append({"country": label.strip(), "annual_grams": annual})
+    if out:
+        latest = max((y for r in out for y in r["annual_grams"].keys()), default=None)
+        out.sort(key=lambda r: -(r["annual_grams"].get(latest, 0) if latest else 0))
+    return out
+
+
+# ────────────────────────────────────────────────────────────────────
 # Glue
 # ────────────────────────────────────────────────────────────────────
 def latest_demand_xlsx() -> Path | None:
@@ -261,6 +423,9 @@ def write_stub(reason: str) -> None:
         "annual": [],
         "by_country_jewellery": [],
         "by_country_bar_and_coin": [],
+        "supply": {"quarters": [], "annual": []},
+        "gold_prices": None,
+        "per_capita_grams": [],
     }
     out = OUT_DIR / "demand.json"
     with open(out, "w", encoding="utf-8") as f:
@@ -281,6 +446,9 @@ def main() -> None:
     quarters, annual = parse_gold_balance(wb)
     jewellery = parse_country_sheet(wb, "Jewellery")
     barcoin = parse_country_sheet(wb, "Bar and Coin")
+    supply_q, supply_a = parse_supply(wb)
+    gold_prices = parse_gold_prices(wb)
+    per_capita = parse_per_capita(wb)
 
     if not quarters and not jewellery and not barcoin:
         write_stub(
@@ -299,6 +467,9 @@ def main() -> None:
         "annual": annual,
         "by_country_jewellery": jewellery,
         "by_country_bar_and_coin": barcoin,
+        "supply": {"quarters": supply_q, "annual": supply_a},
+        "gold_prices": gold_prices,
+        "per_capita_grams": per_capita,
     }
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -309,7 +480,10 @@ def main() -> None:
         f"[parse-demand] wrote {out.relative_to(ROOT)} "
         f"({out.stat().st_size:,} bytes, "
         f"{len(quarters)} quarters, {len(annual)} years, "
-        f"{len(jewellery)} jewellery countries, {len(barcoin)} bar-coin countries)"
+        f"{len(jewellery)} jewellery / {len(barcoin)} bar-coin countries, "
+        f"{len(supply_q)} supply quarters, "
+        f"{'gold prices ✓' if gold_prices else 'gold prices ✗'}, "
+        f"{len(per_capita)} per-capita rows)"
     )
 
 

@@ -17,7 +17,9 @@ import {
 } from "react";
 import type {
   CountriesFile,
+  CotFile,
   DashboardData,
+  DemandFile,
   FundHistoryFile,
   FundsFile,
   Metadata,
@@ -45,7 +47,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     let aborted = false;
     async function load() {
       try {
-        const [metadata, funds, regions, countries, topMovers, timeseries] =
+        const [metadata, funds, regions, countries, topMovers, timeseries, demand, cot] =
           await Promise.all([
             fetchJson<Metadata>("/data/metadata.json"),
             fetchJson<FundsFile>("/data/funds.json"),
@@ -53,9 +55,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             fetchJson<CountriesFile>("/data/countries.json"),
             fetchJson<TopMoversFile>("/data/top_movers.json"),
             fetchJson<TimeSeriesFile>("/data/timeseries.json"),
+            // Demand + COT can be empty stubs on first deploy
+            // (GH Actions populates them on the next scheduled run);
+            // a missing or unparseable file shouldn't take down the
+            // whole dashboard.
+            fetchJson<DemandFile>("/data/demand.json").catch(() => emptyDemand()),
+            fetchJson<CotFile>("/data/cot.json").catch(() => emptyCot()),
           ]);
         if (aborted) return;
-        setData({ metadata, funds, regions, countries, topMovers, timeseries });
+        setData({ metadata, funds, regions, countries, topMovers, timeseries, demand, cot });
         setLoading(false);
       } catch (e) {
         if (aborted) return;
@@ -102,6 +110,25 @@ async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: "force-cache" });
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return (await res.json()) as T;
+}
+
+function emptyDemand(): DemandFile {
+  return {
+    as_of_quarter: null,
+    as_of_note: "demand.json missing — first deploy or fetch failed",
+    categories: ["jewellery", "bar_and_coin", "etf", "central_banks", "technology"],
+    quarters: [],
+    by_country_jewellery: [],
+    by_country_bar_and_coin: [],
+  };
+}
+
+function emptyCot(): CotFile {
+  return {
+    as_of_date: null,
+    as_of_note: "cot.json missing — first deploy or fetch failed",
+    series: [],
+  };
 }
 
 /**

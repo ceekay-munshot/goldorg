@@ -33,12 +33,26 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Fetch latest XLSX from gold.org
+      - name: Fetch latest ETF flows XLSX from gold.org
         id: fetch
         run: python scripts/fetch.py
 
-      - name: Parse XLSX to JSON
+      - name: Parse ETF flows XLSX to JSON
         run: python scripts/parse.py
+
+      - name: Fetch WGC Gold Demand Trends XLSX
+        # Soft-fail: a hiccup on the demand pipeline shouldn't kill the
+        # ETF refresh (the dashboard's primary data source).
+        continue-on-error: true
+        run: python scripts/fetch_demand.py
+
+      - name: Parse Demand Trends XLSX to JSON
+        continue-on-error: true
+        run: python scripts/parse_demand.py
+
+      - name: Fetch CFTC COT (COMEX gold) via Socrata
+        continue-on-error: true
+        run: python scripts/fetch_cot.py
 
       - name: Commit and push if changed
         run: |
@@ -55,5 +69,7 @@ jobs:
           # Build a descriptive commit message from the metadata
           AS_OF=$(python -c "import json; print(json.load(open('data/parsed/metadata.json'))['as_of_date'])")
           SRC=$(python -c "import json; print(json.load(open('data/parsed/metadata.json'))['source_file'])")
-          git commit -m "data: refresh ETF flows (as of ${AS_OF}, src ${SRC})"
+          DEMAND_Q=$(python -c "import json; d=json.load(open('data/parsed/demand.json')); print(d.get('as_of_quarter') or 'none')" 2>/dev/null || echo "none")
+          COT_DATE=$(python -c "import json; c=json.load(open('data/parsed/cot.json')); print(c.get('as_of_date') or 'none')" 2>/dev/null || echo "none")
+          git commit -m "data: refresh (ETF ${AS_OF}, demand ${DEMAND_Q}, cot ${COT_DATE})"
           git push

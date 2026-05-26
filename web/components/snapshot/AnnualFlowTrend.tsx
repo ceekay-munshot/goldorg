@@ -77,9 +77,9 @@ export function AnnualFlowTrend() {
       }
     }
     return {
-      inflows: inflows * 1000, // convert back to mn-scale string later
-      outflows: outflows * 1000,
-      net: (inflows + outflows) * 1000,
+      inflows,
+      outflows,
+      net: inflows + outflows,
       years_pos,
       years_neg,
     };
@@ -289,12 +289,12 @@ function AnnualTooltip({ active, label, payload, regionKey }: TooltipProps) {
     rows.push({
       label: r,
       color: regionAccent(r).hex,
-      value: fmtUsd(v * 1000, { signed: true, decimals: 1 }),
+      value: fmtUsd(v, { signed: true, decimals: 1 }),
     });
   }
   rows.push({
     label: "Net total",
-    value: fmtUsd((row.total_usd_mn ?? 0) * 1000, { signed: true }),
+    value: fmtUsd(row.total_usd_mn ?? 0, { signed: true }),
     accent: true,
   });
   if (row.holdings_tonnes != null) {

@@ -114,7 +114,7 @@ export function RegionalFlowsChart() {
                 tickLine={false}
                 tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
                 tickFormatter={(v: number) =>
-                  usingDemand ? `${v.toFixed(0)}` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}bn` : `${v.toFixed(0)}bn`
+                  usingDemand ? `${v.toFixed(0)}` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}bn` : `${v.toFixed(0)}mn`
                 }
                 width={44}
               />
@@ -160,7 +160,7 @@ export function RegionalFlowsChart() {
                 tickLine={false}
                 tick={{ fontSize: 10, fill: "var(--fg-muted)" }}
                 tickFormatter={(v: number) =>
-                  usingDemand ? `${v.toFixed(0)}` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}bn` : `${v.toFixed(0)}bn`
+                  usingDemand ? `${v.toFixed(0)}` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}bn` : `${v.toFixed(0)}mn`
                 }
                 width={44}
               />
@@ -286,7 +286,7 @@ function MultiTooltip({ active, label, payload, usingDemand }: TooltipProps) {
         ? "—"
         : usingDemand
           ? fmtTonnes(n, { signed: true, decimals: 1 })
-          : fmtUsd(n * 1000, { signed: true, decimals: 1 }),
+          : fmtUsd(n, { signed: true, decimals: 1 }),
     };
   });
   return (

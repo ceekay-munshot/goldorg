@@ -143,7 +143,7 @@ export function HoldingsFlowChart() {
                   ? "0"
                   : Math.abs(v) >= 1000
                     ? `${(v / 1000).toFixed(0)}bn`
-                    : `${v.toFixed(0)}bn`
+                    : `${v.toFixed(0)}mn`
               }
               width={40}
             />

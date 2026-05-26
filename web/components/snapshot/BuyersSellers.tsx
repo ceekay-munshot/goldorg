@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { GlassCard } from "@/components/primitives/GlassCard";
 import { StreakStrip } from "@/components/primitives/StreakStrip";
-import { useFundsByCountry, useFundsByRegion, useTopFunds } from "@/lib/derive";
+import { useFundsByCountry, useFundsByRegion, useScopedFundMetrics, useTopFunds } from "@/lib/derive";
 import { useFilters } from "@/lib/filters";
 import { fmtTonnes, fmtUsd } from "@/lib/format";
 import { regionAccent } from "@/lib/regions";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 
 export function BuyersSellers() {
   const { top, bottom } = useTopFunds("flows", 5);
+  const metrics = useScopedFundMetrics();
   const countries = useFundsByCountry({ ignoreCountryFilter: true });
   const regions = useFundsByRegion({ ignoreRegionFilter: true });
 
@@ -37,7 +38,7 @@ export function BuyersSellers() {
           name: f.name ?? f.ticker,
           country: f.country,
           region: f.region as string,
-          value: f.periods[useFilters.getState().period].flows_usd_mn ?? 0,
+          value: metrics.get(f.ticker)?.flows_usd_mn ?? 0,
           secondary: f.current_holdings_tonnes,
           streak: f.flows_recent_36m ?? null,
         }))}
@@ -53,7 +54,7 @@ export function BuyersSellers() {
           name: f.name ?? f.ticker,
           country: f.country,
           region: f.region as string,
-          value: f.periods[useFilters.getState().period].flows_usd_mn ?? 0,
+          value: metrics.get(f.ticker)?.flows_usd_mn ?? 0,
           secondary: f.current_holdings_tonnes,
           streak: f.flows_recent_36m ?? null,
         }))}

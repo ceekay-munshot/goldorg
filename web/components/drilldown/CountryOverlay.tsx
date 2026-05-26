@@ -21,6 +21,13 @@ import { cn } from "@/lib/cn";
 import type { PeriodKey } from "@/lib/types";
 
 const TRACKED_PERIODS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "10Y", "15Y", "Max"];
+// Verdict windows — only short-/mid-horizon buckets count; 10Y/15Y/Max
+// are subsumed by 5Y for direction-of-flow inference, and including them
+// would make the threshold ambiguous (a 9-window denominator is too easy
+// to satisfy at "5 of 9"). Keep this aligned with the Snapshot's
+// CountryFlowConsistency view so the same country gets the same label
+// in both places.
+const VERDICT_PERIODS: PeriodKey[] = ["1M", "QTD", "YTD", "1Y", "3Y"];
 
 export function CountryOverlay() {
   const country = useFilters((s) => s.openCountry);
@@ -104,33 +111,35 @@ export function CountryOverlay() {
     }).filter((p) => p.holdings > 0);
   }, [history, funds]);
 
-  // Inference verdict
-  const positivePeriods = TRACKED_PERIODS.filter((p) => totals.periodFlows[p] > 0).length;
-  const negativePeriods = TRACKED_PERIODS.filter((p) => totals.periodFlows[p] < 0).length;
+  // Inference verdict — count only the short-/mid-horizon windows so
+  // the label matches the Snapshot's consistency view.
+  const positivePeriods = VERDICT_PERIODS.filter((p) => totals.periodFlows[p] > 0).length;
+  const negativePeriods = VERDICT_PERIODS.filter((p) => totals.periodFlows[p] < 0).length;
+  const N = VERDICT_PERIODS.length;
   let inference: { label: string; tone: "pos" | "neg" | "neu"; text: string };
-  if (positivePeriods >= 5) {
+  if (positivePeriods === N) {
     inference = {
       label: "Persistent buyer",
       tone: "pos",
-      text: `Net buying across ${positivePeriods} of ${TRACKED_PERIODS.length} look-back windows — structural demand.`,
+      text: `Net buying across all ${N} look-back windows — structural demand.`,
     };
-  } else if (negativePeriods >= 5) {
+  } else if (negativePeriods === N) {
     inference = {
       label: "Persistent seller",
       tone: "neg",
-      text: `Net selling across ${negativePeriods} of ${TRACKED_PERIODS.length} windows — structural exit.`,
+      text: `Net selling across all ${N} windows — structural exit.`,
     };
   } else if (positivePeriods > negativePeriods) {
     inference = {
       label: "Mostly buying",
       tone: "pos",
-      text: `Net buyer in ${positivePeriods} of ${TRACKED_PERIODS.length} windows, mixed elsewhere.`,
+      text: `Net buyer in ${positivePeriods} of ${N} windows, mixed elsewhere.`,
     };
   } else if (negativePeriods > positivePeriods) {
     inference = {
       label: "Mostly selling",
       tone: "neg",
-      text: `Net seller in ${negativePeriods} of ${TRACKED_PERIODS.length} windows.`,
+      text: `Net seller in ${negativePeriods} of ${N} windows.`,
     };
   } else {
     inference = {
@@ -300,7 +309,7 @@ export function CountryOverlay() {
                 <div className="text-[10px] uppercase tracking-[0.22em] text-fg-muted mb-2.5">
                   Net flow across windows
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2.5">
                   {TRACKED_PERIODS.map((p) => {
                     const v = totals.periodFlows[p];
                     const t = signOf(v);

@@ -37,8 +37,14 @@ DEMAND_PATTERN = re.compile(
 RAW_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
 
 
-def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str] | None:
-    candidates: list[tuple[str, str]] = []
+def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str, str] | None:
+    """Return (xlsx_url, filename, referring_page_url) for the newest match.
+
+    The referring page is remembered so the download step can send it as
+    a Referer header — gold.org's CDN returns 403 on the file URL when
+    Referer is missing or doesn't come from one of their own pages.
+    """
+    candidates: list[tuple[str, str, str]] = []
     for page in CANDIDATE_PAGES:
         try:
             resp = session.get(page, headers=HEADERS, timeout=30)
@@ -55,7 +61,7 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str] | None:
                 full = urljoin(page, href)
                 fname = href.rsplit("/", 1)[-1]
                 if "demand" in fname.lower() or "GDT" in fname.upper():
-                    candidates.append((full, fname))
+                    candidates.append((full, fname, page))
         # also regex over the raw HTML (in case links are JS-built)
         for m in DEMAND_PATTERN.finditer(resp.text):
             href = m.group(0)
@@ -63,24 +69,36 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str] | None:
                 href = urljoin(page, href)
             fname = href.rsplit("/", 1)[-1]
             if "demand" in fname.lower() or "GDT" in fname.upper():
-                candidates.append((href, fname))
+                candidates.append((href, fname, page))
 
     if not candidates:
         return None
     # Deduplicate; pick the lexicographically-newest filename
     seen: set[str] = set()
-    unique: list[tuple[str, str]] = []
-    for u, f in candidates:
+    unique: list[tuple[str, str, str]] = []
+    for u, f, ref in candidates:
         if f in seen:
             continue
         seen.add(f)
-        unique.append((u, f))
+        unique.append((u, f, ref))
     unique.sort(key=lambda x: x[1], reverse=True)
     return unique[0]
 
 
-def download(url: str, dest: Path, session: requests.Session) -> None:
-    resp = session.get(url, headers=HEADERS, timeout=60, stream=True)
+def download(url: str, dest: Path, session: requests.Session, referer: str) -> None:
+    # gold.org's CDN rejects direct hits on /download/file/* with 403
+    # unless the request looks like it's coming from a goldhub page —
+    # a real Referer header is the missing piece.
+    headers = {
+        **HEADERS,
+        "Referer": referer,
+        "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,"
+        "application/octet-stream,application/vnd.ms-excel,*/*;q=0.8",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+    }
+    resp = session.get(url, headers=headers, timeout=60, stream=True, allow_redirects=True)
     resp.raise_for_status()
     dest.parent.mkdir(parents=True, exist_ok=True)
     with open(dest, "wb") as f:
@@ -102,7 +120,7 @@ def main() -> Path | None:
             file=sys.stderr,
         )
         return None
-    url, filename = found
+    url, filename, referer = found
     # Normalize filename so the parser can identify it
     if not filename.lower().startswith("gold_demand"):
         filename = "Gold_Demand_" + filename
@@ -113,8 +131,9 @@ def main() -> Path | None:
         return dest
 
     print(f"[fetch-demand] Downloading {filename}")
-    print(f"[fetch-demand] From: {url}")
-    download(url, dest, session)
+    print(f"[fetch-demand] From:    {url}")
+    print(f"[fetch-demand] Referer: {referer}")
+    download(url, dest, session, referer)
     print(f"[fetch-demand] Saved {dest.stat().st_size:,} bytes -> {dest}")
     return dest
 

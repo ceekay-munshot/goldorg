@@ -20,31 +20,28 @@ import { useFilters } from "@/lib/filters";
 import { fmtDate, fmtTonnes, fmtUsd } from "@/lib/format";
 import { REGION_KEY, regionAccent } from "@/lib/regions";
 
-const RANGE_OPTIONS: { key: string; months: number; label: string }[] = [
-  { key: "12m", months: 12, label: "12M" },
-  { key: "24m", months: 24, label: "24M" },
-  { key: "60m", months: 60, label: "5Y" },
-  { key: "all", months: 0, label: "Max" },
-];
+// Map the global period selector onto a months-of-history window for
+// this chart. 0 = show every month available.
+function monthsForPeriod(period: string): number {
+  if (period === "Max") return 0;
+  if (period === "15Y") return 180;
+  if (period === "10Y") return 120;
+  if (period === "5Y") return 60;
+  if (period === "3Y") return 36;
+  if (period === "1Y" || period === "YTD") return 12;
+  return 12;
+}
 
 export function HoldingsFlowChart() {
   const { timeseries } = useDataset();
   const period = useFilters((s) => s.period);
   const region = useFilters((s) => s.region);
-  const defaultRange =
-    period === "Max"
-      ? "all"
-      : period === "5Y"
-        ? "60m"
-        : period === "3Y" || period === "1Y"
-          ? "24m"
-          : "12m";
 
   const tone = region ? regionAccent(region) : null;
   const regionKey = region ? REGION_KEY[region] : null;
 
   const data = useMemo(() => {
-    const months = RANGE_OPTIONS.find((r) => r.key === defaultRange)?.months ?? 12;
+    const months = monthsForPeriod(period);
 
     // Aggregate either by region (when filtered) or globally
     const holdingsByDate = new Map(
@@ -73,7 +70,7 @@ export function HoldingsFlowChart() {
       holdings: holdingsByDate.get(d) ?? null,
       flow: flowByDate.get(d) ?? null,
     }));
-  }, [timeseries, defaultRange, regionKey]);
+  }, [timeseries, period, regionKey]);
 
   const lineColor = tone?.hex ?? "var(--gold-500)";
   const lineSlug = tone?.slug ?? "gold";

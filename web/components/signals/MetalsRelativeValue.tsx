@@ -35,13 +35,14 @@ export function MetalsRelativeValue() {
     for (const p of timeseries.annual_holdings_tonnes) {
       goldByYear.set(Number(p.date.slice(0, 4)), p.gold_price_usd_oz ?? 0);
     }
+    // 2003 base: live from the timeseries when present, fallback to the
+    // historical January-2003 spot price.
+    const gold0 = goldByYear.get(2003) ?? 363;
     const base = {
-      gold: goldByYear.get(2003) ?? METALS[0] ? goldByYear.get(2003) : 0,
       silver: METALS[0].silver,
       platinum: METALS[0].platinum,
       palladium: METALS[0].palladium,
     };
-    const gold0 = goldByYear.get(2003) ?? 363;
     return METALS.map((m) => ({
       year: metalYearLabel(m.year),
       gold: ((goldByYear.get(m.year) ?? gold0) / gold0) * 100,

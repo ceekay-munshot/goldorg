@@ -17,6 +17,7 @@ import {
   formatNumber,
   signOf,
 } from "@/lib/format";
+import { REGION_KEY } from "@/lib/regions";
 
 export function Hero() {
   const { metadata, timeseries } = useDataset();
@@ -41,15 +42,36 @@ export function Hero() {
             ? `${regions.length} regions`
             : "Global";
 
-  // Sparkline data — last 24 monthly points of holdings (filtered scope is approximate; using global series)
+  // Sparkline data — 24-month holdings, scoped to the active region(s)
+  // when only a region filter is active so the chart matches the rest
+  // of the Hero. For country/fund scopes we keep the global series
+  // (regional series in timeseries.json doesn't break out by country)
+  // and label it as a benchmark.
   const spark = useMemo(() => {
-    return timeseries.monthly_holdings_tonnes
-      .slice(-24)
-      .map((p) => ({
+    const sliced = timeseries.monthly_holdings_tonnes.slice(-24);
+    const regionOnlyScope =
+      regions.length >= 1 && countries.length === 0 && !fund;
+    if (regionOnlyScope) {
+      const keys = regions
+        .map((r) => REGION_KEY[r])
+        .filter((k): k is "north_america" | "europe" | "asia" | "other" => !!k);
+      return sliced.map((p) => ({
         d: p.date,
-        v: (p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0),
+        v: keys.reduce((sum, k) => sum + ((p[k] as number | null) ?? 0), 0),
       }));
-  }, [timeseries]);
+    }
+    return sliced.map((p) => ({
+      d: p.date,
+      v: (p.north_america ?? 0) + (p.europe ?? 0) + (p.asia ?? 0) + (p.other ?? 0),
+    }));
+  }, [timeseries, regions, countries, fund]);
+
+  const sparkLabel = useMemo(() => {
+    if (fund || countries.length > 0) return "Global holdings · benchmark";
+    if (regions.length === 1) return `${regions[0]} · trailing 24m`;
+    if (regions.length > 1) return `${regions.length} regions · trailing 24m`;
+    return "Global holdings · trailing 24m";
+  }, [regions, countries, fund]);
 
   // Use absolute value for the headline number — show direction via badge
   const flowAbs = Math.abs(t.flows_usd_mn);
@@ -161,7 +183,7 @@ export function Hero() {
             inflows={t.inflows_usd_mn}
             outflows={t.outflows_usd_mn}
           />
-          <SparklineCard spark={spark} />
+          <SparklineCard spark={spark} label={sparkLabel} />
         </div>
       </div>
     </GlassCard>
@@ -316,7 +338,13 @@ function CompositionRow({
   );
 }
 
-function SparklineCard({ spark }: { spark: { d: string; v: number }[] }) {
+function SparklineCard({
+  spark,
+  label,
+}: {
+  spark: { d: string; v: number }[];
+  label: string;
+}) {
   if (!spark.length) return null;
   const min = Math.min(...spark.map((p) => p.v));
   const max = Math.max(...spark.map((p) => p.v));
@@ -337,7 +365,7 @@ function SparklineCard({ spark }: { spark: { d: string; v: number }[] }) {
     <div className="rounded-2xl bg-bg-surface border border-border-subtle p-5 shadow-[var(--shadow-soft)]">
       <div className="flex items-center justify-between mb-3">
         <span className="text-[10px] uppercase tracking-[0.22em] text-fg-muted">
-          Global holdings · trailing 24m
+          {label}
         </span>
         <span
           className={`text-[11px] font-mono tabular-nums font-semibold ${delta >= 0 ? "text-pos-text" : "text-neg-text"}`}

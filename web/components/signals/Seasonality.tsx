@@ -92,9 +92,9 @@ export function Seasonality() {
           tone={worst.avg < 0 ? "neg" : "neu"}
         />
         <SummaryChip
-          label="Positive months"
+          label="Months avg up"
           month={`${stats.filter((s) => s.avg > 0).length} of 12`}
-          value="on average"
+          value="historical avg return > 0"
           tone="neu"
         />
       </div>

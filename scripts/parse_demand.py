@@ -1,21 +1,27 @@
 """Parse the WGC Gold Demand Trends XLSX into demand.json.
 
-The WGC publishes demand data in two complementary cuts:
-  - "Gold demand by sector" — quarterly tonnes split into Jewellery,
-    Technology, Investment (Bar & coin + ETF & similar), Central banks
-  - "Gold demand by country" — annual tonnes per country/region,
-    split into jewellery vs bar-and-coin consumer demand
+Tuned for the actual WGC layout (verified against GDT_Tables_Q126_EN.xlsx):
 
-The exact sheet layout varies release-to-release. This parser is
-defensive: it scans every sheet, tries to identify the layout from
-header keywords, and emits an empty section rather than crashing if
-something doesn't match. First production run on GitHub Actions will
-log which sheets were found — adjust column hints below if needed.
+  Sheet "Gold Balance"  — annual cols 2..17 (2010..2025) + quarterly
+                           cols 22..86 (Q1'10..Q1'26), header row 4.
+                           Category rows include "Jewellery Fabrication",
+                           "Technology", "Total Bar and Coin",
+                           "ETFs and Similar Products", "Central Bank and
+                           Other Institutions" — these map onto the
+                           dashboard's 5 demand categories.
 
-Output: data/parsed/demand.json with the shape consumed by the
-Demand tab. If the file can't be parsed, writes a stub with
-as_of_quarter = null so the dashboard renders "data refreshing"
-instead of crashing.
+  Sheet "Jewellery"     — same column layout, rows = countries +
+                           region roll-ups (Greater China, Middle East,
+                           Americas, Europe ex CIS) and "Total above".
+                           We drop the roll-ups so countries don't
+                           double-count.
+
+  Sheet "Bar and Coin"  — identical to Jewellery, country-level
+                           retail-investment demand.
+
+Output: data/parsed/demand.json with the shape consumed by the Demand
+tab. If the file can't be parsed for any reason, writes a stub so the
+dashboard renders an "updating" state instead of crashing.
 """
 from __future__ import annotations
 
@@ -23,7 +29,6 @@ import json
 import math
 import re
 import sys
-from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,17 +46,31 @@ CATEGORY_KEYS = [
     "technology",
 ]
 
-# Keywords -> canonical category key. Header text often varies
-# (e.g. "Jewellery", "Jewellery fabrication", "Total jewellery").
-CATEGORY_HINTS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\bjewell?ery\b", re.IGNORECASE), "jewellery"),
-    (re.compile(r"\b(bar.*coin|coin.*bar|retail.*investment)\b", re.IGNORECASE), "bar_and_coin"),
-    (re.compile(r"\b(etf|exchange.traded)\b", re.IGNORECASE), "etf"),
-    (re.compile(r"\bcentral.bank|official.sector\b", re.IGNORECASE), "central_banks"),
-    (re.compile(r"\btechnology|industrial\b", re.IGNORECASE), "technology"),
-]
+# Gold-Balance row labels that match each dashboard category. Matched
+# case-insensitively after lstrip(); first hit wins per category.
+CATEGORY_ROW_HINTS: dict[str, list[str]] = {
+    "jewellery":     ["jewellery fabrication", "jewellery demand", "jewellery"],
+    "technology":    ["technology"],
+    "bar_and_coin":  ["total bar and coin", "bar and coin"],
+    "etf":           ["etfs and similar products", "etf"],
+    "central_banks": ["central bank and other institutions", "central bank"],
+}
 
-QUARTER_PATTERN = re.compile(r"(\d{4})\s*Q?\s*([1-4])", re.IGNORECASE)
+# Country-sheet rows to drop (region roll-ups, residual buckets, and
+# grand totals — would double-count against the leaf countries below).
+EXCLUDE_LABELS = {
+    "greater china",
+    "middle east",
+    "americas",
+    "europe ex cis",
+    "total above",
+    "world total",
+    "other & stock change",
+    "other and stock change",
+}
+
+# Quarterly header parser: matches "Q1'26", "Q3 '22", "Q4'10" etc.
+QUARTER_RX = re.compile(r"Q([1-4])\s*'?\s*(\d{2})", re.IGNORECASE)
 
 
 def num(v: Any) -> float | None:
@@ -65,165 +84,171 @@ def num(v: Any) -> float | None:
     return None
 
 
-def to_quarter_key(v: Any) -> str | None:
-    """Coerce a header cell into a 'YYYYQN' string or None."""
-    if isinstance(v, datetime):
-        q = (v.month - 1) // 3 + 1
-        return f"{v.year}Q{q}"
-    if isinstance(v, date):
-        q = (v.month - 1) // 3 + 1
-        return f"{v.year}Q{q}"
-    if isinstance(v, str):
-        m = QUARTER_PATTERN.search(v.strip())
+def parse_quarter(cell: Any) -> str | None:
+    """\"Q1'26\" → \"2026Q1\" (returns None if not a quarter cell)."""
+    if not isinstance(cell, str):
+        return None
+    m = QUARTER_RX.search(cell)
+    if not m:
+        return None
+    yy = int(m.group(2))
+    year = 2000 + yy if yy < 80 else 1900 + yy
+    return f"{year}Q{m.group(1)}"
+
+
+def parse_year(cell: Any) -> str | None:
+    """A 4-digit year header cell → \"2024\"."""
+    if isinstance(cell, (int, float)) and 2000 <= cell <= 2099:
+        return str(int(cell))
+    if isinstance(cell, str):
+        m = re.match(r"^\s*(20\d{2})\s*$", cell)
         if m:
-            return f"{m.group(1)}Q{m.group(2)}"
+            return m.group(1)
     return None
 
 
+def column_indices(header_row: tuple[Any, ...]) -> tuple[dict[int, str], dict[int, str]]:
+    """Return (year_cols, quarter_cols) — each {col_idx: label}."""
+    years: dict[int, str] = {}
+    quarters: dict[int, str] = {}
+    for c, cell in enumerate(header_row):
+        y = parse_year(cell)
+        if y:
+            years[c] = y
+            continue
+        q = parse_quarter(cell)
+        if q:
+            quarters[c] = q
+    return years, quarters
+
+
+def find_header_row(rows: list[tuple[Any, ...]]) -> int | None:
+    """Locate the header row that has either year or quarter columns.
+    WGC files use row 4 (0-indexed) but be defensive."""
+    for i in range(min(12, len(rows))):
+        years, quarters = column_indices(rows[i])
+        if years or quarters:
+            return i
+    return None
+
+
+def classify_category(label: str) -> str | None:
+    norm = label.lstrip().lower().strip()
+    for cat, hints in CATEGORY_ROW_HINTS.items():
+        for h in hints:
+            if norm == h or norm.startswith(h):
+                return cat
+    return None
+
+
+# ────────────────────────────────────────────────────────────────────
+# Gold Balance — quarterly + annual time series for the 5 categories
+# ────────────────────────────────────────────────────────────────────
+def parse_gold_balance(wb) -> tuple[list[dict], list[dict]]:
+    """Return (quarters, annual) lists of {key: ..., demand_tonnes: {...}}."""
+    if "Gold Balance" not in wb.sheetnames:
+        return [], []
+    ws = wb["Gold Balance"]
+    rows = list(ws.iter_rows(values_only=True))
+    header_idx = find_header_row(rows)
+    if header_idx is None:
+        return [], []
+    year_cols, quarter_cols = column_indices(rows[header_idx])
+
+    # Walk rows looking for category labels in col 1
+    cat_rows: dict[str, tuple[Any, ...]] = {}
+    for r_idx in range(header_idx + 1, len(rows)):
+        row = rows[r_idx]
+        label = row[1] if len(row) > 1 else None
+        if not isinstance(label, str) or not label.strip():
+            continue
+        cat = classify_category(label)
+        if cat and cat not in cat_rows:
+            cat_rows[cat] = row
+
+    def build(col_map: dict[int, str]) -> list[dict]:
+        # period_key (year or "2010Q1") -> {category: tonnes}
+        out: dict[str, dict[str, float | None]] = {}
+        for col_idx, key in col_map.items():
+            bucket = out.setdefault(key, {cat: None for cat in CATEGORY_KEYS})
+            for cat, row in cat_rows.items():
+                bucket[cat] = num(row[col_idx]) if col_idx < len(row) else None
+        # Order chronologically
+        def sort_key(k: str):
+            if "Q" in k:
+                y, q = k.split("Q")
+                return (int(y), int(q))
+            return (int(k), 0)
+        return [{"key": k, "demand_tonnes": out[k]} for k in sorted(out.keys(), key=sort_key)]
+
+    quarters_raw = build(quarter_cols)
+    annual_raw = build(year_cols)
+    quarters = [{"quarter": p["key"], "demand_tonnes": p["demand_tonnes"]} for p in quarters_raw]
+    annual = [{"year": p["key"], "demand_tonnes": p["demand_tonnes"]} for p in annual_raw]
+    return quarters, annual
+
+
+# ────────────────────────────────────────────────────────────────────
+# Jewellery / Bar and Coin — per-country annual tonnes
+# ────────────────────────────────────────────────────────────────────
+def parse_country_sheet(wb, sheet_name: str) -> list[dict]:
+    if sheet_name not in wb.sheetnames:
+        return []
+    ws = wb[sheet_name]
+    rows = list(ws.iter_rows(values_only=True))
+    header_idx = find_header_row(rows)
+    if header_idx is None:
+        return []
+    year_cols, _ = column_indices(rows[header_idx])
+    if not year_cols:
+        return []
+
+    out: list[dict] = []
+    for r_idx in range(header_idx + 1, len(rows)):
+        row = rows[r_idx]
+        label = row[1] if len(row) > 1 else None
+        if not isinstance(label, str) or not label.strip():
+            continue
+        norm = label.strip().lower()
+        if norm in EXCLUDE_LABELS:
+            continue
+        annual: dict[str, float] = {}
+        for c_idx, year in year_cols.items():
+            v = num(row[c_idx]) if c_idx < len(row) else None
+            if v is not None:
+                annual[year] = v
+        if not annual:
+            continue
+        out.append({"country": label.strip(), "annual_tonnes": annual})
+
+    # Sort by most-recent-year value, biggest first
+    if out:
+        latest_year = max(
+            (y for r in out for y in r["annual_tonnes"].keys()),
+            default=None,
+        )
+        out.sort(
+            key=lambda r: -(r["annual_tonnes"].get(latest_year, 0) if latest_year else 0)
+        )
+    return out
+
+
+# ────────────────────────────────────────────────────────────────────
+# Glue
+# ────────────────────────────────────────────────────────────────────
 def latest_demand_xlsx() -> Path | None:
-    candidates = sorted(RAW_DIR.glob("Gold_Demand_*.xlsx")) + sorted(
-        RAW_DIR.glob("*emand*.xlsx")
-    )
+    candidates: list[Path] = []
+    for pattern in ("Gold_Demand_*.xlsx", "*emand*.xlsx", "GDT_*.xlsx"):
+        candidates.extend(RAW_DIR.glob(pattern))
+    # Dedupe; pick the alphabetically-last (filename embeds the quarter)
     seen: set[Path] = set()
-    out: list[Path] = []
+    unique: list[Path] = []
     for p in candidates:
         if p in seen:
             continue
         seen.add(p)
-        out.append(p)
-    return out[-1] if out else None
-
-
-def classify_category(text: str) -> str | None:
-    for rx, key in CATEGORY_HINTS:
-        if rx.search(text or ""):
-            return key
-    return None
-
-
-def parse_quarterly_by_sector(wb) -> list[dict]:
-    """Find a sheet with quarterly columns and category rows.
-
-    Returns a list of {quarter, demand_tonnes: {<category>: float}} dicts,
-    sorted oldest -> newest. Empty list if nothing parseable.
-    """
-    out: dict[str, dict[str, float]] = {}
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-        if not rows:
-            continue
-        # Find the header row that contains quarter labels. Try the first
-        # 10 rows.
-        header_row_idx: int | None = None
-        quarter_cols: dict[int, str] = {}
-        for r_idx in range(min(10, len(rows))):
-            qcols: dict[int, str] = {}
-            for c, cell in enumerate(rows[r_idx]):
-                q = to_quarter_key(cell)
-                if q:
-                    qcols[c] = q
-            if len(qcols) >= 4:
-                header_row_idx = r_idx
-                quarter_cols = qcols
-                break
-        if header_row_idx is None:
-            continue
-        # Now find rows whose label matches a category
-        for r_idx in range(header_row_idx + 1, len(rows)):
-            row = rows[r_idx]
-            label_cells = [c for c in row[:3] if isinstance(c, str) and c.strip()]
-            if not label_cells:
-                continue
-            label = " ".join(label_cells)
-            cat = classify_category(label)
-            if not cat:
-                continue
-            for c_idx, qkey in quarter_cols.items():
-                val = num(row[c_idx]) if c_idx < len(row) else None
-                if val is None:
-                    continue
-                bucket = out.setdefault(qkey, {})
-                # If multiple rows map to the same category (e.g. sub-totals),
-                # keep the larger absolute value (the total tends to be the
-                # larger of two).
-                prev = bucket.get(cat)
-                if prev is None or abs(val) > abs(prev):
-                    bucket[cat] = val
-    # Sort quarters
-    sorted_keys = sorted(out.keys(), key=lambda k: (int(k[:4]), int(k[-1])))
-    return [
-        {
-            "quarter": k,
-            "demand_tonnes": {cat: out[k].get(cat) for cat in CATEGORY_KEYS},
-        }
-        for k in sorted_keys
-    ]
-
-
-def parse_country_breakdown(wb) -> dict[str, list[dict]]:
-    """Find a country-level sheet and extract annual tonnes per country
-    for jewellery and bar-and-coin (consumer demand categories).
-    """
-    by_cat: dict[str, dict[str, dict[str, float]]] = {
-        "jewellery": {},
-        "bar_and_coin": {},
-    }
-    for sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-        if not rows:
-            continue
-        # Look for a header row with year columns (4-digit numbers)
-        header_row_idx: int | None = None
-        year_cols: dict[int, str] = {}
-        for r_idx in range(min(10, len(rows))):
-            ycols: dict[int, str] = {}
-            for c, cell in enumerate(rows[r_idx]):
-                if isinstance(cell, (int, float)) and 2000 <= cell <= 2099:
-                    ycols[c] = str(int(cell))
-                elif isinstance(cell, str):
-                    m = re.match(r"^\s*(20\d{2})\s*$", cell)
-                    if m:
-                        ycols[c] = m.group(1)
-            if len(ycols) >= 3:
-                header_row_idx = r_idx
-                year_cols = ycols
-                break
-        if header_row_idx is None:
-            continue
-        # Determine which category this sheet covers from sheet name or
-        # earlier rows. Default to jewellery if ambiguous; bar/coin sheets
-        # usually have "bar" in the name.
-        sheet_cat = classify_category(sheet_name) or "jewellery"
-        if sheet_cat not in ("jewellery", "bar_and_coin"):
-            sheet_cat = "jewellery"
-        for r_idx in range(header_row_idx + 1, len(rows)):
-            row = rows[r_idx]
-            label = row[0] if len(row) else None
-            if not isinstance(label, str) or not label.strip():
-                continue
-            country = label.strip()
-            # Skip totals and footer-y rows
-            if re.search(r"^(world|total|sub.total|notes?)$", country, re.IGNORECASE):
-                continue
-            country_bucket = by_cat[sheet_cat].setdefault(country, {})
-            for c_idx, year in year_cols.items():
-                val = num(row[c_idx]) if c_idx < len(row) else None
-                if val is None:
-                    continue
-                country_bucket[year] = val
-
-    return {
-        cat: [
-            {"country": c, "annual_tonnes": years}
-            for c, years in sorted(
-                by_cat[cat].items(),
-                key=lambda kv: -max(kv[1].values(), default=0),
-            )
-        ]
-        for cat in by_cat
-    }
+        unique.append(p)
+    return sorted(unique)[-1] if unique else None
 
 
 def write_stub(reason: str) -> None:
@@ -233,6 +258,7 @@ def write_stub(reason: str) -> None:
         "as_of_note": reason,
         "categories": CATEGORY_KEYS,
         "quarters": [],
+        "annual": [],
         "by_country_jewellery": [],
         "by_country_bar_and_coin": [],
     }
@@ -245,19 +271,22 @@ def write_stub(reason: str) -> None:
 def main() -> None:
     xlsx = latest_demand_xlsx()
     if xlsx is None:
-        write_stub("No WGC demand XLSX downloaded yet — first GH Actions run will populate.")
+        write_stub("No WGC demand XLSX in data/raw/ yet — upload one and re-run.")
         return
 
     print(f"[parse-demand] Source: {xlsx.name}")
     wb = openpyxl.load_workbook(xlsx, data_only=True, read_only=True)
+    print(f"[parse-demand] Sheets: {', '.join(wb.sheetnames)}")
 
-    quarters = parse_quarterly_by_sector(wb)
-    countries = parse_country_breakdown(wb)
+    quarters, annual = parse_gold_balance(wb)
+    jewellery = parse_country_sheet(wb, "Jewellery")
+    barcoin = parse_country_sheet(wb, "Bar and Coin")
 
-    if not quarters and not countries["jewellery"] and not countries["bar_and_coin"]:
+    if not quarters and not jewellery and not barcoin:
         write_stub(
-            f"XLSX {xlsx.name} present but no recognizable sheets — parser hints "
-            f"may need adjustment for this release."
+            f"XLSX {xlsx.name} present but no recognizable sheets — "
+            "WGC may have restructured. Inspect Gold Balance / Jewellery / "
+            "Bar and Coin headers."
         )
         return
 
@@ -267,8 +296,9 @@ def main() -> None:
         "source_file": xlsx.name,
         "categories": CATEGORY_KEYS,
         "quarters": quarters,
-        "by_country_jewellery": countries["jewellery"],
-        "by_country_bar_and_coin": countries["bar_and_coin"],
+        "annual": annual,
+        "by_country_jewellery": jewellery,
+        "by_country_bar_and_coin": barcoin,
     }
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -277,8 +307,9 @@ def main() -> None:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False, default=str)
     print(
         f"[parse-demand] wrote {out.relative_to(ROOT)} "
-        f"({out.stat().st_size:,} bytes, {len(quarters)} quarters, "
-        f"{len(countries['jewellery'])} jewellery countries)"
+        f"({out.stat().st_size:,} bytes, "
+        f"{len(quarters)} quarters, {len(annual)} years, "
+        f"{len(jewellery)} jewellery countries, {len(barcoin)} bar-coin countries)"
     )
 
 

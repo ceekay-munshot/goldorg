@@ -61,14 +61,18 @@ export function FlowCalendarHeatmap() {
 
     const lastYear = allYears[allYears.length - 1];
     const firstYear = allYears[0];
-    // Resolve to a year range from the active window, then clamp UP so
-    // the heatmap is at least MIN_YEARS tall regardless of how short
-    // the global filter is.
-    const requestedFrom = Number(window.from.slice(0, 4));
-    const requestedTo = Number(window.to.slice(0, 4));
-    const minFrom = Math.max(firstYear, requestedTo - (MIN_YEARS - 1));
-    const fromYear = Math.max(firstYear, Math.min(requestedFrom, minFrom));
-    const toYear = Math.min(lastYear, Math.max(requestedTo, fromYear + MIN_YEARS - 1));
+
+    // Resolve the year window. We end at the latest year that has data,
+    // then back-fill enough years to honour MAX(period-span, MIN_YEARS).
+    const reqFrom = Number(window.from.slice(0, 4));
+    const reqTo = Number(window.to.slice(0, 4));
+    const periodSpan =
+      Number.isFinite(reqFrom) && Number.isFinite(reqTo)
+        ? Math.max(1, reqTo - reqFrom + 1)
+        : MIN_YEARS;
+    const desiredSpan = Math.max(MIN_YEARS, periodSpan);
+    const toYear = lastYear;
+    const fromYear = Math.max(firstYear, toYear - desiredSpan + 1);
     const years = allYears.filter((y) => y >= fromYear && y <= toYear);
 
     const allValues = Array.from(cells.values()).filter((v) => v !== 0);

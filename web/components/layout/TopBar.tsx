@@ -14,9 +14,9 @@ export function TopBar() {
           <BrandMark />
           <div className="flex flex-col leading-tight">
             <span className="font-display text-[17px] tracking-tight text-fg-primary leading-none">
-              Gold ETF <span className="text-gold-gradient">Observatory</span>
+              Gold ETF <span className="text-gold-700 font-semibold">Observatory</span>
             </span>
-            <span className="text-[10px] uppercase tracking-[0.22em] text-fg-muted mt-1">
+            <span className="text-[10px] uppercase tracking-[0.22em] text-fg-secondary mt-1 font-medium">
               World Gold Council · physically-backed funds
             </span>
           </div>
@@ -24,7 +24,7 @@ export function TopBar() {
 
         <div className="hidden md:flex items-center gap-5 text-right">
           <div className="flex flex-col leading-tight">
-            <span className="text-[9px] uppercase tracking-[0.24em] text-fg-muted">
+            <span className="text-[9px] uppercase tracking-[0.24em] text-fg-secondary font-medium">
               Data as of
             </span>
             <span className="text-[13px] text-fg-primary font-mono tabular-nums mt-0.5">
@@ -45,7 +45,7 @@ function BrandMark() {
     <div className="relative h-10 w-10 grid place-items-center">
       <div className="absolute inset-0 rounded-full bg-gold-gradient shadow-[0_4px_14px_-4px_rgba(212,162,74,0.55)]" />
       <div className="absolute inset-[2px] rounded-full bg-bg-base" />
-      <span className="relative font-display text-[15px] leading-none translate-y-[1px] text-gold-gradient font-semibold tracking-tight">
+      <span className="relative font-display text-[15px] leading-none translate-y-[1px] text-gold-700 font-bold tracking-tight">
         Au
       </span>
     </div>

@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 const TABS = [
   { href: "/", label: "Snapshot", hint: "Global flow" },
   { href: "/regional", label: "Regional", hint: "Region vs region" },
-  { href: "/demand", label: "Demand", hint: "Jewellery & coin" },
+  { href: "/demand", label: "Demand", hint: "Demand & supply" },
   { href: "/countries", label: "Countries", hint: "Country drilldown" },
   { href: "/signals", label: "Signals", hint: "Forward outlook" },
 ];

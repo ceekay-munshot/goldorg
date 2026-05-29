@@ -27,19 +27,24 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "parsed"
 
-# (key, FRED series ID, description, aggregation: "mean" or "last")
-# Prefer monthly series IDs over daily ones — FRED's graph CSV endpoint
-# throttles big daily payloads (6000+ rows back to 2003) and returns 403s.
-# Monthly aggregates are still publication-grade.
-SERIES: list[tuple[str, str, str, str]] = [
-    ("us_10y",         "GS10",         "US 10y Treasury yield, monthly avg (%)",   "last"),
-    ("us_3m",          "TB3MS",        "US 3m Treasury bill, monthly (%)",         "last"),
-    ("us_10y_breakeven", "T10YIEM",    "US 10y breakeven inflation, monthly (%)",  "last"),
-    ("fed_assets_bn",  "WALCL",        "Fed total assets (USD millions)",          "last"),
-    ("dxy",            "DTWEXBGSM",    "Trade-weighted USD index, monthly avg",    "last"),
-    ("vix",            "VIXCLS",       "VIX volatility index (daily — last avail)", "last"),
-    ("us_debt_gdp",    "GFDEGDQ188S",  "US debt to GDP (%)",                       "last"),
-    ("us_cpi",         "CPIAUCSL",     "US CPI (1982-84=100)",                     "last"),
+# (key, [FRED IDs to try in order], description, aggregation: "mean" or "last")
+# We try multiple FRED IDs per key — series get renamed / retired and the
+# graph CSV endpoint throttles big payloads, so falling back through
+# alternates keeps the pipeline resilient.
+SERIES: list[tuple[str, list[str], str, str]] = [
+    ("us_10y",           ["GS10"],                                "US 10y Treasury yield, monthly avg (%)",  "last"),
+    ("us_3m",            ["TB3MS"],                               "US 3m Treasury bill, monthly (%)",        "last"),
+    ("us_10y_breakeven", ["T10YIEM", "T10YIE"],                   "US 10y breakeven inflation, monthly (%)", "last"),
+    # WALCL is in USD millions; we keep it in millions in raw, the
+    # regression normalises it down before fitting.
+    ("fed_assets_bn",    ["WALCL"],                               "Fed total assets (USD millions)",         "last"),
+    # DTWEXBGSM doesn't exist; DTWEXBGS is the canonical (daily) ID
+    # and works fine with our retry loop. EXUSEU + RTWEXBGS act as
+    # belt-and-braces fallbacks if the daily one throttles indefinitely.
+    ("dxy",              ["DTWEXBGS", "RTWEXBGS"],                "Trade-weighted USD index",                "last"),
+    ("vix",              ["VIXCLS"],                              "VIX volatility index (daily)",            "last"),
+    ("us_debt_gdp",      ["GFDEGDQ188S"],                         "US debt to GDP (%)",                      "last"),
+    ("us_cpi",           ["CPIAUCSL"],                            "US CPI (1982-84=100)",                    "last"),
 ]
 
 HEADERS = {
@@ -145,25 +150,32 @@ def main() -> None:
     session = requests.Session()
     by_series_monthly: dict[str, dict[str, float]] = {}
     by_series_annual: dict[str, dict[str, float]] = {}
+    chosen_id: dict[str, str] = {}
     failures: list[str] = []
-    for key, fred_id, _desc, agg in SERIES:
-        try:
-            monthly = fetch_series(session, fred_id)
-            if not monthly:
-                failures.append(f"{key} ({fred_id}): empty CSV")
-                continue
-            by_series_monthly[key] = monthly
-            by_series_annual[key] = annual_aggregate(monthly, agg)
-            print(f"[fetch-macros] {key:20s} ({fred_id:14s}) {len(monthly)} months, {min(monthly):s} → {max(monthly):s}")
-        except Exception as e:
-            failures.append(f"{key} ({fred_id}): {e}")
-            print(f"[fetch-macros] {key} ({fred_id}) -> {e}", file=sys.stderr)
+    for key, fred_ids, _desc, agg in SERIES:
+        success = False
+        for fred_id in fred_ids:
+            try:
+                monthly = fetch_series(session, fred_id)
+                if not monthly:
+                    failures.append(f"{key} ({fred_id}): empty CSV")
+                    continue
+                by_series_monthly[key] = monthly
+                by_series_annual[key] = annual_aggregate(monthly, agg)
+                chosen_id[key] = fred_id
+                print(f"[fetch-macros] {key:20s} ({fred_id:14s}) {len(monthly)} months, {min(monthly):s} → {max(monthly):s}")
+                success = True
+                break
+            except Exception as e:
+                failures.append(f"{key} ({fred_id}): {e}")
+                print(f"[fetch-macros] {key} ({fred_id}) -> {e}", file=sys.stderr)
+        if not success:
+            print(f"[fetch-macros] {key} exhausted {len(fred_ids)} fallback ID(s)", file=sys.stderr)
 
     if not by_series_monthly:
         write_stub(f"FRED unreachable or all series failed: {'; '.join(failures[:3])}")
         return
 
-    # Union of all months / years across series; per-row dict with available keys
     all_months: set[str] = set()
     for s in by_series_monthly.values():
         all_months.update(s.keys())
@@ -173,7 +185,7 @@ def main() -> None:
 
     monthly_out = []
     for ym in sorted(all_months):
-        row: dict[str, object] = {"date": f"{ym}-15"}  # mid-month for sort
+        row: dict[str, object] = {"date": f"{ym}-15"}
         for key in by_series_monthly:
             row[key] = round(by_series_monthly[key][ym], 4) if ym in by_series_monthly[key] else None
         monthly_out.append(row)
@@ -188,8 +200,8 @@ def main() -> None:
         "as_of": monthly_out[-1]["date"] if monthly_out else None,
         "source": "fred.stlouisfed.org",
         "series_meta": [
-            {"key": k, "fred_id": fid, "description": desc}
-            for (k, fid, desc, _agg) in SERIES
+            {"key": k, "fred_id": chosen_id.get(k, fred_ids[0]), "description": desc}
+            for (k, fred_ids, desc, _agg) in SERIES
             if k in by_series_monthly
         ],
         "monthly": monthly_out,

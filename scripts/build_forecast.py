@@ -34,16 +34,30 @@ OUT_DIR = ROOT / "data" / "parsed"
 # Which macros enter the regression (in order). All used as YoY changes (Δ).
 PREDICTORS = ["us_10y", "us_debt_gdp", "us_cpi", "dxy", "fed_assets_bn"]
 
+# How to express the year-over-year change. "abs" = b − a (good for things
+# already in % units like 10y yield, debt/GDP). "pct" = (b − a) / a (good
+# for levels with wildly different magnitudes like CPI level, DXY, Fed
+# assets in USD millions — keeps coefficients on a comparable scale so
+# OLS doesn't collapse them to ~0).
+PREDICTOR_TRANSFORM: dict[str, str] = {
+    "us_10y":        "abs",
+    "us_debt_gdp":   "abs",
+    "us_cpi":        "pct",
+    "dxy":           "pct",
+    "fed_assets_bn": "pct",
+}
+
 # Default forward-year macro changes (Δ per year for 2026..2030) baked
 # into the JSON. The frontend lets the user override these in the
 # InputsPanel; coefficients * Δ → predicted return.
+# Note: these are in the same units as PREDICTOR_TRANSFORM — pp for "abs"
+# series, fractional change for "pct" series.
 DEFAULT_FWD: dict[str, list[float]] = {
-    # 5-year medium-term path roughly matching Qaurum's "2025-2029" cell
     "us_10y":         [-0.14, -0.10, -0.05, 0.00, 0.00],
     "us_debt_gdp":    [+1.30, +1.30, +1.30, +1.30, +1.30],
-    "us_cpi":         [+2.80, +2.80, +2.80, +2.80, +2.60],   # ΔCPI level ≈ inflation rate
-    "dxy":            [-0.50, -0.30, +0.00, +0.20, +0.20],
-    "fed_assets_bn":  [-100.0, -50.0, +0.0, +50.0, +50.0],
+    "us_cpi":         [+0.028, +0.028, +0.028, +0.028, +0.026],  # 2.8% inflation
+    "dxy":            [-0.005, -0.003, +0.000, +0.002, +0.002],
+    "fed_assets_bn":  [-0.014, -0.007, +0.000, +0.007, +0.007],  # ±1% QT/QE
 }
 
 
@@ -77,7 +91,12 @@ def annual_gold_returns(monthly_holdings: list[dict]) -> list[tuple[int, float]]
 
 
 def annual_macro_deltas(macros_annual: list[dict]) -> dict[str, dict[int, float]]:
-    """{predictor_key: {year: Δ value YoY}}."""
+    """{predictor_key: {year: Δ value YoY}}.
+
+    Applies PREDICTOR_TRANSFORM:
+      - "abs": Δ = b - a   (in original units, e.g. percentage points)
+      - "pct": Δ = (b-a)/a (fractional change; keeps OLS on a comparable scale)
+    """
     by_year: dict[int, dict[str, float]] = {}
     for row in macros_annual:
         y = int(row["year"])
@@ -92,7 +111,14 @@ def annual_macro_deltas(macros_annual: list[dict]) -> dict[str, dict[int, float]
         for k in PREDICTORS:
             a = by_year[yp].get(k)
             b = by_year[y].get(k)
-            if a is not None and b is not None:
+            if a is None or b is None:
+                continue
+            transform = PREDICTOR_TRANSFORM.get(k, "abs")
+            if transform == "pct":
+                if a == 0:
+                    continue
+                deltas[k][y] = (b - a) / a
+            else:
                 deltas[k][y] = b - a
     return deltas
 
@@ -237,6 +263,7 @@ def main() -> None:
         "rmse": round(fit["rmse"], 4),
         "predictors": active_predictors,
         "dropped_predictors": dropped,
+        "predictor_transform": {k: PREDICTOR_TRANSFORM.get(k, "abs") for k in active_predictors},
         "intercept": round(intercept, 6),
         "coefficients": {k: round(v, 6) for k, v in betas.items()},
         "default_forward": {k: DEFAULT_FWD[k] for k in active_predictors if k in DEFAULT_FWD},

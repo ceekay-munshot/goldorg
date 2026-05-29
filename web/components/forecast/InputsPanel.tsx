@@ -15,14 +15,16 @@ import {
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 import { useDataset } from "@/lib/data-provider";
 import {
-  CURRENT_LEVEL,
-  DEFAULT_MEDIUM_LEVEL,
-  INPUT_SEMANTIC,
+  currentLevel,
+  defaultLevel,
+  inputSemantic,
+  inputUnit,
+  lastActualYear,
   PREDICTOR_META,
   projectMacroForecast,
   useScenario,
 } from "@/lib/scenario";
-import type { ForecastPredictor } from "@/lib/types";
+import type { ForecastFile, ForecastPredictor } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 /* ============================================================
@@ -92,10 +94,13 @@ export function InputsPanel() {
   );
   const contributions = macroProjection?.[0]?.contributions ?? {};
 
+  const baseYear = lastActualYear(forecast);
+  const horizon = `${baseYear + 1}–${baseYear + 5}`;
+
   return (
     <GlassCard variant="default" className="p-6 lg:p-8">
       <CardHeader
-        eyebrow="Model inputs · medium-term (2025-2029)"
+        eyebrow={`Model inputs · medium-term (${horizon})`}
         title="Customise the scenario"
         subtitle={
           hasCoefficients
@@ -122,6 +127,7 @@ export function InputsPanel() {
           <GroupCard
             key={g.title}
             group={g}
+            forecast={forecast}
             hasCoefficients={!!hasCoefficients}
             overrides={overrides}
             setOverride={setOverride}
@@ -136,6 +142,7 @@ export function InputsPanel() {
 
 function GroupCard({
   group,
+  forecast,
   hasCoefficients,
   overrides,
   setOverride,
@@ -143,6 +150,7 @@ function GroupCard({
   contributions,
 }: {
   group: { title: string; subtitle: string; predictors: ForecastPredictor[] };
+  forecast: ForecastFile;
   hasCoefficients: boolean;
   overrides: Partial<Record<ForecastPredictor, number>>;
   setOverride: (key: ForecastPredictor, level: number | null) => void;
@@ -165,6 +173,7 @@ function GroupCard({
           <PredictorRow
             key={p}
             predictor={p}
+            forecast={forecast}
             override={overrides[p]}
             onChange={(v) => setOverride(p, v)}
             beta={coefficients[p]}
@@ -180,6 +189,7 @@ function GroupCard({
 
 function PredictorRow({
   predictor,
+  forecast,
   override,
   onChange,
   beta,
@@ -188,6 +198,7 @@ function PredictorRow({
   isLast,
 }: {
   predictor: ForecastPredictor;
+  forecast: ForecastFile;
   override: number | undefined;
   onChange: (v: number | null) => void;
   beta: number | undefined;
@@ -196,14 +207,16 @@ function PredictorRow({
   isLast: boolean;
 }) {
   const meta = PREDICTOR_META[predictor];
-  const semantic = INPUT_SEMANTIC[predictor];
-  const currentLevel = CURRENT_LEVEL[predictor];
-  const defaultLevel = DEFAULT_MEDIUM_LEVEL[predictor];
-  const value = override ?? defaultLevel;
+  const semantic = inputSemantic(forecast, predictor);
+  const unit = inputUnit(forecast, predictor);
+  const curLevel = currentLevel(forecast, predictor);
+  const defLevel = defaultLevel(forecast, predictor);
+  const baseYear = lastActualYear(forecast);
+  const value = override ?? defLevel;
   const isDirty = override != null;
   const tint = PREDICTOR_TINT[predictor];
 
-  const deltaFromDefault = value - defaultLevel;
+  const deltaFromDefault = value - defLevel;
   const contribPct = contribution != null ? (Math.exp(contribution) - 1) * 100 : null;
 
   return (
@@ -222,7 +235,7 @@ function PredictorRow({
           </div>
           <div className="text-[10px] uppercase tracking-[0.18em] text-fg-muted mt-0.5">
             {semantic === "yoy_change" ? "YoY change · " : "Level · "}
-            {meta.unit}
+            {unit}
           </div>
         </div>
         {beta != null && (
@@ -243,11 +256,11 @@ function PredictorRow({
       {/* Input row: numeric input + baseline indicator */}
       <div className="flex items-center gap-3 mt-1">
         <div className="flex-1 text-[10.5px] text-fg-muted">
-          <span className="opacity-70">2024A</span>{" "}
-          <span className="font-mono tabular-nums">{currentLevel.toFixed(2)}</span>
+          <span className="opacity-70">{baseYear}A</span>{" "}
+          <span className="font-mono tabular-nums">{curLevel.toFixed(2)}</span>
           <span className="opacity-40 mx-1.5">·</span>
           <span className="opacity-70">Default</span>{" "}
-          <span className="font-mono tabular-nums">{defaultLevel.toFixed(2)}</span>
+          <span className="font-mono tabular-nums">{defLevel.toFixed(2)}</span>
         </div>
         <input
           type="number"
@@ -257,7 +270,7 @@ function PredictorRow({
           onChange={(e) => {
             const v = e.target.value === "" ? null : Number(e.target.value);
             if (v != null && !Number.isFinite(v)) return;
-            if (v === null || v === defaultLevel) onChange(null);
+            if (v === null || v === defLevel) onChange(null);
             else onChange(v);
           }}
           className={cn(

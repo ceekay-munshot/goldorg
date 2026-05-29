@@ -60,6 +60,77 @@ DEFAULT_FWD: dict[str, list[float]] = {
     "fed_assets_bn":  [-0.014, -0.007, +0.000, +0.007, +0.007],  # ±1% QT/QE
 }
 
+# ── User-facing input config ────────────────────────────────────────
+# How each predictor is presented + edited in the dashboard InputsPanel.
+#   semantic "level"      → user types the absolute level (4.0 = 4% rate)
+#   semantic "yoy_change" → user types the year-over-year change
+# These MUST stay in sync with web/lib/scenario.ts. We emit current +
+# default VALUES (in these user-facing units) into forecast.json so the
+# frontend never hardcodes a stale snapshot — it auto-updates every refit.
+INPUT_SEMANTIC: dict[str, str] = {
+    "us_10y":        "level",
+    "us_debt_gdp":   "yoy_change",
+    "us_cpi":        "yoy_change",
+    "dxy":           "level",
+    "fed_assets_bn": "level",
+}
+INPUT_UNIT: dict[str, str] = {
+    "us_10y":        "%",
+    "us_debt_gdp":   "pp/yr",
+    "us_cpi":        "% YoY",
+    "dxy":           "index",
+    "fed_assets_bn": "USD bn",
+}
+# Forward (2026-2030) assumption per predictor, in user-facing units.
+# None ⇒ "assume flat at the current value" (computed below).
+DEFAULT_FORWARD_LEVEL: dict[str, float | None] = {
+    "us_10y":        4.00,   # modest cuts from ~4.1
+    "us_debt_gdp":   1.30,   # continued fiscal expansion (pp/yr)
+    "us_cpi":        2.80,   # slightly above the Fed's 2% target
+    "dxy":           None,   # flat dollar
+    "fed_assets_bn": None,   # flat balance sheet
+}
+
+
+def latest_complete_year_values(
+    macros_annual: list[dict], last_year: int,
+) -> dict[str, dict[str, float | None]]:
+    """For each predictor, derive the 'current' value in user-facing units,
+    referenced to `last_year` (the last complete training year).
+
+      level      → the level in `last_year`
+      yoy_change → the change from (last_year-1) to last_year
+                   (abs in pp, or % for pct-transform predictors)
+    fed_assets is converted from USD-millions to USD-bn for readability.
+    """
+    by_year = {int(r["year"]): r for r in macros_annual}
+    cur = by_year.get(last_year, {})
+    prev = by_year.get(last_year - 1, {})
+    out: dict[str, dict[str, float | None]] = {}
+    for p in PREDICTORS:
+        sem = INPUT_SEMANTIC[p]
+        tform = PREDICTOR_TRANSFORM[p]
+        c = cur.get(p)
+        pv = prev.get(p)
+        current: float | None = None
+        if sem == "level":
+            if c is not None:
+                current = c / 1000.0 if p == "fed_assets_bn" else c
+        else:  # yoy_change
+            if c is not None and pv is not None and pv != 0:
+                current = (c - pv) if tform == "abs" else (c / pv - 1.0) * 100.0
+        # default forward
+        dfl = DEFAULT_FORWARD_LEVEL[p]
+        default = current if dfl is None else dfl
+        out[p] = {
+            "semantic": sem,
+            "unit": INPUT_UNIT[p],
+            "current": round(current, 4) if current is not None else None,
+            "default": round(default, 4) if default is not None else None,
+        }
+    return out
+
+
 
 def load_json(path: Path) -> dict[str, Any]:
     if not path.exists():
@@ -255,9 +326,17 @@ def main() -> None:
     intercept = coef[0]
     betas = dict(zip(active_predictors, coef[1:]))
 
+    # last complete training year drives the forecast horizon: the first
+    # forecast year is the year AFTER it. This auto-rolls forward every
+    # refit so the dashboard never shows a stale base year again.
+    last_actual_year = aligned_years[-1]
+    input_values = latest_complete_year_values(macros["annual"], last_actual_year)
+
     payload = {
         "as_of": macros.get("as_of"),
         "training_window": [aligned_years[0], aligned_years[-1]],
+        "last_actual_year": last_actual_year,
+        "first_forecast_year": last_actual_year + 1,
         "n_observations": fit["n"],
         "r_squared": round(fit["r_squared"], 4),
         "rmse": round(fit["rmse"], 4),
@@ -266,6 +345,7 @@ def main() -> None:
         "predictor_transform": {k: PREDICTOR_TRANSFORM.get(k, "abs") for k in active_predictors},
         "intercept": round(intercept, 6),
         "coefficients": {k: round(v, 6) for k, v in betas.items()},
+        "inputs": {k: input_values[k] for k in active_predictors},
         "default_forward": {k: DEFAULT_FWD[k] for k in active_predictors if k in DEFAULT_FWD},
         "historical_fit": [
             {

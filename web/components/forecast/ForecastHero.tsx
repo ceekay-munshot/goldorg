@@ -27,6 +27,7 @@ export function ForecastHero() {
 
   const hasCoef =
     forecast.coefficients && Object.keys(forecast.coefficients).length > 0;
+  const year1 = macroProjection?.[0]?.year ?? null;
   const year1Median = macroProjection?.[0]?.median ?? null;
   const year1Lo = macroProjection?.[0]?.lo1 ?? null;
   const year1Hi = macroProjection?.[0]?.hi1 ?? null;
@@ -116,7 +117,7 @@ export function ForecastHero() {
             <div className="mt-2 flex items-end gap-4 flex-wrap">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.24em] text-gold-300/70 font-semibold mb-1">
-                  Year-1 prediction · 2025
+                  Year-1 prediction{year1 ? ` · ${year1}` : ""}
                 </div>
                 <div className="flex items-baseline gap-3">
                   <span

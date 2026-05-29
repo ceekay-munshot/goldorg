@@ -201,6 +201,8 @@ function normalizeForecast(raw: unknown): ForecastFile {
     as_of: r.as_of ?? base.as_of,
     as_of_note: r.as_of_note ?? base.as_of_note,
     training_window: r.training_window,
+    last_actual_year: r.last_actual_year,
+    first_forecast_year: r.first_forecast_year,
     n_observations: r.n_observations ?? base.n_observations,
     r_squared: r.r_squared ?? base.r_squared,
     rmse: r.rmse ?? base.rmse,
@@ -209,6 +211,7 @@ function normalizeForecast(raw: unknown): ForecastFile {
     predictor_transform: r.predictor_transform,
     intercept: r.intercept ?? base.intercept,
     coefficients: r.coefficients ?? base.coefficients,
+    inputs: r.inputs,
     default_forward: r.default_forward ?? base.default_forward,
     historical_fit: r.historical_fit,
   };

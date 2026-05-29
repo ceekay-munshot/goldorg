@@ -35,41 +35,74 @@ export const useScenario = create<ScenarioState>((set) => ({
   resetAll: () => set({ overrides: {} }),
 }));
 
-/** "Snapshot" current value (2024A) for each predictor — what the user
- *  sees in the InputsPanel as the baseline. Mix of levels and YoY
- *  changes depending on the predictor's natural interpretation:
- *    us_10y, dxy, fed_assets_bn   = LEVEL
- *    us_debt_gdp                  = YoY pp change in debt/GDP ratio
- *    us_cpi                       = YoY % inflation rate (≈ Δ-pct of CPI level)
- *  Per-predictor semantics encoded in INPUT_SEMANTIC. */
-export const CURRENT_LEVEL: Record<ForecastPredictor, number> = {
-  us_10y: 4.21,        // 10y rate, %
-  us_debt_gdp: 0.5,    // YoY Δ in pp
-  us_cpi: 4.5,         // YoY inflation %
-  dxy: 102.5,          // trade-weighted index level
-  fed_assets_bn: 7000, // $7T = 7000 USD-bn
+export type InputSemantic = "level" | "yoy_change";
+
+/* ──────────────────────────────────────────────────────────────────
+   FALLBACK values — only used when forecast.json doesn't yet carry the
+   `inputs` block (i.e. before the first post-fix workflow run). Once
+   build_forecast.py emits forecast.inputs, these are ignored and the
+   real, auto-updating values from the data are used instead.
+
+   These fallbacks are aligned to the FRED data scale the regression is
+   actually trained on (e.g. trade-weighted USD ≈ 119, NOT the futures
+   "DXY" ≈ 102) so even the fallback path computes coherent deltas.
+   ────────────────────────────────────────────────────────────────── */
+const CURRENT_LEVEL_FALLBACK: Record<ForecastPredictor, number> = {
+  us_10y: 4.14,        // 2025 10y rate, %
+  us_debt_gdp: 1.13,   // 2025 YoY Δ in debt/GDP, pp
+  us_cpi: 2.65,        // 2025 inflation, %
+  dxy: 119.75,         // 2025 trade-weighted USD (FRED DTWEXBGS scale)
+  fed_assets_bn: 6641, // 2025 Fed assets, USD bn
 };
 
-/** Default forward 2025-2029 path — matches Qaurum's published cells. */
-export const DEFAULT_MEDIUM_LEVEL: Record<ForecastPredictor, number> = {
-  us_10y: 4.07,
+const DEFAULT_MEDIUM_LEVEL_FALLBACK: Record<ForecastPredictor, number> = {
+  us_10y: 4.0,
   us_debt_gdp: 1.3,
   us_cpi: 2.8,
-  dxy: 100.0,
-  fed_assets_bn: 6800,
+  dxy: 119.75,         // flat dollar
+  fed_assets_bn: 6641, // flat balance sheet
 };
 
-/** What the user's input value MEANS for each predictor. Used together
- *  with the regression's per-predictor transform (in forecast.json) to
- *  produce the per-year Δ in the units OLS was fitted on. */
-export type InputSemantic = "level" | "yoy_change";
-export const INPUT_SEMANTIC: Record<ForecastPredictor, InputSemantic> = {
+const INPUT_SEMANTIC_FALLBACK: Record<ForecastPredictor, InputSemantic> = {
   us_10y: "level",
   us_debt_gdp: "yoy_change", // pp per year
   us_cpi: "yoy_change",      // % per year (inflation rate)
   dxy: "level",
   fed_assets_bn: "level",
 };
+
+const UNIT_FALLBACK: Record<ForecastPredictor, string> = {
+  us_10y: "%",
+  us_debt_gdp: "pp/yr",
+  us_cpi: "% YoY",
+  dxy: "index",
+  fed_assets_bn: "USD bn",
+};
+
+const FALLBACK_LAST_ACTUAL_YEAR = 2025;
+
+/* ── Data-driven accessors — prefer forecast.json, fall back to consts ── */
+
+export function currentLevel(forecast: ForecastFile, p: ForecastPredictor): number {
+  return forecast.inputs?.[p]?.current ?? CURRENT_LEVEL_FALLBACK[p];
+}
+export function defaultLevel(forecast: ForecastFile, p: ForecastPredictor): number {
+  return forecast.inputs?.[p]?.default ?? DEFAULT_MEDIUM_LEVEL_FALLBACK[p];
+}
+export function inputSemantic(forecast: ForecastFile, p: ForecastPredictor): InputSemantic {
+  return (forecast.inputs?.[p]?.semantic as InputSemantic) ?? INPUT_SEMANTIC_FALLBACK[p];
+}
+export function inputUnit(forecast: ForecastFile, p: ForecastPredictor): string {
+  return forecast.inputs?.[p]?.unit ?? UNIT_FALLBACK[p];
+}
+/** Last complete actual year — drives the forecast horizon. */
+export function lastActualYear(forecast: ForecastFile): number {
+  return (
+    forecast.last_actual_year ??
+    forecast.training_window?.[1] ??
+    FALLBACK_LAST_ACTUAL_YEAR
+  );
+}
 
 export interface ProjectedYear {
   year: string;
@@ -83,7 +116,6 @@ export interface ProjectedYear {
 }
 
 const FORECAST_YEARS = 5;
-const LAST_ACTUAL_YEAR = 2024;
 
 /**
  * Convert the user's InputsPanel value into the per-year Δ the regression
@@ -97,12 +129,11 @@ const LAST_ACTUAL_YEAR = 2024;
  *   yoy_change pct         target / 100  [convert user's %/yr → fractional/yr]
  */
 function perYearDelta(
-  p: ForecastPredictor,
+  semantic: InputSemantic,
   current: number,
   target: number,
   transform: "abs" | "pct",
 ): number {
-  const semantic = INPUT_SEMANTIC[p] ?? "level";
   if (semantic === "yoy_change") {
     return transform === "pct" ? target / 100 : target;
   }
@@ -131,13 +162,14 @@ export function projectMacroForecast(
 
   const deltas: Partial<Record<ForecastPredictor, number>> = {};
   for (const p of forecast.predictors) {
-    const current = CURRENT_LEVEL[p];
-    const target = overrides[p] ?? DEFAULT_MEDIUM_LEVEL[p];
+    const current = currentLevel(forecast, p);
+    const target = overrides[p] ?? defaultLevel(forecast, p);
     if (current == null || target == null) continue;
     const tform = forecast.predictor_transform?.[p] ?? "abs";
-    deltas[p] = perYearDelta(p, current, target, tform);
+    deltas[p] = perYearDelta(inputSemantic(forecast, p), current, target, tform);
   }
 
+  const baseYear = lastActualYear(forecast);
   const out: ProjectedYear[] = [];
   for (let t = 1; t <= FORECAST_YEARS; t++) {
     const contributions: Partial<Record<ForecastPredictor, number>> = {};
@@ -152,7 +184,7 @@ export function projectMacroForecast(
     }
     const median = Math.exp(predLog) - 1;
     out.push({
-      year: String(LAST_ACTUAL_YEAR + t),
+      year: String(baseYear + t),
       median,
       lo1: Math.exp(predLog - rmse) - 1,
       hi1: Math.exp(predLog + rmse) - 1,

@@ -171,10 +171,25 @@ export interface ForecastHistoricalFit {
 
 export type PredictorTransform = "abs" | "pct";
 
+export type InputSemantic = "level" | "yoy_change";
+
+export interface ForecastInputDef {
+  semantic: InputSemantic;
+  unit: string;
+  /** Most-recent actual value, in user-facing units (auto-updated each refit). */
+  current: number | null;
+  /** Default forward assumption, in user-facing units. */
+  default: number | null;
+}
+
 export interface ForecastFile {
   as_of: string | null;
   as_of_note?: string;
   training_window?: [number, number];
+  /** Last complete year used to fit the regression. */
+  last_actual_year?: number;
+  /** First year the forecast covers (= last_actual_year + 1). */
+  first_forecast_year?: number;
   n_observations: number;
   r_squared: number | null;
   rmse: number | null;
@@ -185,6 +200,9 @@ export interface ForecastFile {
   predictor_transform?: Partial<Record<ForecastPredictor, PredictorTransform>>;
   intercept: number;
   coefficients: Partial<Record<ForecastPredictor, number>>;
+  /** Per-predictor current + default values in user-facing units.
+   *  Emitted by build_forecast.py so the frontend never hardcodes them. */
+  inputs?: Partial<Record<ForecastPredictor, ForecastInputDef>>;
   default_forward: Partial<Record<ForecastPredictor, number[]>>;
   historical_fit?: ForecastHistoricalFit[];
 }

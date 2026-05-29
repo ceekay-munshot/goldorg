@@ -42,9 +42,17 @@ export function MethodologyCard() {
           title="The Engine"
           icon={<BookOpen className="w-4 h-4" />}
           body={[
-            "Annual gold return = intercept + Σ β·Δmacro. Coefficients fitted from 19 years (2007-2025) of monthly FRED data via OLS regression.",
+            `Annual gold return = intercept + Σ β·Δmacro. Coefficients fitted from ${
+              forecast.n_observations || "—"
+            } years${
+              forecast.training_window
+                ? ` (${forecast.training_window[0]}-${forecast.training_window[1]})`
+                : ""
+            } of monthly FRED data via OLS regression.`,
             `Current fit: R² ${forecast.r_squared?.toFixed(2) ?? "—"} (explains ~${forecast.r_squared ? Math.round(forecast.r_squared * 100) : "—"}% of historical variance).`,
-            "Per-currency GBM handles the non-USD tabs.",
+            forecast.first_forecast_year
+              ? `Forecast horizon: ${forecast.first_forecast_year}–${forecast.first_forecast_year + 4}. Per-currency GBM handles the non-USD tabs.`
+              : "Per-currency GBM handles the non-USD tabs.",
           ]}
         />
         <Block

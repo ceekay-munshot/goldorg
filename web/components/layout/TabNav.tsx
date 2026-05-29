@@ -10,6 +10,7 @@ const TABS = [
   { href: "/regional", label: "Regional", hint: "Region vs region" },
   { href: "/demand", label: "Demand", hint: "Demand & supply" },
   { href: "/countries", label: "Countries", hint: "Country drilldown" },
+  { href: "/forecast", label: "Forecast", hint: "Qaurum-style outlook" },
   { href: "/signals", label: "Signals", hint: "Forward outlook" },
 ];
 

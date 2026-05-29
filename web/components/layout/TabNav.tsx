@@ -6,9 +6,10 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 const TABS = [
-  { href: "/", label: "Snapshot", hint: "Global flow" },
+  { href: "/", label: "Snapshot", hint: "ETF flows · global" },
   { href: "/regional", label: "Regional", hint: "Region vs region" },
   { href: "/demand", label: "Demand", hint: "Demand & supply" },
+  { href: "/central-banks", label: "Central Banks", hint: "Sovereign demand" },
   { href: "/countries", label: "Countries", hint: "Country drilldown" },
   { href: "/forecast", label: "Forecast", hint: "Qaurum-style outlook" },
   { href: "/signals", label: "Signals", hint: "Forward outlook" },

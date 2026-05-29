@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import type {
+  CBFile,
   CountriesFile,
   CotFile,
   DashboardData,
@@ -48,7 +49,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     let aborted = false;
     async function load() {
       try {
-        const [metadata, funds, regions, countries, topMovers, timeseries, demandRaw, cotRaw, forecastRaw] =
+        const [metadata, funds, regions, countries, topMovers, timeseries, demandRaw, cotRaw, forecastRaw, cbRaw] =
           await Promise.all([
             fetchJson<Metadata>("/data/metadata.json"),
             fetchJson<FundsFile>("/data/funds.json"),
@@ -56,19 +57,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             fetchJson<CountriesFile>("/data/countries.json"),
             fetchJson<TopMoversFile>("/data/top_movers.json"),
             fetchJson<TimeSeriesFile>("/data/timeseries.json"),
-            // Demand + COT + Forecast can be empty stubs on first deploy
-            // (GH Actions populates them on the next scheduled run);
+            // Demand + COT + Forecast + CB can be empty stubs on first
+            // deploy (GH Actions populates them on the next scheduled run);
             // a missing or unparseable file shouldn't take down the
             // whole dashboard.
             fetchJson<unknown>("/data/demand.json").catch(() => null),
             fetchJson<unknown>("/data/cot.json").catch(() => null),
             fetchJson<unknown>("/data/forecast.json").catch(() => null),
+            fetchJson<unknown>("/data/cb.json").catch(() => null),
           ]);
         if (aborted) return;
         const demand = normalizeDemand(demandRaw);
         const cot = normalizeCot(cotRaw);
         const forecast = normalizeForecast(forecastRaw);
-        setData({ metadata, funds, regions, countries, topMovers, timeseries, demand, cot, forecast });
+        const cb = normalizeCB(cbRaw);
+        setData({ metadata, funds, regions, countries, topMovers, timeseries, demand, cot, forecast, cb });
         setLoading(false);
       } catch (e) {
         if (aborted) return;
@@ -214,6 +217,26 @@ function normalizeForecast(raw: unknown): ForecastFile {
     inputs: r.inputs,
     default_forward: r.default_forward ?? base.default_forward,
     historical_fit: r.historical_fit,
+  };
+}
+
+function emptyCB(): CBFile {
+  return {
+    as_of_month: null,
+    as_of_note: "cb.json missing — first deploy or fetch failed",
+    countries: [],
+  };
+}
+
+function normalizeCB(raw: unknown): CBFile {
+  const base = emptyCB();
+  if (!raw || typeof raw !== "object") return base;
+  const r = raw as Partial<CBFile> & Record<string, unknown>;
+  return {
+    as_of_month: r.as_of_month ?? base.as_of_month,
+    as_of_note: r.as_of_note ?? base.as_of_note,
+    source_file: r.source_file,
+    countries: r.countries ?? base.countries,
   };
 }
 

@@ -150,6 +150,27 @@ export interface DashboardData {
   demand: DemandFile;
   cot: CotFile;
   forecast: ForecastFile;
+  cb: CBFile;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Central Bank monthly statistics — country-level monthly gold reserves
+// (WGC Monthly Central Bank Statistics XLSX)
+// ─────────────────────────────────────────────────────────────────────
+
+export interface CBCountry {
+  country: string;
+  /** Month-end reserves in tonnes, keyed by "YYYY-MM". */
+  monthly_tonnes: Record<string, number>;
+  /** Month-over-month change in tonnes, keyed by "YYYY-MM". */
+  monthly_change: Record<string, number>;
+}
+
+export interface CBFile {
+  as_of_month: string | null;
+  as_of_note?: string;
+  source_file?: string;
+  countries: CBCountry[];
 }
 
 // ─────────────────────────────────────────────────────────────────────

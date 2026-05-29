@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   ComposedChart,
   ErrorBar,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -26,13 +25,13 @@ import {
 import type { CurrencyKey, ForecastPredictor } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
-const CCY_TABS: Array<{ key: CurrencyKey; label: string }> = [
-  { key: "usd_oz", label: "USD" },
-  { key: "eur_oz", label: "EUR" },
-  { key: "gbp_oz", label: "GBP" },
-  { key: "rmb_g", label: "CNY" },
-  { key: "inr_10g", label: "INR" },
-  { key: "jpy_g", label: "JPY" },
+const CCY_TABS: Array<{ key: CurrencyKey; label: string; symbol: string }> = [
+  { key: "usd_oz", label: "USD", symbol: "$" },
+  { key: "eur_oz", label: "EUR", symbol: "€" },
+  { key: "gbp_oz", label: "GBP", symbol: "£" },
+  { key: "rmb_g", label: "CNY", symbol: "¥" },
+  { key: "inr_10g", label: "INR", symbol: "₹" },
+  { key: "jpy_g", label: "JPY", symbol: "¥" },
 ];
 
 type Mode = "macro" | "gbm";
@@ -42,8 +41,6 @@ export function ReturnsChart() {
   const overrides = useScenario((s) => s.overrides);
   const [ccy, setCcy] = useState<CurrencyKey>("usd_oz");
 
-  // Macro mode is available only when forecast.json has coefficients AND
-  // the user is looking at the USD line (regression is USD-trained).
   const macroAvailable =
     forecast.coefficients &&
     Object.keys(forecast.coefficients).length > 0 &&
@@ -73,8 +70,6 @@ export function ReturnsChart() {
     );
   }
 
-  // History bars (actuals) come from the GBM panel regardless of mode.
-  // Forecast bars come from macroProjection (macro mode) or GBM (GBM mode).
   const data: Array<{
     year: string;
     actualPct: number | null;
@@ -122,85 +117,110 @@ export function ReturnsChart() {
     }
   }
 
-  const eyebrowBits: string[] = [
-    `Gold Returns · ${gbmPanel.firstYear}-${gbmPanel.lastYear} actual`,
-    `next 5y ${effectiveMode === "macro" ? "macro OLS" : "GBM"} projection`,
-  ];
-  if (effectiveMode === "macro" && forecast.r_squared != null) {
-    eyebrowBits.push(`R² ${forecast.r_squared.toFixed(2)}`);
-  } else {
-    eyebrowBits.push(`drift ${gbmPanel.driftPct.toFixed(1)}% / vol ${gbmPanel.volPct.toFixed(1)}%`);
-  }
+  // Per-year forecast strip data
+  const forecastYears =
+    effectiveMode === "macro" && macroProjection
+      ? macroProjection.map((p) => ({
+          year: p.year,
+          median: p.median * 100,
+          lo1: p.lo1 * 100,
+          hi1: p.hi1 * 100,
+        }))
+      : gbmPanel.series
+          .filter((p) => p.actual == null && p.median != null)
+          .map((p) => ({
+            year: p.year,
+            median: (p.median ?? 0) * 100,
+            lo1: (p.lo ?? 0) * 100,
+            hi1: (p.hi ?? 0) * 100,
+          }));
 
-  // Latest macro-mode predicted return: useful as a headline number
-  const headlineReturn =
-    effectiveMode === "macro" && macroProjection?.[0]
-      ? macroProjection[0].median * 100
-      : null;
   const contributions =
     effectiveMode === "macro" && macroProjection?.[0]
       ? macroProjection[0].contributions
       : null;
+  const sortedContribs = contributions
+    ? Object.entries(contributions)
+        .filter(([, v]) => v != null)
+        .sort((a, b) => Math.abs(b[1]!) - Math.abs(a[1]!))
+    : [];
 
   return (
     <GlassCard variant="default" className="p-6 lg:p-8">
       <CardHeader
-        eyebrow={eyebrowBits.join(" · ")}
+        eyebrow={`Gold Returns · ${gbmPanel.firstYear}–${gbmPanel.lastYear} actual · 5y projected · ${
+          effectiveMode === "macro"
+            ? `Macro OLS (R² ${forecast.r_squared?.toFixed(2) ?? "—"})`
+            : `GBM · drift ${gbmPanel.driftPct.toFixed(1)}% / vol ${gbmPanel.volPct.toFixed(1)}%`
+        }`}
         title="Actual and Implied"
         subtitle={
           effectiveMode === "macro"
-            ? "Realized annual returns (solid bars) and the per-year projection driven by the macro regression. Edit any input above to see this chart re-solve in real time."
-            : "Realized annual returns and per-year GBM cone. Switch to USD to access the macro regression mode (only USD is fitted)."
+            ? "Realized returns (solid bars) and per-year prediction from the macro regression. Edit any input above and watch this re-solve."
+            : "Realized returns and per-year GBM cone. Switch to USD to access the macro regression."
         }
         trailing={
           <ChartExplainer
             explain={{
-              what: "Each bar is one calendar year. Solid bars are realized returns; outlined bars with error whiskers are projections.",
+              what: "Each bar is one calendar year. Solid bars are realized; outlined bars with error whiskers are projected.",
               read: [
-                "Macro mode (USD only): predicted return = intercept + Σ β·Δmacro using the OLS coefficients on forecast.json. Edits in the Inputs panel above propagate live.",
-                "GBM mode: per-currency drift + volatility from historical log-returns. Available for all 6 currencies.",
+                "Macro mode (USD only): predicted return = intercept + Σ β·Δmacro. Inputs panel edits propagate live.",
+                "GBM mode (all 6 currencies): drift + volatility from the historical log-returns of that currency.",
                 "The ±1σ whisker is the 1-standard-deviation confidence band (≈2/3 of outcomes).",
                 "Switch currencies to see whether USD strength is the gold story or just a dollar move.",
               ],
               takeaway:
-                "Macro mode tells you 'what should gold do if these macros play out'. GBM tells you 'what does history alone suggest'. Use them as two complementary lenses, not a guarantee.",
+                "Macro mode = 'what should gold do if these macros play out'. GBM = 'what does history alone suggest'. Use both lenses, not just one.",
             }}
           />
         }
       />
 
       {/* Mode + currency tabs */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 border-b border-border-subtle">
+      <div className="flex flex-wrap items-center gap-3 mb-5 border-b border-border-subtle">
         <div className="flex items-center gap-1">
-          {CCY_TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setCcy(t.key)}
-              className={cn(
-                "relative px-3.5 py-2 text-[12px] font-medium transition-colors",
-                ccy === t.key
-                  ? "text-fg-primary"
-                  : "text-fg-muted hover:text-fg-secondary",
-              )}
-            >
-              {t.label}
-              {ccy === t.key && (
-                <span className="absolute -bottom-px left-2 right-2 h-[2px] bg-gold-gradient rounded-full" />
-              )}
-            </button>
-          ))}
+          {CCY_TABS.map((t) => {
+            const active = ccy === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setCcy(t.key)}
+                className={cn(
+                  "relative px-3 py-2.5 text-[12px] font-medium transition-colors group",
+                  active
+                    ? "text-fg-primary"
+                    : "text-fg-muted hover:text-fg-secondary",
+                )}
+              >
+                <span className="inline-flex items-baseline gap-1">
+                  <span
+                    className={cn(
+                      "font-mono text-[15px]",
+                      active ? "text-gold-700" : "text-fg-faint group-hover:text-fg-muted",
+                    )}
+                  >
+                    {t.symbol}
+                  </span>
+                  {t.label}
+                </span>
+                {active && (
+                  <span className="absolute -bottom-px left-2 right-2 h-[2px] bg-gold-gradient rounded-full" />
+                )}
+              </button>
+            );
+          })}
         </div>
         {macroAvailable && (
-          <div className="ml-auto inline-flex rounded-md border border-border-subtle bg-bg-surface p-0.5">
+          <div className="ml-auto inline-flex rounded-lg border border-border-subtle bg-bg-surface p-0.5 shadow-[var(--shadow-soft)]">
             {(["macro", "gbm"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
                 className={cn(
-                  "px-2.5 h-7 text-[10px] uppercase tracking-[0.18em] rounded-sm transition-colors",
+                  "px-3 h-8 text-[10.5px] uppercase tracking-[0.18em] rounded-md transition-colors",
                   mode === m
-                    ? "bg-gold-50 text-gold-700 font-semibold"
-                    : "text-fg-muted hover:text-fg-primary",
+                    ? "bg-gold-gradient text-white shadow-[0_2px_8px_-2px_rgba(212,162,74,0.5)] font-bold"
+                    : "text-fg-muted hover:text-fg-primary font-semibold",
                 )}
               >
                 {m === "macro" ? "Macro OLS" : "GBM"}
@@ -210,30 +230,37 @@ export function ReturnsChart() {
         )}
       </div>
 
-      {/* Macro-mode headline + attribution */}
-      {effectiveMode === "macro" && headlineReturn != null && contributions && (
-        <div className="mb-4 rounded-xl border border-[var(--border-gold)] bg-gold-50/60 p-4">
-          <div className="flex items-baseline justify-between gap-3 flex-wrap">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.22em] text-gold-700 font-semibold">
-                Year-1 prediction (avg through 2029)
-              </div>
-              <div className="font-display text-[24px] tracking-tight text-fg-primary tabular-nums mt-1">
-                {headlineReturn > 0 ? "+" : ""}
-                {headlineReturn.toFixed(1)}% / year
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(contributions)
-                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-                .map(([k, v]) => (
-                  <ContributionChip
-                    key={k}
-                    predictor={k as ForecastPredictor}
-                    contribution={v}
-                  />
-                ))}
-            </div>
+      {/* Per-year forecast strip */}
+      {forecastYears.length > 0 && (
+        <div className="mb-5 grid grid-cols-5 gap-2">
+          {forecastYears.map((p, i) => (
+            <YearTile
+              key={p.year}
+              year={p.year}
+              median={p.median}
+              lo={p.lo1}
+              hi={p.hi1}
+              isFirst={i === 0}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Contribution chips (macro mode only) */}
+      {effectiveMode === "macro" && sortedContribs.length > 0 && (
+        <div className="mb-5 rounded-2xl bg-gradient-to-br from-gold-50/60 via-gold-50/30 to-bg-surface border border-[var(--border-gold)] p-4">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-gold-700 font-semibold mb-2.5">
+            Year-1 attribution · which lever is driving your forecast
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {sortedContribs.map(([k, v]) => (
+              <ContributionChip
+                key={k}
+                predictor={k as ForecastPredictor}
+                contribution={v as number}
+                rank={sortedContribs.findIndex((c) => c[0] === k) + 1}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -245,9 +272,13 @@ export function ReturnsChart() {
             margin={{ top: 12, right: 24, bottom: 8, left: 0 }}
           >
             <defs>
+              <linearGradient id="actual-bar-shading" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#C99025" />
+                <stop offset="100%" stopColor="#A5731A" />
+              </linearGradient>
               <linearGradient id="forecast-bar-shading" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#c89b3c" stopOpacity={0.45} />
-                <stop offset="100%" stopColor="#c89b3c" stopOpacity={0.1} />
+                <stop offset="0%" stopColor="#c89b3c" stopOpacity={0.55} />
+                <stop offset="100%" stopColor="#c89b3c" stopOpacity={0.12} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="var(--border-faint)" vertical={false} />
@@ -269,12 +300,17 @@ export function ReturnsChart() {
               cursor={{ fill: "var(--bg-tint)", opacity: 0.4 }}
               content={(props) => <RetTooltip {...props} mode={effectiveMode} />}
             />
-            <Bar dataKey="actualPct" fill="#c89b3c" fillOpacity={0.92} radius={[2, 2, 0, 0]} />
+            <Bar
+              dataKey="actualPct"
+              fill="url(#actual-bar-shading)"
+              radius={[2, 2, 0, 0]}
+            />
             <Bar
               dataKey="medianPct"
               fill="url(#forecast-bar-shading)"
               stroke="#c89b3c"
-              strokeWidth={1}
+              strokeWidth={1.5}
+              strokeDasharray="3 2"
               radius={[2, 2, 0, 0]}
             >
               <ErrorBar
@@ -289,13 +325,13 @@ export function ReturnsChart() {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-4 justify-center text-[10px] uppercase tracking-[0.18em] text-fg-muted">
+      <div className="mt-4 flex flex-wrap items-center gap-4 justify-center text-[10px] uppercase tracking-[0.18em] text-fg-muted">
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-2.5 rounded-sm" style={{ background: "#c89b3c" }} />
+          <span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(180deg, #C99025, #A5731A)" }} />
           Actual annual return
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-2.5 rounded-sm border border-[#c89b3c] bg-[#c89b3c]/20" />
+          <span className="w-3 h-3 rounded-sm border border-dashed border-[#c89b3c] bg-[#c89b3c]/20" />
           Projected (±1σ)
         </span>
       </div>
@@ -303,34 +339,95 @@ export function ReturnsChart() {
   );
 }
 
+function YearTile({
+  year,
+  median,
+  lo,
+  hi,
+  isFirst,
+}: {
+  year: string;
+  median: number;
+  lo: number;
+  hi: number;
+  isFirst: boolean;
+}) {
+  const tone = median >= 0 ? "pos" : "neg";
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-3 transition-all",
+        isFirst
+          ? "border-border-gold-strong bg-gradient-to-br from-gold-50 to-gold-100/60 shadow-[0_4px_14px_-3px_rgba(212,162,74,0.4)]"
+          : "border-border-subtle bg-bg-surface hover:border-border-strong",
+      )}
+    >
+      <div className="flex items-baseline justify-between">
+        <span
+          className={cn(
+            "text-[10px] uppercase tracking-[0.18em] font-semibold",
+            isFirst ? "text-gold-700" : "text-fg-muted",
+          )}
+        >
+          {year}
+        </span>
+        {isFirst && (
+          <span className="text-[8.5px] uppercase tracking-[0.18em] text-gold-700 font-semibold">
+            Y1
+          </span>
+        )}
+      </div>
+      <div
+        className={cn(
+          "font-display text-[20px] tabular-nums tracking-tight mt-1 font-semibold",
+          tone === "pos" ? "text-pos-text" : "text-neg-text",
+        )}
+      >
+        {median > 0 ? "+" : ""}
+        {median.toFixed(1)}%
+      </div>
+      <div className="text-[9.5px] font-mono tabular-nums text-fg-muted mt-0.5">
+        {lo.toFixed(1)}% to {hi > 0 ? "+" : ""}
+        {hi.toFixed(1)}%
+      </div>
+    </div>
+  );
+}
+
 function ContributionChip({
   predictor,
   contribution,
+  rank,
 }: {
   predictor: ForecastPredictor;
   contribution: number;
+  rank: number;
 }) {
   const meta = PREDICTOR_META[predictor];
   const pct = (Math.exp(contribution) - 1) * 100;
-  const tone =
-    pct > 0.05 ? "pos" : pct < -0.05 ? "neg" : "neu";
+  const tone = pct > 0.05 ? "pos" : pct < -0.05 ? "neg" : "neu";
   return (
     <span
       className={cn(
-        "inline-flex flex-col items-end gap-0.5 rounded-lg px-2.5 py-1.5 border",
+        "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 border",
         tone === "pos"
-          ? "border-[var(--pos-border)] bg-pos-soft/40 text-pos-text"
+          ? "border-[var(--pos-border)] bg-pos-soft/60 text-pos-text"
           : tone === "neg"
-            ? "border-[var(--neg-border)] bg-neg-soft/40 text-neg-text"
+            ? "border-[var(--neg-border)] bg-neg-soft/60 text-neg-text"
             : "border-border-subtle bg-bg-surface text-fg-muted",
       )}
     >
-      <span className="text-[9px] uppercase tracking-[0.18em] opacity-80 font-semibold">
-        {meta.label}
+      <span className="text-[9px] font-mono font-semibold opacity-60">
+        #{rank}
       </span>
-      <span className="text-[11px] font-mono tabular-nums font-semibold">
-        {pct > 0 ? "+" : ""}
-        {pct.toFixed(2)}%
+      <span className="flex flex-col">
+        <span className="text-[9px] uppercase tracking-[0.18em] opacity-80 font-semibold leading-none">
+          {meta.label}
+        </span>
+        <span className="text-[12.5px] font-mono tabular-nums font-bold leading-tight mt-0.5">
+          {pct > 0 ? "+" : ""}
+          {pct.toFixed(2)}%
+        </span>
       </span>
     </span>
   );
@@ -365,7 +462,7 @@ function RetTooltip({ active, label, payload, mode }: TooltipProps & { mode: Mod
   }
   if (row.medianPct != null) {
     rows.push({
-      label: mode === "macro" ? "Macro-OLS median" : "GBM median",
+      label: mode === "macro" ? "Macro OLS median" : "GBM median",
       color: "#c89b3c",
       value: `${row.medianPct > 0 ? "+" : ""}${row.medianPct.toFixed(1)}%`,
       accent: true,

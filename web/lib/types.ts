@@ -149,6 +149,38 @@ export interface DashboardData {
   timeseries: TimeSeriesFile;
   demand: DemandFile;
   cot: CotFile;
+  forecast: ForecastFile;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Macro forecast — OLS regression on FRED macros
+// ─────────────────────────────────────────────────────────────────────
+
+export type ForecastPredictor =
+  | "us_10y"
+  | "us_debt_gdp"
+  | "us_cpi"
+  | "dxy"
+  | "fed_assets_bn";
+
+export interface ForecastHistoricalFit {
+  year: string;
+  actual_return: number;
+  fitted_return: number;
+}
+
+export interface ForecastFile {
+  as_of: string | null;
+  as_of_note?: string;
+  training_window?: [number, number];
+  n_observations: number;
+  r_squared: number | null;
+  rmse: number | null;
+  predictors: ForecastPredictor[];
+  intercept: number;
+  coefficients: Partial<Record<ForecastPredictor, number>>;
+  default_forward: Partial<Record<ForecastPredictor, number[]>>;
+  historical_fit?: ForecastHistoricalFit[];
 }
 
 // ─────────────────────────────────────────────────────────────────────

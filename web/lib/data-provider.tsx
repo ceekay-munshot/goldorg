@@ -20,6 +20,7 @@ import type {
   CotFile,
   DashboardData,
   DemandFile,
+  ForecastFile,
   FundHistoryFile,
   FundsFile,
   Metadata,
@@ -47,7 +48,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     let aborted = false;
     async function load() {
       try {
-        const [metadata, funds, regions, countries, topMovers, timeseries, demandRaw, cotRaw] =
+        const [metadata, funds, regions, countries, topMovers, timeseries, demandRaw, cotRaw, forecastRaw] =
           await Promise.all([
             fetchJson<Metadata>("/data/metadata.json"),
             fetchJson<FundsFile>("/data/funds.json"),
@@ -55,17 +56,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             fetchJson<CountriesFile>("/data/countries.json"),
             fetchJson<TopMoversFile>("/data/top_movers.json"),
             fetchJson<TimeSeriesFile>("/data/timeseries.json"),
-            // Demand + COT can be empty stubs on first deploy
+            // Demand + COT + Forecast can be empty stubs on first deploy
             // (GH Actions populates them on the next scheduled run);
             // a missing or unparseable file shouldn't take down the
             // whole dashboard.
             fetchJson<unknown>("/data/demand.json").catch(() => null),
             fetchJson<unknown>("/data/cot.json").catch(() => null),
+            fetchJson<unknown>("/data/forecast.json").catch(() => null),
           ]);
         if (aborted) return;
         const demand = normalizeDemand(demandRaw);
         const cot = normalizeCot(cotRaw);
-        setData({ metadata, funds, regions, countries, topMovers, timeseries, demand, cot });
+        const forecast = normalizeForecast(forecastRaw);
+        setData({ metadata, funds, regions, countries, topMovers, timeseries, demand, cot, forecast });
         setLoading(false);
       } catch (e) {
         if (aborted) return;
@@ -173,6 +176,39 @@ function normalizeCot(raw: unknown): CotFile {
     source: r.source,
     contract: r.contract,
     series: r.series ?? base.series,
+  };
+}
+
+function emptyForecast(): ForecastFile {
+  return {
+    as_of: null,
+    as_of_note: "forecast.json missing — first deploy or build failed",
+    n_observations: 0,
+    r_squared: null,
+    rmse: null,
+    predictors: ["us_10y", "us_debt_gdp", "us_cpi", "dxy", "fed_assets_bn"],
+    intercept: 0,
+    coefficients: {},
+    default_forward: {},
+  };
+}
+
+function normalizeForecast(raw: unknown): ForecastFile {
+  const base = emptyForecast();
+  if (!raw || typeof raw !== "object") return base;
+  const r = raw as Partial<ForecastFile> & Record<string, unknown>;
+  return {
+    as_of: r.as_of ?? base.as_of,
+    as_of_note: r.as_of_note ?? base.as_of_note,
+    training_window: r.training_window,
+    n_observations: r.n_observations ?? base.n_observations,
+    r_squared: r.r_squared ?? base.r_squared,
+    rmse: r.rmse ?? base.rmse,
+    predictors: r.predictors ?? base.predictors,
+    intercept: r.intercept ?? base.intercept,
+    coefficients: r.coefficients ?? base.coefficients,
+    default_forward: r.default_forward ?? base.default_forward,
+    historical_fit: r.historical_fit,
   };
 }
 

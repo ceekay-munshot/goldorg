@@ -1,146 +1,132 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { Info, RotateCcw } from "lucide-react";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
+import { useDataset } from "@/lib/data-provider";
+import {
+  CURRENT_LEVEL,
+  DEFAULT_MEDIUM_LEVEL,
+  PREDICTOR_META,
+  useScenario,
+} from "@/lib/scenario";
+import type { ForecastPredictor } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 /* ============================================================
-   Macro inputs panel — visual replica of Qaurum's "Customise
-   Inputs" block. v1 is read-only: values are snapshots of the
-   current macro environment, hardcoded here. v2 will replace
-   these with live IMF WEO / FRED feeds and make the cells
-   editable to drive scenario recompute.
+   Macro inputs panel — Qaurum-style "Customise Inputs".
+
+   Editable for the 5 regression-driving predictors (us_10y,
+   us_debt_gdp, us_cpi, dxy, fed_assets_bn). The 4 "decorative"
+   driver groups Qaurum shows (national savings, AE/EM splits, etc.)
+   are kept as read-only context — they aren't yet wired into the
+   regression but match Qaurum's published frame.
+
+   Edits propagate to the global scenario store; ReturnsChart picks
+   them up to recompute the projection live.
    ============================================================ */
 
-const HORIZONS = ["2024A", "2025-2029", "Long term"] as const;
-type Horizon = typeof HORIZONS[number];
-
-interface Cell {
-  label: string;
-  values: Record<Horizon, number>;
-  decimals?: number;
-}
-
-interface Group {
+const REGRESSION_GROUPS: Array<{
   title: string;
+  predictors: ForecastPredictor[];
   tooltip: string;
-  subgroups: Array<{
-    name: string;
-    cells: Cell[];
-  }>;
-}
-
-// Snapshot taken from current macro environment + Qaurum's latest
-// published defaults (April 2026 vintage). Stored as raw % unless
-// otherwise noted.
-const GROUPS: Group[] = [
+}> = [
   {
-    title: "Economic Expansion",
+    title: "Opportunity Cost (regression)",
+    predictors: ["us_10y"],
     tooltip:
-      "Wealth + income drivers. Higher GDP and savings → more disposable income for jewellery + investment gold.",
-    subgroups: [
-      {
-        name: "Nominal GDP Growth",
-        cells: [{ label: "World", values: { "2024A": 3.9, "2025-2029": 5.2, "Long term": 3.8 } }],
-      },
-      {
-        name: "National Savings",
-        cells: [
-          { label: "AE", values: { "2024A": 21.3, "2025-2029": 21.9, "Long term": 20.3 } },
-          { label: "EM", values: { "2024A": 31.0, "2025-2029": 29.2, "Long term": 24.4 } },
-        ],
-      },
-      {
-        name: "Industrial Production Growth",
-        cells: [{ label: "US", values: { "2024A": -0.3, "2025-2029": 3.6, "Long term": 1.5 } }],
-      },
-    ],
+      "Rates compete with gold. The us_10y β is fitted from history; edits here directly move the forecast.",
   },
   {
-    title: "Opportunity Cost",
+    title: "Risk and Uncertainty (regression)",
+    predictors: ["us_debt_gdp", "us_cpi"],
     tooltip:
-      "What gold competes with. Higher rates = bonds get more attractive → less gold demand.",
-    subgroups: [
-      {
-        name: "Nominal Interest Rates",
-        cells: [
-          { label: "US 10y", values: { "2024A": 4.21, "2025-2029": 4.07, "Long term": 4.07 } },
-          { label: "US 3m", values: { "2024A": 4.50, "2025-2029": 3.50, "Long term": 3.00 } },
-        ],
-      },
-    ],
+      "Fiscal stress and inflation expectations bid gold's safe-haven role. Both fitted from history.",
   },
   {
-    title: "Risk and Uncertainty",
+    title: "Momentum / Currency (regression)",
+    predictors: ["dxy", "fed_assets_bn"],
     tooltip:
-      "Why people flee to gold. Rising debt + inflation = gold demand rises (safe haven).",
-    subgroups: [
-      {
-        name: "Government Debt",
-        cells: [
-          { label: "US Gov't Debt to GDP", values: { "2024A": 0.5, "2025-2029": 1.3, "Long term": -0.2 } },
-        ],
-      },
-      {
-        name: "Consumer Prices",
-        cells: [
-          { label: "EM CPI", values: { "2024A": 8.5, "2025-2029": 3.2, "Long term": 3.0 } },
-          { label: "WD CPI", values: { "2024A": 4.5, "2025-2029": 2.8, "Long term": 2.6 } },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Momentum",
-    tooltip:
-      "Where gold is in its cycle. Yield curve = recession signal. Trend exhaustion = mean-reversion flag (0 = healthy, 1 = stretched).",
-    subgroups: [
-      {
-        name: "Government Bond Curve",
-        cells: [
-          { label: "US 10y - US 3m yield", values: { "2024A": -0.97, "2025-2029": 0.98, "Long term": 0.98 } },
-        ],
-      },
-      {
-        name: "Trend Exhaustion",
-        cells: [
-          { label: "Bar and Coin", values: { "2024A": 0, "2025-2029": 0, "Long term": 0 }, decimals: 0 },
-          { label: "Jewellery", values: { "2024A": 0, "2025-2029": 1, "Long term": 0 }, decimals: 0 },
-        ],
-      },
-    ],
+      "Dollar lens + monetary base. Larger Fed balance sheet historically associated with weaker $ and higher gold.",
   },
 ];
 
 export function InputsPanel() {
+  const { forecast } = useDataset();
+  const overrides = useScenario((s) => s.overrides);
+  const setOverride = useScenario((s) => s.setOverride);
+  const resetAll = useScenario((s) => s.resetAll);
+
+  const hasCoefficients =
+    forecast.coefficients && Object.keys(forecast.coefficients).length > 0;
+  const dirtyCount = Object.keys(overrides).length;
+
   return (
     <GlassCard variant="default" className="p-6 lg:p-8">
       <CardHeader
-        eyebrow="Gold drivers · macro inputs · all values in %"
+        eyebrow="Gold drivers · macro inputs · medium-term (2025-2029)"
         title="Model Inputs"
-        subtitle="The four driver groups Qaurum uses. v1 shows current snapshot values; v2 will let you edit any cell to run scenarios that recompute the supply/demand and price forecast below."
+        subtitle={
+          hasCoefficients
+            ? `Edit any value to run a scenario. ${
+                forecast.training_window
+                  ? `Coefficients fitted on ${forecast.training_window[0]}–${forecast.training_window[1]} (${forecast.n_observations} annual observations, R² = ${forecast.r_squared?.toFixed(2) ?? "—"}).`
+                  : ""
+              }`
+            : "Macro feeds haven't been fetched yet — first GH Actions run will pull FRED data and the inputs below will drive the forecast."
+        }
         trailing={
-          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-fg-muted px-2.5 h-7 rounded-full border border-border-subtle bg-bg-tint">
-            <Info className="w-3 h-3" />
-            Read-only · v1
-          </span>
+          <div className="flex items-center gap-2">
+            {hasCoefficients && forecast.r_squared != null && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] px-2.5 h-7 rounded-full border border-[var(--border-gold)] bg-gold-50 text-gold-700 font-semibold">
+                R² {forecast.r_squared.toFixed(2)} · n={forecast.n_observations}
+              </span>
+            )}
+            {dirtyCount > 0 && (
+              <button
+                onClick={resetAll}
+                className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] px-3 h-7 rounded-full border border-border-gold bg-bg-surface text-gold-700 hover:bg-gold-50 transition-colors font-semibold"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset {dirtyCount}
+              </button>
+            )}
+          </div>
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {GROUPS.map((g) => (
-          <GroupCard key={g.title} group={g} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {REGRESSION_GROUPS.map((g) => (
+          <RegressionGroupCard
+            key={g.title}
+            group={g}
+            hasCoefficients={!!hasCoefficients}
+            overrides={overrides}
+            setOverride={setOverride}
+            forecastCoef={forecast.coefficients ?? {}}
+          />
         ))}
       </div>
     </GlassCard>
   );
 }
 
-function GroupCard({ group }: { group: Group }) {
+function RegressionGroupCard({
+  group,
+  hasCoefficients,
+  overrides,
+  setOverride,
+  forecastCoef,
+}: {
+  group: { title: string; predictors: ForecastPredictor[]; tooltip: string };
+  hasCoefficients: boolean;
+  overrides: Partial<Record<ForecastPredictor, number>>;
+  setOverride: (key: ForecastPredictor, level: number | null) => void;
+  forecastCoef: Partial<Record<ForecastPredictor, number>>;
+}) {
   return (
     <div className="rounded-2xl border border-border-subtle bg-bg-surface p-5 shadow-[var(--shadow-soft)]">
-      <div className="flex items-baseline gap-2 mb-4">
-        <h4 className="font-display text-[15px] tracking-tight text-fg-primary">
+      <div className="flex items-baseline gap-2 mb-3">
+        <h4 className="font-display text-[14px] tracking-tight text-fg-primary">
           {group.title}
         </h4>
         <span
@@ -150,56 +136,86 @@ function GroupCard({ group }: { group: Group }) {
           i
         </span>
       </div>
-
-      <div className="flex flex-col gap-4">
-        {group.subgroups.map((sg) => (
-          <div key={sg.name}>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-fg-muted font-semibold mb-2">
-              {sg.name}
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[12px] font-mono tabular-nums">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-[0.18em] text-fg-muted border-b border-border-subtle">
-                    <th className="text-left py-1.5 pr-2 font-semibold w-[120px]"></th>
-                    {sg.cells.map((c) => (
-                      <th key={c.label} className="text-right py-1.5 px-2 font-semibold text-gold-700">
-                        {c.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {HORIZONS.map((h, hIdx) => (
-                    <tr key={h} className={cn(hIdx % 2 === 0 ? "bg-bg-tint/40" : "")}>
-                      <td className="py-1.5 pr-2 text-[11px] text-fg-secondary">
-                        {h === "Long term" ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            Long term
-                            <span
-                              className="grid place-items-center w-3.5 h-3.5 rounded-full bg-fg-muted text-bg-base text-[7px] font-bold cursor-help"
-                              title="Long-run equilibrium values used for the terminal forecast."
-                            >
-                              i
-                            </span>
-                          </span>
-                        ) : (
-                          h
-                        )}
-                      </td>
-                      {sg.cells.map((c) => (
-                        <td key={c.label} className="text-right py-1.5 px-2 text-fg-primary">
-                          {c.values[h].toFixed(c.decimals ?? 1)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+      <div className="flex flex-col gap-3">
+        {group.predictors.map((p) => (
+          <PredictorRow
+            key={p}
+            predictor={p}
+            override={overrides[p]}
+            onChange={(v) => setOverride(p, v)}
+            beta={forecastCoef[p]}
+            disabled={!hasCoefficients}
+          />
         ))}
       </div>
+    </div>
+  );
+}
+
+function PredictorRow({
+  predictor,
+  override,
+  onChange,
+  beta,
+  disabled,
+}: {
+  predictor: ForecastPredictor;
+  override: number | undefined;
+  onChange: (v: number | null) => void;
+  beta: number | undefined;
+  disabled: boolean;
+}) {
+  const meta = PREDICTOR_META[predictor];
+  const currentLevel = CURRENT_LEVEL[predictor];
+  const defaultLevel = DEFAULT_MEDIUM_LEVEL[predictor];
+  const value = override ?? defaultLevel;
+  const isDirty = override != null;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3 mb-1">
+        <div className="min-w-0">
+          <div className="text-[12px] text-fg-primary truncate">{meta.label}</div>
+          <div className="text-[9.5px] uppercase tracking-[0.18em] text-fg-muted">
+            {meta.unit} · 2024A {currentLevel.toFixed(2)}
+            {beta != null && (
+              <span className="ml-1.5 text-gold-700">
+                · β {beta >= 0 ? "+" : ""}
+                {beta.toFixed(3)}
+              </span>
+            )}
+          </div>
+        </div>
+        <input
+          type="number"
+          step="0.1"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => {
+            const v = e.target.value === "" ? null : Number(e.target.value);
+            if (v != null && !Number.isFinite(v)) return;
+            // null override = revert to default
+            if (v === null || v === defaultLevel) onChange(null);
+            else onChange(v);
+          }}
+          className={cn(
+            "w-[88px] h-8 px-2 rounded-md border text-right font-mono tabular-nums text-[12.5px] outline-none transition-colors",
+            disabled
+              ? "border-border-faint bg-bg-tint/40 text-fg-muted cursor-not-allowed"
+              : isDirty
+                ? "border-border-gold bg-gold-50 text-gold-700 font-semibold focus:border-gold-700"
+                : "border-border-subtle bg-bg-surface text-fg-primary focus:border-border-gold",
+          )}
+        />
+      </div>
+      {isDirty && (
+        <div className="text-[10px] text-gold-700 font-mono mt-0.5">
+          default {defaultLevel.toFixed(2)} → custom {value.toFixed(2)} (Δ{" "}
+          {(value - defaultLevel >= 0 ? "+" : "") +
+            (value - defaultLevel).toFixed(2)}
+          )
+        </div>
+      )}
     </div>
   );
 }

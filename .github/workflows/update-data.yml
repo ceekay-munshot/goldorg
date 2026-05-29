@@ -54,6 +54,14 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_cot.py
 
+      - name: Fetch macro series from FRED
+        continue-on-error: true
+        run: python scripts/fetch_macros.py
+
+      - name: Build OLS forecast (gold returns vs macros)
+        continue-on-error: true
+        run: python scripts/build_forecast.py
+
       - name: Commit and push if changed
         run: |
           git config user.name  "github-actions[bot]"
@@ -71,5 +79,6 @@ jobs:
           SRC=$(python -c "import json; print(json.load(open('data/parsed/metadata.json'))['source_file'])")
           DEMAND_Q=$(python -c "import json; d=json.load(open('data/parsed/demand.json')); print(d.get('as_of_quarter') or 'none')" 2>/dev/null || echo "none")
           COT_DATE=$(python -c "import json; c=json.load(open('data/parsed/cot.json')); print(c.get('as_of_date') or 'none')" 2>/dev/null || echo "none")
-          git commit -m "data: refresh (ETF ${AS_OF}, demand ${DEMAND_Q}, cot ${COT_DATE})"
+          FCST=$(python -c "import json; f=json.load(open('data/parsed/forecast.json')); print(f.get('r_squared') or 'none')" 2>/dev/null || echo "none")
+          git commit -m "data: refresh (ETF ${AS_OF}, demand ${DEMAND_Q}, cot ${COT_DATE}, forecast R²=${FCST})"
           git push

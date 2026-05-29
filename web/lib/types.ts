@@ -169,6 +169,8 @@ export interface ForecastHistoricalFit {
   fitted_return: number;
 }
 
+export type PredictorTransform = "abs" | "pct";
+
 export interface ForecastFile {
   as_of: string | null;
   as_of_note?: string;
@@ -177,6 +179,10 @@ export interface ForecastFile {
   r_squared: number | null;
   rmse: number | null;
   predictors: ForecastPredictor[];
+  dropped_predictors?: ForecastPredictor[];
+  /** What units the regression was fitted on per predictor.
+   *  "abs" = b−a (percentage points), "pct" = (b−a)/a (fractional). */
+  predictor_transform?: Partial<Record<ForecastPredictor, PredictorTransform>>;
   intercept: number;
   coefficients: Partial<Record<ForecastPredictor, number>>;
   default_forward: Partial<Record<ForecastPredictor, number[]>>;

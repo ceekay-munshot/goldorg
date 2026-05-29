@@ -205,6 +205,8 @@ function normalizeForecast(raw: unknown): ForecastFile {
     r_squared: r.r_squared ?? base.r_squared,
     rmse: r.rmse ?? base.rmse,
     predictors: r.predictors ?? base.predictors,
+    dropped_predictors: r.dropped_predictors,
+    predictor_transform: r.predictor_transform,
     intercept: r.intercept ?? base.intercept,
     coefficients: r.coefficients ?? base.coefficients,
     default_forward: r.default_forward ?? base.default_forward,

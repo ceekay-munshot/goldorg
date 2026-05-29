@@ -35,24 +35,40 @@ export const useScenario = create<ScenarioState>((set) => ({
   resetAll: () => set({ overrides: {} }),
 }));
 
-/** "Snapshot" current macro level (2024A) — these are the most-recent
- *  actuals the user can see in the InputsPanel. Hardcoded for now;
- *  v2.1 will pull from macros.json. */
+/** "Snapshot" current value (2024A) for each predictor — what the user
+ *  sees in the InputsPanel as the baseline. Mix of levels and YoY
+ *  changes depending on the predictor's natural interpretation:
+ *    us_10y, dxy, fed_assets_bn   = LEVEL
+ *    us_debt_gdp                  = YoY pp change in debt/GDP ratio
+ *    us_cpi                       = YoY % inflation rate (≈ Δ-pct of CPI level)
+ *  Per-predictor semantics encoded in INPUT_SEMANTIC. */
 export const CURRENT_LEVEL: Record<ForecastPredictor, number> = {
-  us_10y: 4.21,
-  us_debt_gdp: 0.5,
-  us_cpi: 4.5, // YoY CPI rate
-  dxy: 102.5,
-  fed_assets_bn: 7000.0,
+  us_10y: 4.21,        // 10y rate, %
+  us_debt_gdp: 0.5,    // YoY Δ in pp
+  us_cpi: 4.5,         // YoY inflation %
+  dxy: 102.5,          // trade-weighted index level
+  fed_assets_bn: 7000, // $7T = 7000 USD-bn
 };
 
-/** Default forward 2025-2029 levels (matching Qaurum's published path). */
+/** Default forward 2025-2029 path — matches Qaurum's published cells. */
 export const DEFAULT_MEDIUM_LEVEL: Record<ForecastPredictor, number> = {
   us_10y: 4.07,
   us_debt_gdp: 1.3,
   us_cpi: 2.8,
   dxy: 100.0,
-  fed_assets_bn: 6800.0,
+  fed_assets_bn: 6800,
+};
+
+/** What the user's input value MEANS for each predictor. Used together
+ *  with the regression's per-predictor transform (in forecast.json) to
+ *  produce the per-year Δ in the units OLS was fitted on. */
+export type InputSemantic = "level" | "yoy_change";
+export const INPUT_SEMANTIC: Record<ForecastPredictor, InputSemantic> = {
+  us_10y: "level",
+  us_debt_gdp: "yoy_change", // pp per year
+  us_cpi: "yoy_change",      // % per year (inflation rate)
+  dxy: "level",
+  fed_assets_bn: "level",
 };
 
 export interface ProjectedYear {
@@ -62,21 +78,47 @@ export interface ProjectedYear {
   /** ±1σ bands (RMSE of regression residuals). */
   lo1: number;
   hi1: number;
-  /** Per-predictor contribution to the prediction. */
+  /** Per-predictor contribution to the prediction (log-return units). */
   contributions: Partial<Record<ForecastPredictor, number>>;
 }
 
 const FORECAST_YEARS = 5;
-const LAST_ACTUAL_YEAR = 2024; // first forecast year = 2025
+const LAST_ACTUAL_YEAR = 2024;
 
 /**
- * Apply the regression: for each forward year, predicted log-return =
- * intercept + Σ β · Δpredictor. Δ is the per-year change implied by
- * smoothly walking from CURRENT_LEVEL to the user's scenario level
- * over FORECAST_YEARS years.
+ * Convert the user's InputsPanel value into the per-year Δ the regression
+ * was fitted on. Branch on (input semantic) × (regression transform):
  *
- * Returns null when forecast.json has no coefficients (FRED not pulled
- * yet) — caller should fall back to per-currency GBM.
+ *   semantic   transform   per-year Δ used in regression
+ *   ─────────  ──────────  ───────────────────────────────────────────
+ *   level      abs         (target − current) / N   [pp/year]
+ *   level      pct         (target / current)^(1/N) − 1   [fractional]
+ *   yoy_change abs         target  [pp/year, user value used directly]
+ *   yoy_change pct         target / 100  [convert user's %/yr → fractional/yr]
+ */
+function perYearDelta(
+  p: ForecastPredictor,
+  current: number,
+  target: number,
+  transform: "abs" | "pct",
+): number {
+  const semantic = INPUT_SEMANTIC[p] ?? "level";
+  if (semantic === "yoy_change") {
+    return transform === "pct" ? target / 100 : target;
+  }
+  if (transform === "pct") {
+    if (current === 0) return 0;
+    return Math.pow(target / current, 1 / FORECAST_YEARS) - 1;
+  }
+  return (target - current) / FORECAST_YEARS;
+}
+
+/**
+ * Apply the regression: predicted log-return per year =
+ *   intercept + Σ β · Δpredictor
+ * Δ is computed in whatever units the regression was fitted on for each
+ * predictor — abs (pp) or pct (fractional). Returns null when forecast.json
+ * has no coefficients yet (caller falls back to per-currency GBM).
  */
 export function projectMacroForecast(
   forecast: ForecastFile,
@@ -87,13 +129,13 @@ export function projectMacroForecast(
   }
   const rmse = forecast.rmse ?? 0;
 
-  // Per-year Δ for each predictor — smooth path from current to target
-  const perYearDelta: Partial<Record<ForecastPredictor, number>> = {};
+  const deltas: Partial<Record<ForecastPredictor, number>> = {};
   for (const p of forecast.predictors) {
     const current = CURRENT_LEVEL[p];
     const target = overrides[p] ?? DEFAULT_MEDIUM_LEVEL[p];
     if (current == null || target == null) continue;
-    perYearDelta[p] = (target - current) / FORECAST_YEARS;
+    const tform = forecast.predictor_transform?.[p] ?? "abs";
+    deltas[p] = perYearDelta(p, current, target, tform);
   }
 
   const out: ProjectedYear[] = [];
@@ -102,7 +144,7 @@ export function projectMacroForecast(
     let predLog = forecast.intercept;
     for (const p of forecast.predictors) {
       const beta = forecast.coefficients[p];
-      const delta = perYearDelta[p];
+      const delta = deltas[p];
       if (beta == null || delta == null) continue;
       const contrib = beta * delta;
       contributions[p] = contrib;

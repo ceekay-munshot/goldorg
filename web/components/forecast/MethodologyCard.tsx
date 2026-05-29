@@ -1,38 +1,51 @@
 "use client";
 
-import { ExternalLink, ShieldAlert } from "lucide-react";
+import { Download, ExternalLink, ShieldAlert } from "lucide-react";
 import { CardHeader, GlassCard } from "@/components/primitives/GlassCard";
 
 export function MethodologyCard() {
   return (
     <GlassCard variant="default" className="p-6 lg:p-8">
       <CardHeader
-        eyebrow="Methodology · v1"
+        eyebrow="Methodology · v2"
         title="How this forecast actually works"
-        subtitle="Simpler engine than WGC's real Qaurum, built on data you already have on disk."
+        subtitle="From first principles — what gold is, what moves it, and how to use the model. Same explanation as the slide deck, in card form."
+        trailing={
+          <a
+            href="/gold-forecast-methodology.pptx"
+            download="gold-forecast-methodology.pptx"
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-gold-gradient text-white text-[12px] uppercase tracking-[0.18em] font-semibold shadow-[0_4px_14px_-3px_rgba(212,162,74,0.55)] hover:shadow-[0_6px_18px_-3px_rgba(212,162,74,0.7)] transition-shadow whitespace-nowrap"
+          >
+            <Download className="w-4 h-4" />
+            Methodology PPT
+          </a>
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Block
-          title="Engine"
+          title="Engine (the recipe)"
           body={[
-            "Per-currency geometric Brownian motion (GBM) on annual log-returns. We compute drift (μ) and volatility (σ) from the full history we have (16 years per currency, from the WGC GDT file you uploaded), then project 5 years forward.",
-            "Supply / demand projections use simple linear-trend extrapolation on each component (Mine, Recycling, Producer Hedging, Fabrication, Identifiable Investment). The market is forced to clear; the residual lands in \"Implied Investment\" — the same convention Qaurum uses for unreported OTC.",
+            "Annual gold return = intercept + Σ β·Δmacro. The β coefficients come from fitting 19 years (2007-2025) of monthly FRED data via OLS regression. R² ≈ 0.61 — the model explains ~61% of historical variance.",
+            "Per-currency GBM (geometric Brownian motion) handles the EUR / GBP / CNY / INR / JPY tabs since the regression was trained on USD. That gives you the dollar-vs-everyone-else lens.",
           ]}
         />
         <Block
-          title="Honest gap vs real Qaurum"
+          title="Five levers, in order of strength"
           body={[
-            "Real Qaurum runs a structural macro model with elasticities calibrated by Oxford Economics. The macro inputs above (GDP, savings, rates, debt, CPI, yield curve) actually feed those elasticities to back into demand and price.",
-            "Our v1 doesn't yet wire the macro inputs into the engine — they're informational. v2 plugs FRED + IMF WEO into a transparent OLS regression so changing any cell recomputes the forecast live.",
+            "1. US CPI inflation (β +4.11) — gold's #1 driver. Higher inflation → bigger gold bid.",
+            "2. Trade-weighted USD (β −0.87) — stronger dollar → gold falls.",
+            "3. US 10y yield (β −0.094) — higher rates → bonds compete.",
+            "4. Fed balance sheet (β −0.23) — historically positive, currently negative because 2022-25 QT period rose with gold (regime shift).",
+            "5. US Debt/GDP growth (β +0.018) — slow-burn fiscal-stress driver.",
           ]}
         />
         <Block
           title="What to trust / not trust"
           body={[
-            "Trust the historical bars — those are actuals from the gold.org GDT file.",
-            "Trust the relative cross-currency comparison — a flat EUR forecast next to a steep USD forecast tells you the move is dollar-driven, regardless of model.",
-            "Don't trust the projection magnitude as a price target. GBM assumes constant drift + vol; it can't see regime shifts (Fed pivots, geopolitical breaks, central-bank surprises). Use ±1σ as a rough confidence range, not a guarantee.",
+            "Trust the historical bars — those are actuals from gold.org.",
+            "Trust the cross-currency comparison — flat EUR forecast next to steep USD = dollar story, not gold story.",
+            "Don't trust projection magnitude as a price target. GBM + linear regression can't see regime shifts (Fed pivots, geopolitical breaks, central-bank surprises). Use ±1σ as a confidence range, not a guarantee.",
           ]}
         />
       </div>

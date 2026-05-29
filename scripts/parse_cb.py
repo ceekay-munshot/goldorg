@@ -1,30 +1,43 @@
-"""Parse the WGC Monthly Central Bank Statistics XLSX into cb.json.
+"""Parse WGC / IMF-IFS Central Bank gold reserves into cb.json.
 
-The exact sheet layout varies between WGC files. Based on the published
-release pattern there should be at least one sheet shaped like:
+We expect TWO XLSX files in data/raw/:
 
-  Row N:    headers like  "Country" | "ISO" | "2000-01" | "2000-02" | ...
-  Row N+1+: country reserves (tonnes) by month
+  * World_official_gold_holdings_*.xlsx  (or *Holdings*.xlsx)
+      One sheet, side-by-side ranking layout (2 countries per row):
+        col 0   rank             col 5  rank
+        col 1   country          col 6  country
+        col 2   tonnes (current) col 7  tonnes
+        col 3   % of reserves    col 8  % of reserves
+        col 4   as-of date       col 9  as-of date
 
-We hunt every sheet for that structure (country-down-rows, dates-across-
-columns) and emit:
+  * Changes_latest_*.xlsx (or *Changes*.xlsx)
+      Sheets:
+        "Monthly"  — country × month CHANGES (deltas in tonnes) Jan 2002→
+        "Annual"   — country × year CHANGES
 
-  data/parsed/cb.json
+We join the two: current level from the holdings snapshot, monthly + annual
+deltas from changes. Historical monthly LEVELS are back-derived from the
+current snapshot using:
+    monthly_tonnes[t-1] = monthly_tonnes[t] - monthly_change[t]
+
+Output schema (data/parsed/cb.json):
+
   {
-    "as_of_month": "2026-04",
-    "source_file": "Central_Bank_..._Apr_2026.xlsx",
+    "as_of_month": "2026-03",
+    "as_of_holdings_date": "2026-03-31",
     "countries": [
       {
-        "country": "China P.R. Mainland",
-        "monthly_tonnes": { "2000-01": 395.0, ..., "2026-04": 2280.1 },
-        "monthly_change": { "2000-02": +0.0, ..., "2026-04": +4.8 }
+        "country": "United States",
+        "current_tonnes": 8133.46,
+        "pct_of_reserves": 0.833,
+        "as_of_date": "2026-03-31",
+        "monthly_change": { "2002-01": 0.0, ..., "2026-04": 0.0 },
+        "annual_change":  { "2002":    0.0, ..., "2026":    0.0 },
+        "monthly_tonnes": { "2002-01": ..., ..., "2026-04": 8133.46 }
       },
       ...
     ]
   }
-
-If no XLSX is present (first deploy / WGC blocked), writes a stub
-so the dashboard handles the absent state gracefully.
 """
 from __future__ import annotations
 
@@ -32,6 +45,7 @@ import json
 import math
 import re
 import sys
+import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -42,16 +56,14 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 OUT_DIR = ROOT / "data" / "parsed"
 
-# Sub-totals + roll-ups we don't want as "countries" in the leaderboard.
+# Roll-up labels to drop so they don't appear as "countries".
 EXCLUDE_LABELS = {
     "world", "world total", "total", "total above",
     "advanced economies", "emerging economies", "emerging markets",
-    "developing economies", "eurozone", "euro area",
+    "developing economies", "eurozone", "euro area", "europe",
     "other countries", "other", "all countries",
-    "data as of", "source:", "notes:", "n/a",
+    "data as of", "source:", "notes:", "n/a", "memo",
 }
-
-YEAR_MONTH_RX = re.compile(r"^(\d{4})[-/_](\d{1,2})$")
 
 
 def num(v: Any) -> float | None:
@@ -61,118 +73,322 @@ def num(v: Any) -> float | None:
         f = float(v)
         if math.isnan(f) or math.isinf(f):
             return None
-        return round(f, 4)
+        return round(f, 6)
+    if isinstance(v, str):
+        s = v.replace(",", "").strip()
+        try:
+            f = float(s)
+            if math.isnan(f) or math.isinf(f):
+                return None
+            return round(f, 6)
+        except ValueError:
+            return None
     return None
 
 
-def to_ym(cell: Any) -> str | None:
-    """Coerce a header cell into a YYYY-MM string or None."""
-    if isinstance(cell, datetime):
-        return cell.strftime("%Y-%m")
-    if isinstance(cell, date):
-        return cell.strftime("%Y-%m")
-    if isinstance(cell, str):
-        s = cell.strip()
-        m = YEAR_MONTH_RX.match(s)
+def to_date_iso(v: Any) -> str | None:
+    if isinstance(v, datetime):
+        return v.date().isoformat()
+    if isinstance(v, date):
+        return v.isoformat()
+    if isinstance(v, str):
+        for fmt in ("%Y-%m-%d", "%d-%b-%Y", "%d %b %Y", "%B %Y"):
+            try:
+                return datetime.strptime(v.strip(), fmt).date().isoformat()
+            except ValueError:
+                continue
+    return None
+
+
+def to_ym(v: Any) -> str | None:
+    iso = to_date_iso(v)
+    if iso:
+        return iso[:7]
+    if isinstance(v, str):
+        m = re.match(r"^(\d{4})[-/](\d{1,2})", v.strip())
         if m:
             return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}"
-        try:
-            dt = datetime.strptime(s, "%b %Y")
-            return dt.strftime("%Y-%m")
-        except ValueError:
-            pass
-        try:
-            dt = datetime.strptime(s, "%B %Y")
-            return dt.strftime("%Y-%m")
-        except ValueError:
-            pass
     return None
 
 
-def latest_cb_xlsx() -> Path | None:
-    candidates: list[Path] = []
-    for pat in (
-        "Central_Bank_*.xlsx",
-        "*entral*ank*.xlsx",
-        "*eserves*.xlsx",
-    ):
-        candidates.extend(RAW_DIR.glob(pat))
-    seen: set[Path] = set()
-    unique: list[Path] = []
-    for p in candidates:
-        if p in seen:
-            continue
-        seen.add(p)
-        unique.append(p)
-    return sorted(unique)[-1] if unique else None
+def to_year(v: Any) -> str | None:
+    if isinstance(v, (int, float)) and 1990 <= float(v) <= 2100:
+        return str(int(v))
+    if isinstance(v, datetime):
+        return str(v.year)
+    if isinstance(v, date):
+        return str(v.year)
+    if isinstance(v, str):
+        m = re.match(r"^(\d{4})$", v.strip())
+        if m:
+            return m.group(1)
+    return None
 
 
-def find_header_row(rows: list[tuple[Any, ...]]) -> tuple[int, dict[int, str]] | None:
-    """Find the row that has the most YYYY-MM (or coercible) headers.
-    Returns (row_index, {col_idx: 'YYYY-MM'}) or None."""
-    best: tuple[int, dict[int, str]] | None = None
+def clean_display_name(name: str) -> str:
+    """Strip footnote markers like '5)', '*', '†' from the display label
+    while preserving the rest of the country name."""
+    s = re.sub(r"\s*\d+\s*\)+\s*$", "", name)
+    s = re.sub(r"[\*†‡§¹²³]+\s*$", "", s)
+    return s.strip()
+
+
+def normalize_country_key(name: str) -> str:
+    """Lowercase, strip footnote markers + punctuation, collapse whitespace —
+    for matching across the holdings + changes files. Examples:
+      'Turkey5)' → 'turkey'
+      'Turkey*'  → 'turkey'
+      'China, P.R.: Mainland' → 'china p r mainland'
+      'Russian Federation'    → 'russian federation'
+    """
+    s = unicodedata.normalize("NFKD", name)
+    s = s.lower()
+    # Strip footnote markers: digits followed by ')' or '*' or '†' or '¹' etc.
+    s = re.sub(r"\s*\d+\s*\)+\s*$", "", s)
+    s = re.sub(r"[\*†‡§¹²³]+", "", s)
+    s = re.sub(r"[,\.\:\-\(\)\[\]]+", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def find_xlsx(*patterns: str) -> Path | None:
+    for pat in patterns:
+        hits = sorted(RAW_DIR.glob(pat))
+        if hits:
+            return hits[-1]
+    return None
+
+
+# ────────────────────────────────────────────────────────────────────
+# Holdings file — current snapshot, side-by-side ranking
+# ────────────────────────────────────────────────────────────────────
+def parse_holdings(path: Path) -> list[dict]:
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    out: list[dict] = []
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        rows = list(ws.iter_rows(values_only=True))
+        for r in rows:
+            # Left side: cols 0..4
+            left = parse_holdings_block(r, 0)
+            if left:
+                out.append(left)
+            # Right side: cols 5..9
+            right = parse_holdings_block(r, 5)
+            if right:
+                out.append(right)
+        if out:
+            break  # first sheet with rows wins
+    return out
+
+
+def parse_holdings_block(row: tuple[Any, ...], start: int) -> dict | None:
+    if start + 4 >= len(row):
+        return None
+    rank_cell = row[start]
+    name_cell = row[start + 1]
+    tonnes_cell = row[start + 2]
+    pct_cell = row[start + 3]
+    asof_cell = row[start + 4]
+    # Rank should be a small int; country a non-empty string; tonnes a number
+    if not isinstance(name_cell, str) or not name_cell.strip():
+        return None
+    rank_val = num(rank_cell)
+    if rank_val is None or rank_val < 1 or rank_val > 250:
+        return None
+    tonnes_val = num(tonnes_cell)
+    if tonnes_val is None:
+        return None
+    name = name_cell.strip()
+    if normalize_country_key(name) in EXCLUDE_LABELS:
+        return None
+    # % of reserves: sometimes "1)" footnote ref for IMF — store None then
+    pct_val = num(pct_cell)
+    return {
+        "country": name,
+        "current_tonnes": round(tonnes_val, 4),
+        "pct_of_reserves": pct_val,
+        "as_of_date": to_date_iso(asof_cell),
+    }
+
+
+# ────────────────────────────────────────────────────────────────────
+# Changes file — Monthly + Annual sheets
+# ────────────────────────────────────────────────────────────────────
+def find_changes_header_row(rows: list[tuple[Any, ...]]) -> tuple[int, dict[int, str], str] | None:
+    """Return (header_row_idx, {col: 'YYYY-MM' or 'YYYY'}, granularity)."""
+    # Try monthly first (looks for YYYY-MM dates)
     for r_idx in range(min(20, len(rows))):
         cols: dict[int, str] = {}
         for c, cell in enumerate(rows[r_idx]):
             ym = to_ym(cell)
             if ym:
                 cols[c] = ym
-        if len(cols) >= 12 and (best is None or len(cols) > len(best[1])):
-            best = (r_idx, cols)
-    return best
+        if len(cols) >= 24:
+            return (r_idx, cols, "monthly")
+    # Try annual
+    for r_idx in range(min(8, len(rows))):
+        cols: dict[int, str] = {}
+        for c, cell in enumerate(rows[r_idx]):
+            y = to_year(cell)
+            if y:
+                cols[c] = y
+        if len(cols) >= 5:
+            return (r_idx, cols, "annual")
+    return None
 
 
-def parse_countries(wb) -> list[dict]:
-    out: list[dict] = []
+def parse_changes_sheet(ws) -> tuple[dict[str, dict[str, float]], str]:
+    """Return ({country: {period: change}}, granularity).
+
+    The Changes file's Monthly sheet has TWO name columns:
+      col 0 = "Country Lookup Column"  e.g. "China, People's Republic of"
+      col 1 = "Country"                e.g. "China, P.R.: Mainland"
+    We prefer col 1 — it matches the Holdings file's naming.
+    Annual sheet uses col 0 as the only country column.
+    """
+    rows = list(ws.iter_rows(values_only=True))
+    found = find_changes_header_row(rows)
+    if not found:
+        return {}, ""
+    header_idx, period_cols, gran = found
+
+    out: dict[str, dict[str, float]] = {}
+    for r in rows[header_idx + 1:]:
+        country: str | None = None
+        # Prefer col 1 (the cleaner "Country" name) when non-empty,
+        # otherwise fall back to col 0 (the "Country Lookup" IFS name).
+        for c in (1, 0, 2):
+            if c < len(r) and isinstance(r[c], str) and r[c].strip():
+                cand = r[c].strip()
+                if normalize_country_key(cand) not in EXCLUDE_LABELS:
+                    country = cand
+                    break
+        if not country:
+            continue
+        country_map: dict[str, float] = {}
+        for col_idx, period in period_cols.items():
+            v = num(r[col_idx]) if col_idx < len(r) else None
+            if v is not None:
+                country_map[period] = v
+        if not country_map:
+            continue
+        # If we've already seen this normalized country, prefer the entry
+        # WITHOUT a '*' suffix (WGC marks superseded series with '*').
+        norm_key = normalize_country_key(country)
+        existing = next(
+            (k for k in out if normalize_country_key(k) == norm_key),
+            None,
+        )
+        if existing:
+            if "*" in existing and "*" not in country:
+                out.pop(existing)
+            else:
+                continue
+        out[country] = country_map
+    return out, gran
+
+
+def parse_changes_file(path: Path) -> tuple[dict[str, dict[str, float]], dict[str, dict[str, float]]]:
+    """Returns (monthly_changes, annual_changes) each keyed by country."""
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    monthly: dict[str, dict[str, float]] = {}
+    annual: dict[str, dict[str, float]] = {}
     for sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
-        rows = list(ws.iter_rows(values_only=True))
-        if not rows:
-            continue
-        header = find_header_row(rows)
-        if not header:
-            continue
-        header_idx, month_cols = header
+        data, gran = parse_changes_sheet(ws)
+        if gran == "monthly" and not monthly:
+            monthly = data
+        elif gran == "annual" and not annual:
+            annual = data
+    return monthly, annual
 
-        for r_idx in range(header_idx + 1, len(rows)):
-            row = rows[r_idx]
-            # Country label is usually in col 0 or col 1
-            label: str | None = None
-            for c in (0, 1, 2):
-                if c < len(row) and isinstance(row[c], str) and row[c].strip():
-                    label = row[c].strip()
-                    break
-            if not label:
-                continue
-            norm = label.lower()
-            if norm in EXCLUDE_LABELS:
-                continue
-            if any(norm.startswith(p) for p in ("data as of", "source", "note")):
-                continue
 
-            monthly: dict[str, float] = {}
-            for c_idx, ym in month_cols.items():
-                v = num(row[c_idx]) if c_idx < len(row) else None
-                if v is not None:
-                    monthly[ym] = v
-            if not monthly:
-                continue
-            out.append({"country": label, "monthly_tonnes": monthly})
-        if out:
-            break  # first sheet with data wins
+# ────────────────────────────────────────────────────────────────────
+# Merge + back-derive historical levels
+# ────────────────────────────────────────────────────────────────────
+def derive_monthly_tonnes(
+    current_tonnes: float,
+    monthly_change: dict[str, float],
+    anchor_month: str,
+) -> dict[str, float]:
+    """Walk backwards from the anchor month using monthly_change to
+    reconstruct the level series.
+
+    Convention: monthly_change[t] = level(t) − level(t − 1), so
+    level(t − 1) = level(t) − monthly_change[t].
+    """
+    if not monthly_change:
+        return {anchor_month: round(current_tonnes, 4)}
+    months = sorted(monthly_change.keys())
+    # Anchor must be >= the earliest change month; if it's later than the
+    # latest change month, walk forward from the latest known.
+    # Build forward from earliest backward to latest of (changes ∪ {anchor}).
+    all_months = set(months) | {anchor_month}
+    all_months_sorted = sorted(all_months)
+    # Find the index of the anchor
+    if anchor_month not in all_months_sorted:
+        return {anchor_month: round(current_tonnes, 4)}
+    anchor_idx = all_months_sorted.index(anchor_month)
+    out: dict[str, float] = {anchor_month: round(current_tonnes, 4)}
+    # Backward
+    level = current_tonnes
+    for i in range(anchor_idx, 0, -1):
+        m = all_months_sorted[i]
+        prev_m = all_months_sorted[i - 1]
+        delta = monthly_change.get(m, 0.0)
+        level = level - delta
+        out[prev_m] = round(level, 4)
+    # Forward (in case changes file goes a month past the holdings as-of)
+    level = current_tonnes
+    for i in range(anchor_idx + 1, len(all_months_sorted)):
+        m = all_months_sorted[i]
+        delta = monthly_change.get(m, 0.0)
+        level = level + delta
+        out[m] = round(level, 4)
     return out
 
 
-def attach_monthly_changes(countries: list[dict]) -> None:
-    for c in countries:
-        m = c["monthly_tonnes"]
-        sorted_months = sorted(m.keys())
-        changes: dict[str, float] = {}
-        for i in range(1, len(sorted_months)):
-            a = m[sorted_months[i - 1]]
-            b = m[sorted_months[i]]
-            changes[sorted_months[i]] = round(b - a, 4)
-        c["monthly_change"] = changes
+def merge_country_data(
+    holdings: list[dict],
+    monthly_changes: dict[str, dict[str, float]],
+    annual_changes: dict[str, dict[str, float]],
+) -> list[dict]:
+    # Build name-key lookups for the changes files
+    mc_index = {normalize_country_key(c): c for c in monthly_changes}
+    ac_index = {normalize_country_key(c): c for c in annual_changes}
+
+    out: list[dict] = []
+    for h in holdings:
+        key = normalize_country_key(h["country"])
+        mc_orig = mc_index.get(key)
+        ac_orig = ac_index.get(key)
+        mc = monthly_changes.get(mc_orig, {}) if mc_orig else {}
+        ac = annual_changes.get(ac_orig, {}) if ac_orig else {}
+        # anchor month for back-derivation: prefer the holdings as-of date
+        as_of_iso = h.get("as_of_date")
+        anchor_month: str
+        if as_of_iso:
+            anchor_month = as_of_iso[:7]
+        elif mc:
+            anchor_month = max(mc.keys())
+        else:
+            anchor_month = ""
+        monthly_tonnes = (
+            derive_monthly_tonnes(h["current_tonnes"], mc, anchor_month)
+            if anchor_month
+            else {}
+        )
+        out.append({
+            "country": clean_display_name(h["country"]),
+            "current_tonnes": h["current_tonnes"],
+            "pct_of_reserves": h.get("pct_of_reserves"),
+            "as_of_date": as_of_iso,
+            "monthly_change": mc,
+            "annual_change": ac,
+            "monthly_tonnes": monthly_tonnes,
+        })
+    return out
 
 
 def write_stub(reason: str) -> None:
@@ -189,41 +405,60 @@ def write_stub(reason: str) -> None:
 
 
 def main() -> None:
-    xlsx = latest_cb_xlsx()
-    if xlsx is None:
-        write_stub(
-            "No WGC Central Bank XLSX in data/raw/ yet. Download "
-            "https://www.gold.org/goldhub/data/monthly-central-bank-statistics "
-            "and drop the file in data/raw/."
-        )
-        return
-
-    print(f"[parse-cb] Source: {xlsx.name}")
-    wb = openpyxl.load_workbook(xlsx, data_only=True, read_only=True)
-    print(f"[parse-cb] Sheets: {', '.join(wb.sheetnames)}")
-
-    countries = parse_countries(wb)
-    if not countries:
-        write_stub(
-            f"XLSX {xlsx.name} present but no recognizable country-monthly "
-            "sheet — WGC may have restructured. Inspect headers."
-        )
-        return
-
-    attach_monthly_changes(countries)
-    # Sort by most-recent month's holdings desc
-    latest_month = max(
-        (m for c in countries for m in c["monthly_tonnes"].keys()),
-        default=None,
+    holdings_path = find_xlsx(
+        "*Holdings*.xlsx", "World_official*.xlsx", "Central_Bank_Holdings*.xlsx",
     )
-    if latest_month:
-        countries.sort(
-            key=lambda c: -(c["monthly_tonnes"].get(latest_month, 0)),
+    changes_path = find_xlsx(
+        "*Changes*.xlsx", "Central_Bank_Changes*.xlsx",
+    )
+
+    if not holdings_path and not changes_path:
+        write_stub(
+            "No central-bank XLSX in data/raw/ yet. Download the Holdings + "
+            "Changes files from gold.org/goldhub/data/monthly-central-bank-statistics."
         )
+        return
+
+    print(f"[parse-cb] holdings: {holdings_path.name if holdings_path else '—'}")
+    print(f"[parse-cb] changes:  {changes_path.name if changes_path else '—'}")
+
+    holdings = parse_holdings(holdings_path) if holdings_path else []
+    monthly_changes, annual_changes = (
+        parse_changes_file(changes_path) if changes_path else ({}, {})
+    )
+    print(
+        f"[parse-cb] parsed: {len(holdings)} holdings, "
+        f"{len(monthly_changes)} monthly-changes countries, "
+        f"{len(annual_changes)} annual-changes countries"
+    )
+
+    if not holdings:
+        write_stub(
+            f"Holdings file {holdings_path.name if holdings_path else 'missing'} "
+            "didn't yield any countries — sheet layout may have changed."
+        )
+        return
+
+    countries = merge_country_data(holdings, monthly_changes, annual_changes)
+    # Sort by current reserves, largest first
+    countries.sort(key=lambda c: -(c.get("current_tonnes") or 0))
+
+    # Compute global "as of" month: the latest month any country reports
+    all_months: list[str] = []
+    for c in countries:
+        all_months.extend(c["monthly_change"].keys())
+        all_months.extend(c["monthly_tonnes"].keys())
+    as_of_month = max(all_months) if all_months else None
+
+    # Holdings as-of date — pick the latest across all countries
+    as_of_dates = [c["as_of_date"] for c in countries if c.get("as_of_date")]
+    as_of_holdings = max(as_of_dates) if as_of_dates else None
 
     payload = {
-        "as_of_month": latest_month,
-        "source_file": xlsx.name,
+        "as_of_month": as_of_month,
+        "as_of_holdings_date": as_of_holdings,
+        "source_holdings": holdings_path.name if holdings_path else None,
+        "source_changes": changes_path.name if changes_path else None,
         "countries": countries,
     }
 
@@ -233,7 +468,8 @@ def main() -> None:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False, default=str)
     print(
         f"[parse-cb] wrote {out.relative_to(ROOT)} "
-        f"({out.stat().st_size:,} bytes, {len(countries)} countries, as_of={latest_month})"
+        f"({out.stat().st_size:,} bytes, {len(countries)} countries, "
+        f"as_of={as_of_month}, holdings_as_of={as_of_holdings})"
     )
 
 

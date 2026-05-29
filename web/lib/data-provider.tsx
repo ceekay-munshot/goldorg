@@ -234,7 +234,10 @@ function normalizeCB(raw: unknown): CBFile {
   const r = raw as Partial<CBFile> & Record<string, unknown>;
   return {
     as_of_month: r.as_of_month ?? base.as_of_month,
+    as_of_holdings_date: r.as_of_holdings_date,
     as_of_note: r.as_of_note ?? base.as_of_note,
+    source_holdings: r.source_holdings,
+    source_changes: r.source_changes,
     source_file: r.source_file,
     countries: r.countries ?? base.countries,
   };

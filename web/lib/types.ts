@@ -160,15 +160,28 @@ export interface DashboardData {
 
 export interface CBCountry {
   country: string;
-  /** Month-end reserves in tonnes, keyed by "YYYY-MM". */
+  /** Current reserves snapshot (tonnes), from the WGC Holdings file. */
+  current_tonnes?: number;
+  /** Gold as a fraction of total reserves (0-1) for this country. */
+  pct_of_reserves?: number | null;
+  /** ISO date the snapshot is as-of (varies by reporting country). */
+  as_of_date?: string | null;
+  /** Month-end reserves in tonnes, keyed by "YYYY-MM". Back-derived from
+   *  the current snapshot + monthly changes. */
   monthly_tonnes: Record<string, number>;
   /** Month-over-month change in tonnes, keyed by "YYYY-MM". */
   monthly_change: Record<string, number>;
+  /** Year-over-year change in tonnes, keyed by "YYYY". */
+  annual_change?: Record<string, number>;
 }
 
 export interface CBFile {
   as_of_month: string | null;
   as_of_note?: string;
+  /** ISO date for the latest holdings snapshot. */
+  as_of_holdings_date?: string | null;
+  source_holdings?: string | null;
+  source_changes?: string | null;
   source_file?: string;
   countries: CBCountry[];
 }

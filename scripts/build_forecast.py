@@ -173,16 +173,31 @@ def main() -> None:
         write_stub("macros.json empty — run scripts/fetch_macros.py first")
         return
 
-    # Dependent: annual gold log-returns
     gold_rets = annual_gold_returns(monthly_holdings)
     if not gold_rets:
         write_stub("could not derive gold returns from timeseries")
         return
 
-    # Predictors: annual YoY Δ per macro
     deltas = annual_macro_deltas(macros["annual"])
 
-    # Join: keep only years where ALL predictors AND gold are present
+    # Permissive: keep predictors that have actual data in macros.json,
+    # drop the rest. A FRED outage on 1-2 series shouldn't kill the
+    # whole regression if the others came through.
+    active_predictors = [
+        p for p in PREDICTORS if deltas.get(p) and len(deltas[p]) >= 5
+    ]
+    if len(active_predictors) < 2:
+        write_stub(
+            f"only {len(active_predictors)} predictors have macro data — "
+            f"need ≥2. Available in macros.json: "
+            f"{', '.join(sorted(deltas.keys())) or 'none'}"
+        )
+        return
+    dropped = [p for p in PREDICTORS if p not in active_predictors]
+    if dropped:
+        print(f"[build-forecast] dropped (no data): {', '.join(dropped)}")
+    print(f"[build-forecast] active predictors: {', '.join(active_predictors)}")
+
     rets_by_year = dict(gold_rets)
     aligned_years: list[int] = []
     X: list[list[float]] = []
@@ -190,7 +205,7 @@ def main() -> None:
     for year in sorted(rets_by_year):
         row = []
         ok = True
-        for k in PREDICTORS:
+        for k in active_predictors:
             v = deltas[k].get(year)
             if v is None:
                 ok = False
@@ -202,17 +217,17 @@ def main() -> None:
         X.append(row)
         y.append(rets_by_year[year])
 
-    if len(y) < len(PREDICTORS) + 3:
+    if len(y) < len(active_predictors) + 3:
         write_stub(
-            f"only {len(y)} aligned annual observations — need ≥{len(PREDICTORS) + 3} "
-            "for stable regression"
+            f"only {len(y)} aligned annual observations — need ≥{len(active_predictors) + 3} "
+            f"with {len(active_predictors)} predictors"
         )
         return
 
     fit = ols(X, y)
     coef = fit["coef"]
     intercept = coef[0]
-    betas = dict(zip(PREDICTORS, coef[1:]))
+    betas = dict(zip(active_predictors, coef[1:]))
 
     payload = {
         "as_of": macros.get("as_of"),
@@ -220,18 +235,17 @@ def main() -> None:
         "n_observations": fit["n"],
         "r_squared": round(fit["r_squared"], 4),
         "rmse": round(fit["rmse"], 4),
-        "predictors": PREDICTORS,
+        "predictors": active_predictors,
+        "dropped_predictors": dropped,
         "intercept": round(intercept, 6),
         "coefficients": {k: round(v, 6) for k, v in betas.items()},
-        "default_forward": DEFAULT_FWD,
-        # Historical fitted values vs actuals — useful for the chart's
-        # "actuals + model fit + projection" overlay
+        "default_forward": {k: DEFAULT_FWD[k] for k in active_predictors if k in DEFAULT_FWD},
         "historical_fit": [
             {
                 "year": str(yr),
                 "actual_return": round(math.exp(y[i]) - 1, 4),
                 "fitted_return": round(
-                    math.exp(intercept + sum(X[i][j] * coef[j + 1] for j in range(len(PREDICTORS)))) - 1,
+                    math.exp(intercept + sum(X[i][j] * coef[j + 1] for j in range(len(active_predictors)))) - 1,
                     4,
                 ),
             }

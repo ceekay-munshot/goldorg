@@ -18,6 +18,7 @@ import csv
 import io
 import json
 import sys
+import time
 from datetime import date, datetime
 from pathlib import Path
 
@@ -27,15 +28,18 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "parsed"
 
 # (key, FRED series ID, description, aggregation: "mean" or "last")
+# Prefer monthly series IDs over daily ones — FRED's graph CSV endpoint
+# throttles big daily payloads (6000+ rows back to 2003) and returns 403s.
+# Monthly aggregates are still publication-grade.
 SERIES: list[tuple[str, str, str, str]] = [
-    ("us_10y",         "DGS10",        "US 10y Treasury yield (%)",          "last"),
-    ("us_3m",          "TB3MS",        "US 3m Treasury bill (%)",            "last"),
-    ("us_10y_breakeven", "T10YIE",     "US 10y breakeven inflation (%)",     "last"),
-    ("fed_assets_bn",  "WALCL",        "Fed total assets (USD millions)",    "last"),
-    ("dxy",            "DTWEXBGS",     "Trade-weighted USD index",           "last"),
-    ("vix",            "VIXCLS",       "VIX volatility index",               "last"),
-    ("us_debt_gdp",    "GFDEGDQ188S",  "US debt to GDP (%)",                 "last"),
-    ("us_cpi",         "CPIAUCSL",     "US CPI (1982-84=100)",               "last"),
+    ("us_10y",         "GS10",         "US 10y Treasury yield, monthly avg (%)",   "last"),
+    ("us_3m",          "TB3MS",        "US 3m Treasury bill, monthly (%)",         "last"),
+    ("us_10y_breakeven", "T10YIEM",    "US 10y breakeven inflation, monthly (%)",  "last"),
+    ("fed_assets_bn",  "WALCL",        "Fed total assets (USD millions)",          "last"),
+    ("dxy",            "DTWEXBGSM",    "Trade-weighted USD index, monthly avg",    "last"),
+    ("vix",            "VIXCLS",       "VIX volatility index (daily — last avail)", "last"),
+    ("us_debt_gdp",    "GFDEGDQ188S",  "US debt to GDP (%)",                       "last"),
+    ("us_cpi",         "CPIAUCSL",     "US CPI (1982-84=100)",                     "last"),
 ]
 
 HEADERS = {
@@ -45,12 +49,39 @@ HEADERS = {
     "Accept": "text/csv,*/*;q=0.8",
 }
 
+# Retry these many times on transient errors (403, 429, 5xx)
+MAX_RETRIES = 4
+BACKOFF_SECONDS = [2, 5, 10, 20]
+
 
 def fetch_series(session: requests.Session, fred_id: str) -> dict[str, float]:
-    """Return {YYYY-MM: value} — last observation of each month."""
+    """Return {YYYY-MM: value} — last observation of each month.
+    Retries on 403/429/5xx with exponential backoff (FRED throttles)."""
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={fred_id}"
-    resp = session.get(url, headers=HEADERS, timeout=60)
-    resp.raise_for_status()
+    last_err: Exception | None = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            resp = session.get(url, headers=HEADERS, timeout=60)
+            if resp.status_code in (403, 429) or resp.status_code >= 500:
+                raise requests.HTTPError(
+                    f"{resp.status_code} from FRED", response=resp,
+                )
+            resp.raise_for_status()
+            break
+        except Exception as e:
+            last_err = e
+            if attempt >= MAX_RETRIES:
+                raise
+            delay = BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)]
+            print(
+                f"[fetch-macros]   {fred_id} attempt {attempt + 1} -> {e}; "
+                f"retrying in {delay}s",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+    else:
+        if last_err:
+            raise last_err
     reader = csv.reader(io.StringIO(resp.text))
     header = next(reader, None)
     if not header or len(header) < 2:
@@ -68,7 +99,6 @@ def fetch_series(session: requests.Session, fred_id: str) -> dict[str, float]:
         except ValueError:
             continue
         ym = d.strftime("%Y-%m")
-        # Keep the most-recent observation of each month
         prev = by_month.get(ym)
         if prev is None or d_str > prev[0]:
             by_month[ym] = (d_str, v)

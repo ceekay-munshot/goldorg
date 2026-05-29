@@ -416,7 +416,14 @@ def parse_top_movers(funds: list[dict], n: int = 15) -> dict:
 
 
 def parse_timeseries(wb) -> dict:
-    """Re-extract pre-built chart series + add global aggregate series."""
+    """Re-extract pre-built chart series + add global aggregate series.
+
+    Note: the Charts Data sheet ships with truncated monthly_flows_usd /
+    monthly_demand_tonnes (WGC pre-builds short windows for embedded
+    charts — typically only ~16 months). Callers should overlay the
+    full per-fund-aggregated history via build_monthly_aggregates_from_funds()
+    after this returns.
+    """
     rows = list(wb["Charts Data"].iter_rows(values_only=True))
     blocks = {
         "monthly_flows_usd": (0, "gold_price_usd_oz"),
@@ -447,6 +454,76 @@ def parse_timeseries(wb) -> dict:
             )
         out[name] = data
     return out
+
+
+def build_monthly_aggregates_from_funds(
+    meta_list: list[dict],
+    dates: list[date],
+    demand: dict[str, list[float | None]],
+    flows: dict[str, list[float | None]],
+    gp_aligned: list[float | None],
+) -> tuple[list[dict], list[dict]]:
+    """Aggregate per-fund monthly series up to (global + regional) totals.
+
+    Returns (monthly_flows_usd, monthly_demand_tonnes) in the same shape
+    as parse_timeseries() emits — but covering the FULL date range
+    instead of the short window WGC pre-builds in Charts Data.
+
+    Units match the existing JSON contract:
+      - flows: raw USD (per-fund flows are in USD-mn → × 1e6)
+      - demand: tonnes
+    """
+    regions = ("north_america", "europe", "asia", "other")
+    region_lookup = {
+        "North America": "north_america",
+        "Europe": "europe",
+        "Asia": "asia",
+        "Other": "other",
+    }
+
+    by_ticker_region: dict[str, str | None] = {
+        m["ticker"]: region_lookup.get(m["region"] or "") for m in meta_list
+    }
+
+    flows_out: list[dict] = []
+    demand_out: list[dict] = []
+
+    for i, d in enumerate(dates):
+        flow_buckets = {r: 0.0 for r in regions}
+        demand_buckets = {r: 0.0 for r in regions}
+        for tkr, region in by_ticker_region.items():
+            if region is None:
+                continue
+            fv = flows[tkr][i] if i < len(flows[tkr]) else None
+            dv = demand[tkr][i] if i < len(demand[tkr]) else None
+            if fv is not None:
+                flow_buckets[region] += float(fv)
+            if dv is not None:
+                demand_buckets[region] += float(dv)
+        gp = gp_aligned[i] if i < len(gp_aligned) else None
+        iso = d.isoformat()
+        flows_out.append(
+            {
+                "date": iso,
+                # per-fund flows are USD-mn; existing JSON contract is raw USD
+                "north_america": round(flow_buckets["north_america"] * 1e6, 4),
+                "europe":         round(flow_buckets["europe"] * 1e6, 4),
+                "asia":           round(flow_buckets["asia"] * 1e6, 4),
+                "other":          round(flow_buckets["other"] * 1e6, 4),
+                "gold_price_usd_oz": gp,
+            }
+        )
+        demand_out.append(
+            {
+                "date": iso,
+                "north_america": round(demand_buckets["north_america"], 4),
+                "europe":         round(demand_buckets["europe"], 4),
+                "asia":           round(demand_buckets["asia"], 4),
+                "other":          round(demand_buckets["other"], 4),
+                "gold_price_usd_oz": gp,
+            }
+        )
+    return flows_out, demand_out
 
 
 def parse_fund_history(meta_list, dates, holdings, demand, flows) -> dict:
@@ -489,6 +566,13 @@ def main(src: Path | None = None) -> None:
     countries_out = aggregate(funds_out["funds"], "country")
     top_out = parse_top_movers(funds_out["funds"])
     ts_out = parse_timeseries(wb)
+    # Charts Data ships short windows for flows + demand monthly series;
+    # rebuild them from the per-fund monthly history (full date range).
+    full_flows, full_demand = build_monthly_aggregates_from_funds(
+        meta_list, dates, demand, flows, gp_aligned,
+    )
+    ts_out["monthly_flows_usd"] = full_flows
+    ts_out["monthly_demand_tonnes"] = full_demand
     history_out = parse_fund_history(meta_list, dates, holdings, demand, flows)
     metadata_out = parse_metadata(wb, src, as_of)
 

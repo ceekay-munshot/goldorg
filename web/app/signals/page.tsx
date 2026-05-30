@@ -1,9 +1,7 @@
 "use client";
 
-import { GoldForecast } from "@/components/signals/GoldForecast";
 import { GoldMasterChart } from "@/components/signals/GoldMasterChart";
 import { DriverBoard } from "@/components/signals/DriverBoard";
-import { CentralBankDemand } from "@/components/signals/CentralBankDemand";
 import { MinerMargin } from "@/components/signals/MinerMargin";
 import { PeakGold } from "@/components/signals/PeakGold";
 import { MetalsRelativeValue } from "@/components/signals/MetalsRelativeValue";
@@ -18,8 +16,6 @@ import { GoldInCurrencies } from "@/components/signals/GoldInCurrencies";
 export default function SignalsPage() {
   return (
     <div className="flex flex-col gap-6">
-      {/* Future first */}
-      <GoldForecast />
       {/* The setup */}
       <GoldMasterChart />
       {/* Currency-lens cross-check */}
@@ -32,11 +28,8 @@ export default function SignalsPage() {
       </div>
       {/* Why — drivers */}
       <DriverBoard />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <CentralBankDemand />
-        <MinerMargin />
-      </div>
       {/* Supply */}
+      <MinerMargin />
       <PeakGold />
       {/* Relative value */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

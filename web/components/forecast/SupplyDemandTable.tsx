@@ -32,27 +32,44 @@ export function SupplyDemandTable() {
     <GlassCard variant="default" className="p-6 lg:p-8">
       <CardHeader
         eyebrow="Demand and Supply · tonnes · 6y actual + 5y projected"
-        title="Where supply meets demand, 5 years out"
-        subtitle="Mine + Recycling + Producer Hedging = total supply. Market clears by construction; the Implied Investment residual mirrors Qaurum's convention for unreported OTC."
+        title="Where supply comes from, where it goes"
+        subtitle="Left side = supply sources (Mine + Recycling + Hedging = Total). Right side = the same total broken into where it lands (Fabrication + Identifiable Investment + Implied OTC). Both sides sum to the same number because gold doesn't appear or disappear."
         trailing={
           <ChartExplainer
             explain={{
               what: "Each row is one year of physical gold supply and demand in tonnes. Cream rows are forecast.",
               read: [
+                "Supply Total = Mine + Recycling + Net Hedging. There is no separate 'Demand Total' column because by accounting identity, demand equals supply — every ounce dug up or recycled ends up somewhere. The breakdown columns (Fabrication / Identifiable Inv. / Implied Inv.) always sum to Supply Total.",
                 "Mine Supply is sticky — the world's mines push out ~3,500-4,000t/year, grow ~1%/year.",
                 "Recycling spikes when prices spike. Above 30% of supply = late-cycle warning.",
-                "Implied Investment = supply − fabrication − identifiable investment. Large positive means the market absorbed more than reported (typically OTC vault demand).",
-                "Forecast rows are simple linear-trend extrapolations. They miss regime shifts (e.g. 2022+ CB surge would have lit up as a big positive residual under linear trend).",
+                "Implied Investment = Supply − Fabrication − Identifiable Inv. Large positive means OTC / vault buyers absorbed more than the reported channels picked up. Large negative means OTC released gold back into measured channels.",
+                "Forecast rows are simple linear-trend extrapolations. They miss regime shifts (e.g. 2022+ central-bank surge would have lit up as a big positive residual under linear trend).",
               ],
               takeaway:
-                "Use the forecast rows as a starting point, not a prediction. Adjust mentally for known structural shifts (CB buying, ETF regime, recession risk).",
+                "Read left-to-right as the gold market's annual accounting: source → total → destination. Use forecast rows as a starting point, not a prediction.",
             }}
           />
         }
       />
 
+      {/* Column-group banner so the supply / breakdown sides are visually distinct */}
+      <div className="hidden md:flex items-stretch mb-1 text-[9px] uppercase tracking-[0.22em] font-bold">
+        <div className="w-[88px]"></div>
+        <div className="flex-1 grid grid-cols-3 gap-0">
+          <div className="col-span-3 px-2 py-1 text-fg-muted">
+            Where it came from
+          </div>
+        </div>
+        <div className="w-[110px] px-2 py-1 text-gold-700 bg-gold-50/60 rounded-tl">
+          = Total ⇆
+        </div>
+        <div className="w-[320px] px-2 py-1 text-fg-muted bg-bg-tint/30 rounded-tr">
+          Where it went
+        </div>
+      </div>
+
       <div className="overflow-x-auto -mx-2">
-        <div className="min-w-[1000px] px-2">
+        <div className="min-w-[920px] px-2">
           <table className="w-full font-mono tabular-nums">
             <thead>
               <tr className="text-[9.5px] uppercase tracking-[0.2em] text-fg-muted font-semibold border-b border-border-strong">
@@ -70,17 +87,14 @@ export function SupplyDemandTable() {
                   </span>
                 </th>
                 <th className="text-right py-2 px-2 w-[90px]">Net Hedging</th>
-                <th className="text-right py-2 px-2 w-[110px] border-l border-border-subtle bg-gold-50/40 rounded-tl">
-                  Supply Total
+                <th className="text-right py-2 px-2 w-[110px] border-l border-border-subtle bg-gold-50/60">
+                  <span className="text-gold-700 font-bold">Total</span>
                 </th>
-                <th className="text-right py-2 px-2 w-[110px] bg-gold-50/40 rounded-tr">
-                  Demand Total
-                </th>
-                <th className="text-right py-2 px-2 w-[100px] border-l border-border-subtle">
+                <th className="text-right py-2 px-2 w-[100px] border-l border-border-subtle bg-bg-tint/30">
                   Fabrication
                 </th>
-                <th className="text-right py-2 px-2 w-[110px]">Identifiable Inv.</th>
-                <th className="text-right py-2 px-2 w-[100px]">Implied Inv.</th>
+                <th className="text-right py-2 px-2 w-[110px] bg-bg-tint/30">Identifiable Inv.</th>
+                <th className="text-right py-2 px-2 w-[100px] bg-bg-tint/30">Implied Inv.</th>
               </tr>
             </thead>
             <tbody>
@@ -130,21 +144,18 @@ export function SupplyDemandTable() {
                   <td className="text-right py-2.5 px-2 text-fg-muted text-[12px]">
                     {fmt(r.net_producer_hedging, true)}
                   </td>
-                  <td className="text-right py-2.5 px-2 font-semibold text-fg-primary text-[12.5px] border-l border-border-subtle bg-gold-50/40">
+                  <td className="text-right py-2.5 px-2 font-semibold text-gold-700 text-[13px] border-l border-border-subtle bg-gold-50/60">
                     {fmt(r.total_supply)}
                   </td>
-                  <td className="text-right py-2.5 px-2 font-semibold text-fg-primary text-[12.5px] bg-gold-50/40">
-                    {fmt(r.total_demand)}
-                  </td>
-                  <td className="text-right py-2.5 px-2 text-fg-primary text-[12px] border-l border-border-subtle">
+                  <td className="text-right py-2.5 px-2 text-fg-primary text-[12px] border-l border-border-subtle bg-bg-tint/30">
                     {fmt(r.fabrication)}
                   </td>
-                  <td className="text-right py-2.5 px-2 text-fg-primary text-[12px]">
+                  <td className="text-right py-2.5 px-2 text-fg-primary text-[12px] bg-bg-tint/30">
                     {fmt(r.identifiable_investment)}
                   </td>
                   <td
                     className={cn(
-                      "text-right py-2.5 px-2 font-semibold text-[12.5px]",
+                      "text-right py-2.5 px-2 font-semibold text-[12.5px] bg-bg-tint/30",
                       r.implied_investment > 0
                         ? "text-pos-text"
                         : r.implied_investment < 0
@@ -161,7 +172,14 @@ export function SupplyDemandTable() {
         </div>
       </div>
 
-      <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-fg-muted flex items-center gap-4 flex-wrap">
+      <div className="mt-3 px-1 text-[11px] text-fg-secondary leading-relaxed">
+        <span className="text-gold-700 font-semibold">Total</span>{" "}
+        = Mine + Recycling + Hedging ={" "}
+        Fabrication + Identifiable Investment + Implied Investment. Both sides
+        balance by accounting identity — the gold market clears.
+      </div>
+
+      <div className="mt-2 text-[10px] uppercase tracking-[0.22em] text-fg-muted flex items-center gap-4 flex-wrap">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-sm bg-[#5b6770]" />
           Mine production

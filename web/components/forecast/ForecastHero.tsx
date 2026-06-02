@@ -31,6 +31,12 @@ export function ForecastHero() {
   const year1Median = macroProjection?.[0]?.median ?? null;
   const year1Lo = macroProjection?.[0]?.lo1 ?? null;
   const year1Hi = macroProjection?.[0]?.hi1 ?? null;
+  // Last year of the projection → cumulative 5y return (compounded)
+  const finalYear = macroProjection?.[macroProjection.length - 1] ?? null;
+  const cumMedian = finalYear?.cumulativeMedian ?? null;
+  const cumLo = finalYear?.cumulativeLo1 ?? null;
+  const cumHi = finalYear?.cumulativeHi1 ?? null;
+  const finalYearLabel = finalYear?.year ?? null;
   const contributions = macroProjection?.[0]?.contributions ?? null;
   const dominant = useMemo(() => {
     if (!contributions) return null;
@@ -112,19 +118,16 @@ export function ForecastHero() {
             re-solves in the browser.
           </p>
 
-          {/* Headline year-1 prediction */}
+          {/* Headline annualized + cumulative prediction */}
           {hasCoef && year1Median != null && (
-            <div className="mt-2 flex items-end gap-4 flex-wrap">
+            <div className="mt-2 flex items-end gap-6 flex-wrap">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.24em] text-gold-300/70 font-semibold mb-1">
-                  Year-1 prediction{year1 ? ` · ${year1}` : ""}
+                  Annualized · expected return per year
                 </div>
                 <div className="flex items-baseline gap-3">
                   <span
-                    className={cn(
-                      "font-display text-[56px] lg:text-[68px] leading-none tracking-tight tabular-nums font-semibold",
-                      year1Median >= 0 ? "text-pos-soft" : "text-neg-soft",
-                    )}
+                    className="font-display text-[56px] lg:text-[68px] leading-none tracking-tight tabular-nums font-semibold"
                     style={{
                       color: year1Median >= 0 ? "#86E0A2" : "#F4A0A0",
                     }}
@@ -133,13 +136,37 @@ export function ForecastHero() {
                     {(year1Median * 100).toFixed(1)}%
                   </span>
                   {year1Lo != null && year1Hi != null && (
-                    <span className="text-[12px] font-mono tabular-nums text-gold-100/60 pb-2">
-                      ±1σ {(year1Lo * 100).toFixed(1)}% → {year1Hi > 0 ? "+" : ""}
+                    <span className="text-[11px] font-mono tabular-nums text-gold-100/60 pb-2">
+                      ±1σ/yr {(year1Lo * 100).toFixed(1)}% → {year1Hi > 0 ? "+" : ""}
                       {(year1Hi * 100).toFixed(1)}%
                     </span>
                   )}
                 </div>
               </div>
+              {cumMedian != null && finalYearLabel && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-gold-300/70 font-semibold mb-1">
+                    Cumulative · hold through {finalYearLabel}
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span
+                      className="font-display text-[40px] lg:text-[48px] leading-none tracking-tight tabular-nums font-semibold"
+                      style={{
+                        color: cumMedian >= 0 ? "#86E0A2" : "#F4A0A0",
+                      }}
+                    >
+                      {cumMedian > 0 ? "+" : ""}
+                      {(cumMedian * 100).toFixed(0)}%
+                    </span>
+                    {cumLo != null && cumHi != null && (
+                      <span className="text-[11px] font-mono tabular-nums text-gold-100/60 pb-1">
+                        ±1σ {(cumLo * 100).toFixed(0)}% → {cumHi > 0 ? "+" : ""}
+                        {(cumHi * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
               {dominant && (
                 <div className="ml-auto lg:ml-0 px-3 py-2 rounded-lg bg-gold-500/10 border border-gold-500/30">
                   <div className="text-[9.5px] uppercase tracking-[0.22em] text-gold-300/80 font-semibold">

@@ -106,11 +106,15 @@ export function lastActualYear(forecast: ForecastFile): number {
 
 export interface ProjectedYear {
   year: string;
-  /** Predicted annual return as fraction (0.08 = +8%). */
+  /** Predicted annual return for that single year (fraction, 0.08 = +8%). */
   median: number;
-  /** ±1σ bands (RMSE of regression residuals). */
+  /** ±1σ band on the annual return — widens with √t (uncertainty compounds). */
   lo1: number;
   hi1: number;
+  /** Cumulative return through this year vs base (fraction). */
+  cumulativeMedian: number;
+  cumulativeLo1: number;
+  cumulativeHi1: number;
   /** Per-predictor contribution to the prediction (log-return units). */
   contributions: Partial<Record<ForecastPredictor, number>>;
 }
@@ -182,12 +186,25 @@ export function projectMacroForecast(
       contributions[p] = contrib;
       predLog += contrib;
     }
+    // Annual return for THIS single year — same every year under the
+    // model's constant-macro assumption.
     const median = Math.exp(predLog) - 1;
+    // ±1σ on a SINGLE year's return is the regression RMSE. For YEAR t
+    // out, single-year uncertainty doesn't scale, BUT we display the
+    // cumulative band so it widens — uncertainty compounds as σ·√t.
+    const annualLog = predLog;
+    // Cumulative log-return through year t: sum of t equal annual log-returns
+    const cumLog = annualLog * t;
+    // Variance of sum of independent log-returns = t·σ² → σ·√t
+    const sigmaCum = rmse * Math.sqrt(t);
     out.push({
       year: String(baseYear + t),
       median,
-      lo1: Math.exp(predLog - rmse) - 1,
-      hi1: Math.exp(predLog + rmse) - 1,
+      lo1: Math.exp(annualLog - rmse) - 1,
+      hi1: Math.exp(annualLog + rmse) - 1,
+      cumulativeMedian: Math.exp(cumLog) - 1,
+      cumulativeLo1: Math.exp(cumLog - sigmaCum) - 1,
+      cumulativeHi1: Math.exp(cumLog + sigmaCum) - 1,
       contributions,
     });
   }

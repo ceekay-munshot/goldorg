@@ -117,23 +117,43 @@ export function ReturnsChart() {
     }
   }
 
-  // Per-year forecast strip data
+  // Per-year forecast strip data — each tile shows the CUMULATIVE return
+  // through that year (so 5 different numbers compounding upward),
+  // plus the annual rate as a sub-label and a ±1σ band that widens
+  // with √t (uncertainty compounds with horizon).
   const forecastYears =
     effectiveMode === "macro" && macroProjection
-      ? macroProjection.map((p) => ({
+      ? macroProjection.map((p, i) => ({
           year: p.year,
-          median: p.median * 100,
-          lo1: p.lo1 * 100,
-          hi1: p.hi1 * 100,
+          horizon: i + 1,
+          annualPct: p.median * 100,
+          cumPct: p.cumulativeMedian * 100,
+          cumLo: p.cumulativeLo1 * 100,
+          cumHi: p.cumulativeHi1 * 100,
         }))
       : gbmPanel.series
           .filter((p) => p.actual == null && p.median != null)
-          .map((p) => ({
-            year: p.year,
-            median: (p.median ?? 0) * 100,
-            lo1: (p.lo ?? 0) * 100,
-            hi1: (p.hi ?? 0) * 100,
-          }));
+          .map((p, i) => {
+            // For GBM the per-year median is already drift-only and there's
+            // no separate cumulative track — synthesise it: compound the
+            // annual log-return t times, σ scales by √t.
+            const annual = p.median ?? 0;
+            const lo = p.lo ?? 0;
+            const hi = p.hi ?? 0;
+            const t = i + 1;
+            const annualLog = Math.log(1 + annual);
+            const sigma = (Math.log(1 + hi) - Math.log(1 + lo)) / 2; // 1σ
+            const cumLog = annualLog * t;
+            const cumSigma = sigma * Math.sqrt(t);
+            return {
+              year: p.year,
+              horizon: t,
+              annualPct: annual * 100,
+              cumPct: (Math.exp(cumLog) - 1) * 100,
+              cumLo: (Math.exp(cumLog - cumSigma) - 1) * 100,
+              cumHi: (Math.exp(cumLog + cumSigma) - 1) * 100,
+            };
+          });
 
   const contributions =
     effectiveMode === "macro" && macroProjection?.[0]
@@ -156,21 +176,21 @@ export function ReturnsChart() {
         title="Actual and Implied"
         subtitle={
           effectiveMode === "macro"
-            ? "Realized returns (solid bars) and per-year prediction from the macro regression. Edit any input above and watch this re-solve."
+            ? "Bars below are realized vs single-year predictions. Tiles above show cumulative return if you hold gold through that year."
             : "Realized returns and per-year GBM cone. Switch to USD to access the macro regression."
         }
         trailing={
           <ChartExplainer
             explain={{
-              what: "Each bar is one calendar year. Solid bars are realized; outlined bars with error whiskers are projected.",
+              what: "Each chart bar = one calendar year. Solid = realized; outlined = projected single-year return. Tiles above = cumulative return holding gold through that year-end.",
               read: [
-                "Macro mode (USD only): predicted return = intercept + Σ β·Δmacro. Inputs panel edits propagate live.",
-                "GBM mode (all 6 currencies): drift + volatility from the historical log-returns of that currency.",
-                "The ±1σ whisker is the 1-standard-deviation confidence band (≈2/3 of outcomes).",
-                "Switch currencies to see whether USD strength is the gold story or just a dollar move.",
+                "All 5 forecast single-year bars are equal under the model's assumption that macros change at a steady annual pace toward your input target. That's the regression's honest output — not a bug.",
+                "Cumulative tiles compound — Y5 = (1 + annual)^5 − 1. Same expected annual rate, very different total over 5 years.",
+                "±1σ band widens with √t — uncertainty about a 5-year outcome is √5 ≈ 2.24× larger than a 1-year outcome.",
+                "Edit any input above and every number here re-solves live.",
               ],
               takeaway:
-                "Macro mode = 'what should gold do if these macros play out'. GBM = 'what does history alone suggest'. Use both lenses, not just one.",
+                "Watch the cumulative tiles for total return. Watch the annual bars for year-shape. Both come from the same prediction, in different units.",
             }}
           />
         }
@@ -230,19 +250,35 @@ export function ReturnsChart() {
         )}
       </div>
 
-      {/* Per-year forecast strip */}
+      {/* Per-year cumulative forecast strip + clarifying note */}
       {forecastYears.length > 0 && (
-        <div className="mb-5 grid grid-cols-5 gap-2">
-          {forecastYears.map((p, i) => (
-            <YearTile
-              key={p.year}
-              year={p.year}
-              median={p.median}
-              lo={p.lo1}
-              hi={p.hi1}
-              isFirst={i === 0}
-            />
-          ))}
+        <div className="mb-5">
+          <div className="flex items-baseline justify-between gap-3 mb-2 px-1">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-gold-700 font-semibold">
+              Cumulative return · hold gold through year-end
+            </div>
+            <div className="text-[10px] text-fg-muted">
+              Annualized rate{" "}
+              <span className="text-fg-primary font-mono tabular-nums font-semibold">
+                {forecastYears[0]?.annualPct > 0 ? "+" : ""}
+                {forecastYears[0]?.annualPct.toFixed(1)}%/yr
+              </span>
+              {" · ±1σ widens with √t"}
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {forecastYears.map((p) => (
+              <YearTile
+                key={p.year}
+                year={p.year}
+                horizon={p.horizon}
+                annualPct={p.annualPct}
+                cumPct={p.cumPct}
+                cumLo={p.cumLo}
+                cumHi={p.cumHi}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -341,18 +377,21 @@ export function ReturnsChart() {
 
 function YearTile({
   year,
-  median,
-  lo,
-  hi,
-  isFirst,
+  horizon,
+  annualPct,
+  cumPct,
+  cumLo,
+  cumHi,
 }: {
   year: string;
-  median: number;
-  lo: number;
-  hi: number;
-  isFirst: boolean;
+  horizon: number;
+  annualPct: number;
+  cumPct: number;
+  cumLo: number;
+  cumHi: number;
 }) {
-  const tone = median >= 0 ? "pos" : "neg";
+  const isFirst = horizon === 1;
+  const tone = cumPct >= 0 ? "pos" : "neg";
   return (
     <div
       className={cn(
@@ -371,24 +410,30 @@ function YearTile({
         >
           {year}
         </span>
-        {isFirst && (
-          <span className="text-[8.5px] uppercase tracking-[0.18em] text-gold-700 font-semibold">
-            Y1
-          </span>
-        )}
+        <span
+          className={cn(
+            "text-[8.5px] uppercase tracking-[0.18em] font-semibold",
+            isFirst ? "text-gold-700" : "text-fg-faint",
+          )}
+        >
+          Y{horizon}
+        </span>
       </div>
       <div
         className={cn(
-          "font-display text-[20px] tabular-nums tracking-tight mt-1 font-semibold",
+          "font-display text-[22px] tabular-nums tracking-tight mt-1 font-semibold leading-none",
           tone === "pos" ? "text-pos-text" : "text-neg-text",
         )}
       >
-        {median > 0 ? "+" : ""}
-        {median.toFixed(1)}%
+        {cumPct > 0 ? "+" : ""}
+        {cumPct.toFixed(1)}%
       </div>
-      <div className="text-[9.5px] font-mono tabular-nums text-fg-muted mt-0.5">
-        {lo.toFixed(1)}% to {hi > 0 ? "+" : ""}
-        {hi.toFixed(1)}%
+      <div className="text-[9px] uppercase tracking-[0.18em] text-fg-muted mt-1">
+        cumulative
+      </div>
+      <div className="text-[9.5px] font-mono tabular-nums text-fg-secondary mt-1.5 pt-1.5 border-t border-border-faint">
+        ±1σ {cumLo.toFixed(0)}% to {cumHi > 0 ? "+" : ""}
+        {cumHi.toFixed(0)}%
       </div>
     </div>
   );

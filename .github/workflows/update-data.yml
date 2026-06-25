@@ -34,10 +34,17 @@ jobs:
         run: pip install -r scripts/requirements.txt
 
       - name: Fetch latest ETF flows XLSX from gold.org
+        # Soft-fail: gold.org's CDN blocks GH Actions runner IPs intermittently
+        # (returns 403 on /download/file/*). When the fetch can't pull a newer
+        # XLSX we still want COT/FRED/CB to refresh on schedule, so the rest
+        # of the pipeline must keep running. parse.py falls back to the
+        # latest XLSX already in data/raw.
         id: fetch
+        continue-on-error: true
         run: python scripts/fetch.py
 
       - name: Parse ETF flows XLSX to JSON
+        continue-on-error: true
         run: python scripts/parse.py
 
       - name: Fetch WGC Gold Demand Trends XLSX

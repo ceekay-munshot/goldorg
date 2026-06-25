@@ -240,7 +240,24 @@ def ols(X: list[list[float]], y: list[float]) -> dict[str, Any]:
 
 
 def write_stub(reason: str) -> None:
+    """Soft-fail: preserve existing forecast.json if it already has
+    fitted coefficients. Stops a temporary FRED outage from wiping a
+    working regression and breaking the Forecast tab."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUT_DIR / "forecast.json"
+    if out.exists():
+        try:
+            existing = json.load(open(out, encoding="utf-8"))
+            if existing.get("coefficients"):
+                print(
+                    f"[build-forecast] preserving existing {out.relative_to(ROOT)} "
+                    f"(R²={existing.get('r_squared')}, "
+                    f"n={existing.get('n_observations')}) — {reason}",
+                    file=sys.stderr,
+                )
+                return
+        except Exception:
+            pass
     payload = {
         "as_of": None,
         "as_of_note": reason,
@@ -252,7 +269,6 @@ def write_stub(reason: str) -> None:
         "n_observations": 0,
         "default_forward": DEFAULT_FWD,
     }
-    out = OUT_DIR / "forecast.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
     print(f"[build-forecast] wrote stub {out.relative_to(ROOT)} — {reason}")

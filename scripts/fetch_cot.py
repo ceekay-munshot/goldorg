@@ -120,14 +120,30 @@ def normalize(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def write_stub(reason: str) -> None:
+    """Soft-fail: if a valid cot.json with rows already exists, leave it
+    untouched. Empty stubs were overwriting good data on transient
+    Socrata blips and stale-ing out the Signals tab."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUT_DIR / "cot.json"
+    if out.exists():
+        try:
+            existing = json.load(open(out, encoding="utf-8"))
+            if existing.get("series"):
+                print(
+                    f"[fetch-cot] preserving existing {out.relative_to(ROOT)} "
+                    f"(as_of={existing.get('as_of_date')}, "
+                    f"{len(existing['series'])} rows) — {reason}",
+                    file=sys.stderr,
+                )
+                return
+        except Exception:
+            pass
     payload = {
         "as_of_date": None,
         "as_of_note": reason,
         "source": None,
         "series": [],
     }
-    out = OUT_DIR / "cot.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
     print(f"[fetch-cot] wrote stub {out.relative_to(ROOT)} — {reason}")

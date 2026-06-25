@@ -414,7 +414,23 @@ def latest_demand_xlsx() -> Path | None:
 
 
 def write_stub(reason: str) -> None:
+    """Soft-fail: preserve existing demand.json if it already has quarters.
+    Stops a parser crash on a fresh raw drop from wiping good data."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUT_DIR / "demand.json"
+    if out.exists():
+        try:
+            existing = json.load(open(out, encoding="utf-8"))
+            if existing.get("quarters"):
+                print(
+                    f"[parse-demand] preserving existing {out.relative_to(ROOT)} "
+                    f"(as_of={existing.get('as_of_quarter')}, "
+                    f"{len(existing['quarters'])} quarters) — {reason}",
+                    file=sys.stderr,
+                )
+                return
+        except Exception:
+            pass
     payload = {
         "as_of_quarter": None,
         "as_of_note": reason,
@@ -427,7 +443,6 @@ def write_stub(reason: str) -> None:
         "gold_prices": None,
         "per_capita_grams": [],
     }
-    out = OUT_DIR / "demand.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
     print(f"[parse-demand] wrote stub {out.relative_to(ROOT)} — {reason}")

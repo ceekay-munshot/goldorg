@@ -128,19 +128,36 @@ def annual_aggregate(monthly: dict[str, float], agg: str) -> dict[str, float]:
 
 
 def write_stub(reason: str) -> None:
+    """Soft-fail: if a valid macros.json with months already exists, leave
+    it untouched. Empty stubs were overwriting good data on transient
+    FRED blips and breaking the forecast regression downstream."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUT_DIR / "macros.json"
+    if out.exists():
+        try:
+            existing = json.load(open(out, encoding="utf-8"))
+            if existing.get("monthly"):
+                print(
+                    f"[fetch-macros] preserving existing {out.relative_to(ROOT)} "
+                    f"(as_of={existing.get('as_of')}, "
+                    f"{len(existing['monthly'])} months) — {reason}",
+                    file=sys.stderr,
+                )
+                return
+        except Exception:
+            pass
+    fallback_id = lambda fids: fids[0] if fids else ""
     payload = {
         "as_of": None,
         "as_of_note": reason,
         "source": "fred.stlouisfed.org",
         "series_meta": [
-            {"key": k, "fred_id": fid, "description": desc}
-            for (k, fid, desc, _agg) in SERIES
+            {"key": k, "fred_id": fallback_id(fids), "description": desc}
+            for (k, fids, desc, _agg) in SERIES
         ],
         "monthly": [],
         "annual": [],
     }
-    out = OUT_DIR / "macros.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
     print(f"[fetch-macros] wrote stub {out.relative_to(ROOT)} — {reason}")

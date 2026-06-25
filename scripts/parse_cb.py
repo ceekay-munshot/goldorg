@@ -392,13 +392,27 @@ def merge_country_data(
 
 
 def write_stub(reason: str) -> None:
+    """Soft-fail: preserve existing cb.json if it already has countries.
+    Stops a parser crash on a fresh raw drop from wiping good data."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUT_DIR / "cb.json"
+    if out.exists():
+        try:
+            existing = json.load(open(out, encoding="utf-8"))
+            if existing.get("countries"):
+                print(
+                    f"[parse-cb] preserving existing {out.relative_to(ROOT)} "
+                    f"({len(existing['countries'])} countries) — {reason}",
+                    file=sys.stderr,
+                )
+                return
+        except Exception:
+            pass
     payload = {
         "as_of_month": None,
         "as_of_note": reason,
         "countries": [],
     }
-    out = OUT_DIR / "cb.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
     print(f"[parse-cb] wrote stub {out.relative_to(ROOT)} — {reason}")

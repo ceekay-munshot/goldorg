@@ -1,11 +1,37 @@
 "use client";
 
+import { useMemo } from "react";
 import { useData } from "@/lib/data-provider";
 import { fmtDate } from "@/lib/format";
+import {
+  checkStaleness,
+  worstStatus,
+  type StalenessReport,
+  type StalenessStatus,
+} from "@/lib/staleness";
+import { cn } from "@/lib/cn";
 
 export function TopBar() {
   const { data } = useData();
   const asOf = data?.metadata.as_of_date;
+
+  // Each dataset reports its own status; the badge surfaces the worst.
+  // When the cron is healthy, every dataset is fresh and the badge stays
+  // gold. When something's behind, the badge flips and the tooltip names
+  // exactly which feed and how late it is.
+  const reports = useMemo<Record<string, StalenessReport>>(() => {
+    if (!data) return {} as Record<string, StalenessReport>;
+    return {
+      etf: checkStaleness("etf", data.metadata.as_of_date),
+      cot: checkStaleness("cot", data.cot.as_of_date),
+      macros: checkStaleness("macros", data.forecast.as_of ?? null),
+      demand: checkStaleness("demand", data.demand.as_of_quarter ?? null),
+      cb: checkStaleness("cb", data.cb.as_of_month ?? null),
+      forecast: checkStaleness("forecast", data.forecast.as_of ?? null),
+    };
+  }, [data]);
+
+  const worst = useMemo(() => worstStatus(Object.values(reports)), [reports]);
 
   return (
     <header className="sticky top-0 z-40 bg-bg-base/85 backdrop-blur-xl border-b border-border-faint">
@@ -32,7 +58,7 @@ export function TopBar() {
             </span>
           </div>
           <div className="w-px h-9 bg-border-subtle" />
-          <SourceBadge />
+          <StatusBadge status={worst} reports={reports} />
         </div>
       </div>
       <div className="gold-hair" />
@@ -52,15 +78,63 @@ function BrandMark() {
   );
 }
 
-function SourceBadge() {
+function StatusBadge({
+  status,
+  reports,
+}: {
+  status: StalenessStatus;
+  reports: Record<string, StalenessReport>;
+}) {
+  // tooltip lists each dataset's age so users can spot which feed is behind
+  const tooltip = Object.entries(reports)
+    .map(([key, r]) => `${key.toUpperCase()}: ${r.label}`)
+    .join("\n");
+
+  const cfg = {
+    fresh: {
+      label: "Live",
+      bg: "bg-pos-soft text-pos-text border-[var(--pos-border)]",
+      dot: "bg-pos",
+      pulse: true,
+    },
+    late: {
+      label: "Behind",
+      bg: "bg-amber-50 text-amber-800 border-amber-200",
+      dot: "bg-amber-500",
+      pulse: false,
+    },
+    stale: {
+      label: "Stale",
+      bg: "bg-neg-soft text-neg-text border-[var(--neg-border)]",
+      dot: "bg-neg",
+      pulse: false,
+    },
+    unknown: {
+      label: "Loading",
+      bg: "bg-bg-tint text-fg-muted border-border-faint",
+      dot: "bg-fg-faint",
+      pulse: false,
+    },
+  }[status];
+
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-pos-soft text-pos-text border border-[var(--pos-border)]">
+      <div
+        title={tooltip}
+        className={cn(
+          "flex items-center gap-1.5 px-2.5 h-7 rounded-full border",
+          cfg.bg,
+        )}
+      >
         <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inset-0 rounded-full bg-pos animate-ping opacity-50" />
-          <span className="relative rounded-full h-1.5 w-1.5 bg-pos" />
+          {cfg.pulse && (
+            <span className={cn("absolute inset-0 rounded-full opacity-50 animate-ping", cfg.dot)} />
+          )}
+          <span className={cn("relative rounded-full h-1.5 w-1.5", cfg.dot)} />
         </span>
-        <span className="text-[10px] uppercase tracking-[0.18em] font-medium">Live</span>
+        <span className="text-[10px] uppercase tracking-[0.18em] font-medium">
+          {cfg.label}
+        </span>
       </div>
     </div>
   );

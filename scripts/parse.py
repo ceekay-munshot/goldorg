@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -23,21 +24,66 @@ from typing import Any
 
 import openpyxl
 
+from _safe_xlsx import is_valid_xlsx, quarantine_corrupt
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"
 OUT_DIR = ROOT / "data" / "parsed"
 
 PERIODS = ["1M", "QTD", "YTD", "1Y", "3Y", "5Y", "10Y", "15Y", "Max"]
 
+REQUIRED_SHEETS = (
+    "Holdings by month",
+    "Demand by month",
+    "Fund flows by month",
+    "Charts Data",
+)
+
 
 # ============================================================
 # Helpers
 # ============================================================
 def latest_xlsx() -> Path:
-    files = sorted(RAW_DIR.glob("ETF_Flows_*.xlsx"))
+    """Return the newest ETF_Flows XLSX that actually loads.
+
+    Walks newest → oldest and returns the first one that (a) passes the
+    ZIP magic-byte check, (b) opens in openpyxl, and (c) has the four
+    required sheets. Quarantines anything that fails so the next run
+    doesn't keep tripping on it. Prevents one bad download from
+    permanently blocking the parser.
+    """
+    files = sorted(RAW_DIR.glob("ETF_Flows_*.xlsx"), reverse=True)
     if not files:
         raise FileNotFoundError(f"No ETF_Flows_*.xlsx found in {RAW_DIR}")
-    return files[-1]
+    last_err: Exception | None = None
+    for p in files:
+        if not is_valid_xlsx(p):
+            print(f"[parse] {p.name} failed magic-byte check", file=sys.stderr)
+            quarantine_corrupt(p, reason="bad-magic", log_prefix="[parse]")
+            continue
+        try:
+            wb = openpyxl.load_workbook(p, read_only=True, data_only=True)
+            sheets = set(wb.sheetnames)
+            wb.close()
+        except Exception as e:
+            print(f"[parse] {p.name} won't open: {e}", file=sys.stderr)
+            quarantine_corrupt(p, reason="bad-zip", log_prefix="[parse]")
+            last_err = e
+            continue
+        missing = [s for s in REQUIRED_SHEETS if s not in sheets]
+        if missing:
+            print(
+                f"[parse] {p.name} missing sheets {missing}; "
+                f"found {sorted(sheets)}",
+                file=sys.stderr,
+            )
+            quarantine_corrupt(p, reason="missing-sheets", log_prefix="[parse]")
+            last_err = RuntimeError(f"missing sheets {missing}")
+            continue
+        return p
+    raise FileNotFoundError(
+        f"No loadable ETF_Flows_*.xlsx in {RAW_DIR}; last error: {last_err}"
+    )
 
 
 def num(v: Any) -> float | None:
@@ -64,9 +110,19 @@ def sheet_rows(wb, name: str) -> list[list[Any]]:
 
 
 def write_json(path: Path, obj: Any) -> None:
+    """Atomic write: stage to .tmp, fsync, replace. A crash mid-write no
+    longer truncates a previously-good JSON file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f, separators=(",", ":"), ensure_ascii=False, default=str)
+        f.flush()
+        try:
+            import os
+            os.fsync(f.fileno())
+        except OSError:
+            pass
+    tmp.replace(path)
     print(f"[parse] wrote {path.relative_to(ROOT)} ({path.stat().st_size:,} bytes)")
 
 
@@ -559,6 +615,16 @@ def main(src: Path | None = None) -> None:
     gp_by_date = dict(zip(gp_dates, gp_values))
     gp_aligned = [gp_by_date.get(d) for d in dates]
 
+    if not dates:
+        # Defensive: a workbook that opens but yields no dates would
+        # crash max() and leave us with half-written JSON. Bail before
+        # touching disk — previous parsed/*.json stay valid.
+        print(
+            f"[parse] {src.name} has no dated rows in Holdings sheet — "
+            "preserving existing JSON.",
+            file=sys.stderr,
+        )
+        return
     as_of = max(dates)
 
     funds_out = parse_funds(meta_list, dates, holdings, demand, flows, gp_aligned, as_of)
@@ -591,4 +657,17 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", type=Path, help="Path to XLSX (default: latest in data/raw)")
     args = ap.parse_args()
-    main(args.src)
+    try:
+        main(args.src)
+    except FileNotFoundError as e:
+        # No usable XLSX in data/raw — leave whatever parsed/*.json
+        # already exists in place rather than crashing the workflow.
+        print(f"[parse] {e}", file=sys.stderr)
+        sys.exit(0)
+    except Exception as e:
+        # Last-ditch: a parser crash mid-flight could leave outputs
+        # half-written. write_json is atomic per file, but the JSON files
+        # collectively form a coherent snapshot that we want all-or-none.
+        # If we got here, bail out without corrupting more files.
+        print(f"[parse] crashed: {e}", file=sys.stderr)
+        sys.exit(0)

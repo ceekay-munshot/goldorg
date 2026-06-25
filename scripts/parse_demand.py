@@ -398,11 +398,30 @@ def parse_per_capita(wb) -> list[dict]:
 # ────────────────────────────────────────────────────────────────────
 # Glue
 # ────────────────────────────────────────────────────────────────────
+_QUARTER_RX = re.compile(r"Q([1-4])[_-]?(\d{2,4})", re.IGNORECASE)
+
+
+def _quarter_key(p: Path) -> tuple[int, int]:
+    """(year, quarter) so sort picks the newest by date — NOT alphabetical.
+
+    WGC's compact Q126/Q425 notation means Q425 > Q126 character-wise,
+    so a plain sorted() would pick Q4'25 over Q1'26 — i.e. ignore the
+    quarter that just became newer.
+    """
+    m = _QUARTER_RX.search(p.name)
+    if not m:
+        return (0, 0)
+    quarter = int(m.group(1))
+    year_token = m.group(2)
+    year = int(year_token) if len(year_token) == 4 else 2000 + int(year_token)
+    return (year, quarter)
+
+
 def latest_demand_xlsx() -> Path | None:
     candidates: list[Path] = []
     for pattern in ("Gold_Demand_*.xlsx", "*emand*.xlsx", "GDT_*.xlsx"):
         candidates.extend(RAW_DIR.glob(pattern))
-    # Dedupe; pick the alphabetically-last (filename embeds the quarter)
+    # Dedupe
     seen: set[Path] = set()
     unique: list[Path] = []
     for p in candidates:
@@ -410,7 +429,11 @@ def latest_demand_xlsx() -> Path | None:
             continue
         seen.add(p)
         unique.append(p)
-    return sorted(unique)[-1] if unique else None
+    if not unique:
+        return None
+    # Sort by (year, quarter); fall back to mtime if quarter token is absent.
+    unique.sort(key=lambda p: (_quarter_key(p), p.stat().st_mtime), reverse=True)
+    return unique[0]
 
 
 def write_stub(reason: str) -> None:

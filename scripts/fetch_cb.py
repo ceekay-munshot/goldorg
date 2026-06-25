@@ -21,6 +21,8 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
+from _safe_xlsx import DownloadError, is_valid_xlsx, safe_download
+
 CANDIDATE_PAGES = [
     "https://www.gold.org/goldhub/data/monthly-central-bank-statistics",
     "https://www.gold.org/goldhub/data/changes-in-world-gold-reserves",
@@ -35,7 +37,7 @@ HEADERS = {
         "image/avif,image/webp,*/*;q=0.8"
     ),
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive",
 }
 CB_PATTERN = re.compile(
@@ -83,14 +85,8 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str, str] | No
     return unique[0]
 
 
-def download(url: str, dest: Path, session: requests.Session, referer: str) -> None:
-    # Pre-warm so cookies attach
-    pre = session.get(referer, headers=HEADERS, timeout=30)
-    print(
-        f"[fetch-cb] pre-warm GET {referer} -> "
-        f"{pre.status_code} ({len(session.cookies)} cookies)"
-    )
-    headers = {
+def _download_headers(referer: str) -> dict[str, str]:
+    return {
         **HEADERS,
         "Referer": referer,
         "Accept": (
@@ -110,29 +106,47 @@ def download(url: str, dest: Path, session: requests.Session, referer: str) -> N
         "Sec-CH-UA-Platform": '"Windows"',
         "DNT": "1",
     }
-    resp = session.get(url, headers=headers, timeout=60, stream=True, allow_redirects=True)
-    if resp.status_code >= 400:
-        chain = " -> ".join(
-            f"{r.status_code} {r.url}" for r in (*resp.history, resp)
-        )
-        print(f"[fetch-cb] download chain: {chain}", file=sys.stderr)
-    resp.raise_for_status()
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=64 * 1024):
-            if chunk:
-                f.write(chunk)
+
+
+_MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+_MONTH_YEAR_RX = re.compile(
+    r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[_\-\s]?(\d{4})",
+    re.IGNORECASE,
+)
+_YYYY_MM_RX = re.compile(r"(20\d{2})[-_](\d{1,2})")
+
+
+def month_key(filename: str) -> tuple[int, int]:
+    """(year, month) so sort picks the newest by date — NOT alphabetical.
+
+    WGC names files like Central_Bank_Holdings_May2026.xlsx and
+    Central_Bank_Holdings_Jun2026.xlsx. Alphabetical order picks May
+    over Jun (M > J)! Parses the month token regardless of case/spacer.
+    Defaults to (0, 0) so files with no parseable token sort last.
+    """
+    m = _MONTH_YEAR_RX.search(filename)
+    if m:
+        return (int(m.group(2)), _MONTHS[m.group(1).lower()[:3]])
+    m = _YYYY_MM_RX.search(filename)
+    if m:
+        return (int(m.group(1)), int(m.group(2)))
+    return (0, 0)
 
 
 def existing_cb_xlsx() -> Path | None:
-    """Find any manually-uploaded Central_Bank_*.xlsx in data/raw/."""
-    for p in sorted(RAW_DIR.glob("Central_Bank_*.xlsx"), reverse=True):
-        return p
-    for p in sorted(RAW_DIR.glob("*entral*bank*.xlsx"), reverse=True):
-        return p
-    for p in sorted(RAW_DIR.glob("*eserves*.xlsx"), reverse=True):
-        return p
-    return None
+    """Find any manually-uploaded Central_Bank_*.xlsx in data/raw/,
+    preferring the newest (year, month)."""
+    candidates: list[Path] = []
+    for pat in ("Central_Bank_*.xlsx", "*entral*bank*.xlsx", "*eserves*.xlsx"):
+        candidates.extend(RAW_DIR.glob(pat))
+    candidates = [p for p in candidates if is_valid_xlsx(p)]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: month_key(p.name), reverse=True)
+    return candidates[0]
 
 
 def main() -> Path | None:
@@ -153,30 +167,44 @@ def main() -> Path | None:
         filename = "Central_Bank_" + filename
     dest = RAW_DIR / filename
 
-    if dest.exists():
+    if dest.exists() and is_valid_xlsx(dest):
         print(f"[fetch-cb] Up to date: {filename} already present.")
         return dest
 
     print(f"[fetch-cb] Downloading {filename}")
     print(f"[fetch-cb] From:    {url}")
     print(f"[fetch-cb] Referer: {referer}")
+
     try:
-        download(url, dest, session, referer)
-    except requests.HTTPError as e:
-        status = getattr(e.response, "status_code", None)
+        pre = session.get(referer, headers=HEADERS, timeout=30)
+        print(
+            f"[fetch-cb] pre-warm GET {referer} -> "
+            f"{pre.status_code} ({len(session.cookies)} cookies)"
+        )
+    except Exception as e:
+        print(f"[fetch-cb] pre-warm failed: {e}", file=sys.stderr)
+
+    try:
+        safe_download(
+            url=url,
+            dest=dest,
+            session=session,
+            headers=_download_headers(referer),
+            min_bytes=20_000,  # CB files are smaller than ETF/Demand
+            log_prefix="[fetch-cb]",
+        )
+    except (requests.HTTPError, DownloadError) as e:
+        status = getattr(getattr(e, "response", None), "status_code", None)
         if status == 403:
             print(
                 "[fetch-cb] gold.org returned 403 on the file URL.\n"
-                "[fetch-cb] WGC's CDN blocks GitHub Actions runner IPs from "
-                "/download/file/* even with a full browser fingerprint.\n"
-                "[fetch-cb] Workaround: download the XLSX from gold.org in "
-                "your browser and commit it to data/raw/. The parser will "
-                "pick it up automatically. See scripts/README.md.",
+                "[fetch-cb] Workaround: download the XLSX from gold.org "
+                "in your browser and commit it to data/raw/.",
                 file=sys.stderr,
             )
-            return existing_cb_xlsx()
-        raise
-    print(f"[fetch-cb] Saved {dest.stat().st_size:,} bytes -> {dest}")
+        else:
+            print(f"[fetch-cb] download failed: {e}", file=sys.stderr)
+        return existing_cb_xlsx()
     return dest
 
 

@@ -2,9 +2,13 @@ name: Update Gold ETF Data
 
 on:
   schedule:
-    # Daily at 06:00 UTC — gold.org typically refreshes the monthly XLSX
-    # in the first week of each month. Daily polling is cheap and resilient.
-    - cron: "0 6 * * *"
+    # 22:00 UTC daily. CFTC publishes the Commitments of Traders report
+    # every Friday around 20:30 UTC; the previous 06:00 schedule was
+    # fetching BEFORE Friday's release, leaving the COT chart stale for
+    # 24h every Saturday. 22:00 UTC catches the COT same-day, FRED gets
+    # a few extra hours of latest-day-of-month data settling, and WGC's
+    # monthly drops still get found the next day at the latest.
+    - cron: "0 22 * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -13,6 +17,9 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    # Hard ceiling: a hung gold.org / FRED request can otherwise pile up
+    # under cancel-in-progress:false and burn billing minutes for hours.
+    timeout-minutes: 25
     concurrency:
       group: update-data
       cancel-in-progress: false
@@ -78,7 +85,15 @@ jobs:
         run: python scripts/parse_cb.py
 
       - name: Commit and push if changed
+        # Belt-and-suspenders: even if a python -c metadata read raises
+        # mid-script, every other refreshed JSON must still get committed.
+        continue-on-error: true
         run: |
+          # Don't let `set -e` (the GH Actions default) abort the whole
+          # step if a metadata field is missing or schema-drifted — we'd
+          # rather push the data than crash on the commit message.
+          set +e
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -89,11 +104,32 @@ jobs:
             exit 0
           fi
 
-          # Build a descriptive commit message from the metadata
-          AS_OF=$(python -c "import json; print(json.load(open('data/parsed/metadata.json'))['as_of_date'])")
-          SRC=$(python -c "import json; print(json.load(open('data/parsed/metadata.json'))['source_file'])")
-          DEMAND_Q=$(python -c "import json; d=json.load(open('data/parsed/demand.json')); print(d.get('as_of_quarter') or 'none')" 2>/dev/null || echo "none")
-          COT_DATE=$(python -c "import json; c=json.load(open('data/parsed/cot.json')); print(c.get('as_of_date') or 'none')" 2>/dev/null || echo "none")
-          FCST=$(python -c "import json; f=json.load(open('data/parsed/forecast.json')); print(f.get('r_squared') or 'none')" 2>/dev/null || echo "none")
-          git commit -m "data: refresh (ETF ${AS_OF}, demand ${DEMAND_Q}, cot ${COT_DATE}, forecast R²=${FCST})"
-          git push
+          # Build a descriptive commit message from the metadata — every
+          # python -c is wrapped in a safe-default fallback so a missing
+          # or partially-written JSON file never kills the commit. The
+          # whole `(python ... ) || echo unknown` shape survives schema
+          # drift, missing files, and bash -e.
+          AS_OF=$( (python -c "import json,os; p='data/parsed/metadata.json'; print(json.load(open(p)).get('as_of_date') or 'unknown' if os.path.exists(p) else 'unknown')" 2>/dev/null) || echo "unknown" )
+          DEMAND_Q=$( (python -c "import json,os; p='data/parsed/demand.json'; print(json.load(open(p)).get('as_of_quarter') or 'none' if os.path.exists(p) else 'none')" 2>/dev/null) || echo "none" )
+          COT_DATE=$( (python -c "import json,os; p='data/parsed/cot.json'; print(json.load(open(p)).get('as_of_date') or 'none' if os.path.exists(p) else 'none')" 2>/dev/null) || echo "none" )
+          FCST=$( (python -c "import json,os; p='data/parsed/forecast.json'; print(json.load(open(p)).get('r_squared') or 'none' if os.path.exists(p) else 'none')" 2>/dev/null) || echo "none" )
+          CB_MONTH=$( (python -c "import json,os; p='data/parsed/cb.json'; print(json.load(open(p)).get('as_of_month') or 'none' if os.path.exists(p) else 'none')" 2>/dev/null) || echo "none" )
+
+          git commit -m "data: refresh (ETF ${AS_OF}, demand ${DEMAND_Q}, cot ${COT_DATE}, cb ${CB_MONTH}, forecast R^2=${FCST})"
+
+          # Retry push: transient remote-rejection (network blip, rare
+          # GitHub 5xx) shouldn't waste the whole day's data refresh.
+          for i in 1 2 3 4; do
+            if git push; then
+              echo "push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "push attempt $i failed; sleeping $((i * 5))s and retrying"
+            sleep $((i * 5))
+            # Pull-with-rebase in case origin moved (manual commit landed
+            # while we were running).
+            git pull --rebase origin main || true
+          done
+
+          echo "::error::git push failed after 4 attempts"
+          exit 1

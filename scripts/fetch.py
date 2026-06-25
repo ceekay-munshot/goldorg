@@ -14,6 +14,8 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
+from _safe_xlsx import DownloadError, is_valid_xlsx, safe_download
+
 # WGC has moved this page at least once. Try the current canonical URL
 # first, then fall back to older paths. As long as one returns 200 and
 # carries an ETF_Flows*.xlsx link, we're fine.
@@ -114,14 +116,12 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str]:
     return unique[0]
 
 
-def download(url: str, dest: Path, session: requests.Session) -> None:
-    resp = session.get(url, headers=HEADERS, timeout=60, stream=True)
-    resp.raise_for_status()
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=64 * 1024):
-            if chunk:
-                f.write(chunk)
+REQUIRED_SHEETS = (
+    "Holdings by month",
+    "Demand by month",
+    "Fund flows by month",
+    "Charts Data",
+)
 
 
 def main() -> Path:
@@ -131,14 +131,22 @@ def main() -> Path:
     url, filename = find_latest_xlsx_url(session)
     dest = RAW_DIR / filename
 
-    if dest.exists():
+    # is_valid_xlsx guards against a leftover .part-rename failure or a
+    # prior bad save sneaking in as "already up to date".
+    if dest.exists() and is_valid_xlsx(dest):
         print(f"[fetch] Up to date: {filename} already present.")
         return dest
 
     print(f"[fetch] Downloading {filename}")
     print(f"[fetch] From: {url}")
-    download(url, dest, session)
-    print(f"[fetch] Saved {dest.stat().st_size:,} bytes -> {dest}")
+    safe_download(
+        url=url,
+        dest=dest,
+        session=session,
+        headers=HEADERS,
+        require_sheets=REQUIRED_SHEETS,
+        log_prefix="[fetch]",
+    )
     return dest
 
 

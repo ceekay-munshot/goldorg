@@ -44,27 +44,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const historyRef = useRef<Promise<FundHistoryFile> | null>(null);
+  // Bust the static-asset cache on background refetch so we see the
+  // GitHub Actions commit that landed at 22:00 UTC last night.
+  const fetchedAtRef = useRef<number>(0);
 
   useEffect(() => {
     let aborted = false;
-    async function load() {
+    async function load(bustCache = false) {
       try {
+        const fetcher = bustCache
+          ? <T,>(u: string) => fetchJson<T>(u, "reload")
+          : fetchJson;
         const [metadata, funds, regions, countries, topMovers, timeseries, demandRaw, cotRaw, forecastRaw, cbRaw] =
           await Promise.all([
-            fetchJson<Metadata>("/data/metadata.json"),
-            fetchJson<FundsFile>("/data/funds.json"),
-            fetchJson<RegionsFile>("/data/regions.json"),
-            fetchJson<CountriesFile>("/data/countries.json"),
-            fetchJson<TopMoversFile>("/data/top_movers.json"),
-            fetchJson<TimeSeriesFile>("/data/timeseries.json"),
+            fetcher<Metadata>("/data/metadata.json"),
+            fetcher<FundsFile>("/data/funds.json"),
+            fetcher<RegionsFile>("/data/regions.json"),
+            fetcher<CountriesFile>("/data/countries.json"),
+            fetcher<TopMoversFile>("/data/top_movers.json"),
+            fetcher<TimeSeriesFile>("/data/timeseries.json"),
             // Demand + COT + Forecast + CB can be empty stubs on first
             // deploy (GH Actions populates them on the next scheduled run);
             // a missing or unparseable file shouldn't take down the
             // whole dashboard.
-            fetchJson<unknown>("/data/demand.json").catch(() => null),
-            fetchJson<unknown>("/data/cot.json").catch(() => null),
-            fetchJson<unknown>("/data/forecast.json").catch(() => null),
-            fetchJson<unknown>("/data/cb.json").catch(() => null),
+            fetcher<unknown>("/data/demand.json").catch(() => null),
+            fetcher<unknown>("/data/cot.json").catch(() => null),
+            fetcher<unknown>("/data/forecast.json").catch(() => null),
+            fetcher<unknown>("/data/cb.json").catch(() => null),
           ]);
         if (aborted) return;
         const demand = normalizeDemand(demandRaw);
@@ -72,6 +78,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const forecast = normalizeForecast(forecastRaw);
         const cb = normalizeCB(cbRaw);
         setData({ metadata, funds, regions, countries, topMovers, timeseries, demand, cot, forecast, cb });
+        fetchedAtRef.current = Date.now();
         setLoading(false);
       } catch (e) {
         if (aborted) return;
@@ -80,8 +87,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     }
     void load();
+
+    // Refetch when the tab becomes visible AND the last fetch was over
+    // 4 hours ago. A user who left the tab open overnight would
+    // otherwise miss the 22:00 UTC scheduled refresh forever — silently.
+    const REFRESH_AFTER_MS = 4 * 60 * 60 * 1000;
+    function onVisibility() {
+      if (document.visibilityState !== "visible") return;
+      const age = Date.now() - fetchedAtRef.current;
+      if (age >= REFRESH_AFTER_MS) {
+        void load(true);
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       aborted = true;
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
@@ -114,11 +136,16 @@ export function useDataset(): DashboardData {
   return data;
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(
+  url: string,
+  cache: RequestCache = "default",
+): Promise<T> {
   // `cache: "default"` lets the browser revalidate via ETag/If-None-Match
   // when a new build is deployed; "force-cache" (previous behaviour) was
   // pinning stale demand.json/cot.json from before today's schema change.
-  const res = await fetch(url, { cache: "default" });
+  // Background-refresh path passes "reload" to bypass disk cache entirely
+  // so a long-open tab gets last night's data.
+  const res = await fetch(url, { cache });
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return (await res.json()) as T;
 }

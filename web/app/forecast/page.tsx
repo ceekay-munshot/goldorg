@@ -6,14 +6,13 @@ import { InputsPanel } from "@/components/forecast/InputsPanel";
 import { SupplyDemandTable } from "@/components/forecast/SupplyDemandTable";
 import { ReturnsChart } from "@/components/forecast/ReturnsChart";
 import { MethodologyCard } from "@/components/forecast/MethodologyCard";
-import { DemandEmptyState } from "@/components/demand/DemandEmptyState";
 
 export default function ForecastPage() {
+  // Demand is only needed for the SupplyDemandTable — the rest of the
+  // tab is driven by forecast.json + macros, which are independent. A
+  // stale or stubbed demand.json should NOT blank out the whole tab.
   const { demand } = useDataset();
-
-  if (!demand.gold_prices || !demand.supply.quarters.length) {
-    return <DemandEmptyState note={demand.as_of_note} />;
-  }
+  const hasSupplyDemand = !!demand.gold_prices && demand.supply.quarters.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,8 +21,12 @@ export default function ForecastPage() {
       <SectionDivider label="01 · Inputs" sublabel="The macro assumptions" />
       <InputsPanel />
 
-      <SectionDivider label="02 · Balance" sublabel="Where supply meets demand" />
-      <SupplyDemandTable />
+      {hasSupplyDemand && (
+        <>
+          <SectionDivider label="02 · Balance" sublabel="Where supply meets demand" />
+          <SupplyDemandTable />
+        </>
+      )}
 
       <SectionDivider label="03 · Returns" sublabel="The headline forecast" />
       <ReturnsChart />

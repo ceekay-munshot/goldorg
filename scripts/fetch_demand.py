@@ -14,6 +14,8 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
+from _safe_xlsx import DownloadError, is_valid_xlsx, safe_download
+
 # Two candidate landing pages — the demand-by-country page hosts the
 # country-level breakdown; the GDT page hosts the categorical XLSX.
 # We try both and keep whichever yields a usable file.
@@ -31,7 +33,12 @@ HEADERS = {
         "image/avif,image/webp,*/*;q=0.8"
     ),
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
+    # No brotli ("br") — Python requests has no built-in brotli decoder
+    # unless `brotli` is pip-installed. Without it, brotli-encoded
+    # responses silently decode to bytes that look like garbage, so we
+    # would save what the parser sees as a corrupt XLSX. Gzip/deflate
+    # are universally supported by urllib3.
+    "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive",
 }
 # Match XLSX links whose filename or path mentions demand
@@ -78,7 +85,10 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str, str] | No
 
     if not candidates:
         return None
-    # Deduplicate; pick the lexicographically-newest filename
+    # Deduplicate; pick the highest (year, quarter) — NOT lexicographic.
+    # WGC names quarters Q126/Q425/etc. with no separator, so "4" > "1"
+    # char-wise means Q425 would beat Q126 — which is wrong (Q1'26 is
+    # newer than Q4'25). quarter_key() parses the token correctly.
     seen: set[str] = set()
     unique: list[tuple[str, str, str]] = []
     for u, f, ref in candidates:
@@ -86,23 +96,31 @@ def find_latest_xlsx_url(session: requests.Session) -> tuple[str, str, str] | No
             continue
         seen.add(f)
         unique.append((u, f, ref))
-    unique.sort(key=lambda x: x[1], reverse=True)
+    unique.sort(key=lambda x: quarter_key(x[1]), reverse=True)
     return unique[0]
 
 
-def download(url: str, dest: Path, session: requests.Session, referer: str) -> None:
-    # gold.org's CDN (Akamai/CF behind the scenes) returns 403 on raw
-    # /download/file/* hits unless the request looks like a logged-in
-    # Chrome session navigating from a goldhub page. Send the full
-    # Sec-CH-UA-* set + a fresh cookie-bearing GET on the referer first
-    # so the response cookies are attached to the file request.
-    pre = session.get(referer, headers=HEADERS, timeout=30)
-    print(
-        f"[fetch-demand] pre-warm GET {referer} -> "
-        f"{pre.status_code} ({len(session.cookies)} cookies)"
-    )
+_QUARTER_RX = re.compile(r"Q([1-4])[_-]?(\d{2,4})", re.IGNORECASE)
 
-    headers = {
+
+def quarter_key(filename: str) -> tuple[int, int]:
+    """Return (year, quarter) so sort() picks the newest by date.
+
+    Accepts WGC's compact notation (Q126, Q4_2025), defaults to (0, 0)
+    when the filename has no parseable token so it sorts last instead of
+    beating real matches.
+    """
+    m = _QUARTER_RX.search(filename)
+    if not m:
+        return (0, 0)
+    quarter = int(m.group(1))
+    year_token = m.group(2)
+    year = int(year_token) if len(year_token) == 4 else 2000 + int(year_token)
+    return (year, quarter)
+
+
+def _download_headers(referer: str) -> dict[str, str]:
+    return {
         **HEADERS,
         "Referer": referer,
         "Accept": (
@@ -124,30 +142,19 @@ def download(url: str, dest: Path, session: requests.Session, referer: str) -> N
         "Pragma": "no-cache",
         "DNT": "1",
     }
-    resp = session.get(
-        url, headers=headers, timeout=60, stream=True, allow_redirects=True
-    )
-    # Surface the failure URL chain so the next iteration knows what we tried
-    if resp.status_code >= 400:
-        chain = " -> ".join(
-            f"{r.status_code} {r.url}" for r in (*resp.history, resp)
-        )
-        print(f"[fetch-demand] download chain: {chain}", file=sys.stderr)
-    resp.raise_for_status()
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    with open(dest, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=64 * 1024):
-            if chunk:
-                f.write(chunk)
 
 
 def existing_demand_xlsx() -> Path | None:
-    """Find any manually-uploaded Gold_Demand_*.xlsx already in data/raw/."""
-    for p in sorted(RAW_DIR.glob("Gold_Demand_*.xlsx"), reverse=True):
-        return p
-    for p in sorted(RAW_DIR.glob("*emand*.xlsx"), reverse=True):
-        return p
-    return None
+    """Find any manually-uploaded Gold_Demand_*.xlsx already in data/raw/,
+    preferring the newest (year, quarter) — NOT alphabetical (which would
+    pick Q4'25 over Q1'26)."""
+    candidates: list[Path] = list(RAW_DIR.glob("Gold_Demand_*.xlsx"))
+    candidates.extend(RAW_DIR.glob("*emand*.xlsx"))
+    candidates = [p for p in candidates if is_valid_xlsx(p)]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: quarter_key(p.name), reverse=True)
+    return candidates[0]
 
 
 def main() -> Path | None:
@@ -169,33 +176,51 @@ def main() -> Path | None:
         filename = "Gold_Demand_" + filename
     dest = RAW_DIR / filename
 
-    if dest.exists():
+    # is_valid_xlsx guards against a leftover bad save (HTML-challenge or
+    # truncated) sitting there from a prior run and getting treated as
+    # "up to date".
+    if dest.exists() and is_valid_xlsx(dest):
         print(f"[fetch-demand] Up to date: {filename} already present.")
         return dest
 
     print(f"[fetch-demand] Downloading {filename}")
     print(f"[fetch-demand] From:    {url}")
     print(f"[fetch-demand] Referer: {referer}")
+
+    # Pre-warm to attach session cookies (gold.org's CDN gates raw
+    # /download/file/* hits on the cookie set issued from a goldhub page).
     try:
-        download(url, dest, session, referer)
-    except requests.HTTPError as e:
-        status = getattr(e.response, "status_code", None)
+        pre = session.get(referer, headers=HEADERS, timeout=30)
+        print(
+            f"[fetch-demand] pre-warm GET {referer} -> "
+            f"{pre.status_code} ({len(session.cookies)} cookies)"
+        )
+    except Exception as e:
+        print(f"[fetch-demand] pre-warm failed: {e}", file=sys.stderr)
+
+    try:
+        safe_download(
+            url=url,
+            dest=dest,
+            session=session,
+            headers=_download_headers(referer),
+            log_prefix="[fetch-demand]",
+        )
+    except (requests.HTTPError, DownloadError) as e:
+        status = getattr(getattr(e, "response", None), "status_code", None)
         if status == 403:
             print(
                 "[fetch-demand] gold.org returned 403 on the file URL.\n"
-                "[fetch-demand] This is a known issue — WGC's CDN blocks "
-                "GitHub Actions runner IPs from /download/file/* even with a "
-                "full browser fingerprint.\n"
+                "[fetch-demand] WGC's CDN blocks GitHub Actions runner IPs "
+                "from /download/file/* even with a full browser fingerprint.\n"
                 "[fetch-demand] Workaround: download the XLSX from gold.org "
                 "in your browser and commit it to data/raw/. The parser will "
-                "pick it up automatically. See scripts/README.md.",
+                "pick it up automatically.",
                 file=sys.stderr,
             )
-            # Fall back to any previously-uploaded XLSX so the parse step
-            # still produces useful output.
-            return existing_demand_xlsx()
-        raise
-    print(f"[fetch-demand] Saved {dest.stat().st_size:,} bytes -> {dest}")
+        else:
+            print(f"[fetch-demand] download failed: {e}", file=sys.stderr)
+        return existing_demand_xlsx()
     return dest
 
 

@@ -141,17 +141,29 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def annual_gold_returns(monthly_holdings: list[dict]) -> list[tuple[int, float]]:
     """Year-end gold log-returns from monthly_holdings_tonnes (which carries
-    gold_price_usd_oz). Year-end price = last available price in the year."""
+    gold_price_usd_oz).
+
+    Year-end price = last available price in the year, BUT only counts a
+    year as "complete" if it has December data. Otherwise an in-progress
+    year (e.g. May 2026 with no Dec yet) gets booked as a partial-year
+    return and pollutes the OLS regression as soon as macros catch up.
+    """
     by_year: dict[int, tuple[str, float]] = {}
+    by_year_months: dict[int, set[int]] = {}
     for p in monthly_holdings:
         gp = p.get("gold_price_usd_oz")
         if gp is None or gp <= 0:
             continue
-        y = int(p["date"][:4])
+        d = str(p["date"])
+        y = int(d[:4])
+        m = int(d[5:7]) if len(d) >= 7 else 0
+        by_year_months.setdefault(y, set()).add(m)
         prev = by_year.get(y)
-        if prev is None or p["date"] > prev[0]:
-            by_year[y] = (p["date"], gp)
-    years = sorted(by_year.keys())
+        if prev is None or d > prev[0]:
+            by_year[y] = (d, gp)
+    # Drop any year that doesn't include December — it's in progress.
+    complete = {y for y, months in by_year_months.items() if 12 in months}
+    years = sorted(complete)
     out: list[tuple[int, float]] = []
     for i in range(1, len(years)):
         a = by_year[years[i - 1]][1]
@@ -338,6 +350,16 @@ def main() -> None:
         return
 
     fit = ols(X, y)
+    if fit.get("singular"):
+        # Collinear predictors → all-zero β would overwrite a working
+        # forecast with a degenerate one. Preserve the existing
+        # forecast.json instead via write_stub's defensive path.
+        write_stub(
+            "OLS normal-equations matrix is singular — predictors are "
+            "collinear. Preserving previous forecast.json instead of "
+            "writing all-zero coefficients."
+        )
+        return
     coef = fit["coef"]
     intercept = coef[0]
     betas = dict(zip(active_predictors, coef[1:]))
@@ -376,10 +398,21 @@ def main() -> None:
         ],
     }
 
+    # Atomic write: a half-written forecast.json could crash the
+    # Forecast tab on the next page load. tmp + replace makes it
+    # all-or-nothing.
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUT_DIR / "forecast.json"
-    with open(out, "w", encoding="utf-8") as f:
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
+        f.flush()
+        try:
+            import os
+            os.fsync(f.fileno())
+        except OSError:
+            pass
+    tmp.replace(out)
     print(
         f"[build-forecast] wrote {out.relative_to(ROOT)} "
         f"({out.stat().st_size:,} bytes, n={fit['n']}, R²={fit['r_squared']:.3f}, RMSE={fit['rmse']:.3f})"

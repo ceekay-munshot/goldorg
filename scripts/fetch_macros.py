@@ -163,6 +163,20 @@ def write_stub(reason: str) -> None:
     print(f"[fetch-macros] wrote stub {out.relative_to(ROOT)} — {reason}")
 
 
+def _load_previous() -> dict | None:
+    """Return the prior macros.json if it has data, else None."""
+    out = OUT_DIR / "macros.json"
+    if not out.exists():
+        return None
+    try:
+        prev = json.load(open(out, encoding="utf-8"))
+        if prev.get("monthly"):
+            return prev
+    except Exception:
+        pass
+    return None
+
+
 def main() -> None:
     session = requests.Session()
     by_series_monthly: dict[str, dict[str, float]] = {}
@@ -192,6 +206,52 @@ def main() -> None:
     if not by_series_monthly:
         write_stub(f"FRED unreachable or all series failed: {'; '.join(failures[:3])}")
         return
+
+    # Partial-success patch: if some series failed this run, the new
+    # JSON would lose their entire history (every row gets a None in
+    # that column). Splice the missing series back from the previous
+    # macros.json so a one-off VIX 429 doesn't blank 25 years of data.
+    prev = _load_previous()
+    if prev:
+        prev_monthly: dict[str, dict[str, float]] = {}
+        for row in prev.get("monthly") or []:
+            ym = str(row.get("date", ""))[:7]
+            if not ym:
+                continue
+            for k, v in row.items():
+                if k == "date" or v is None:
+                    continue
+                prev_monthly.setdefault(k, {})[ym] = float(v)
+        prev_annual: dict[str, dict[str, float]] = {}
+        for row in prev.get("annual") or []:
+            y = str(row.get("year", ""))
+            if not y:
+                continue
+            for k, v in row.items():
+                if k == "year" or v is None:
+                    continue
+                prev_annual.setdefault(k, {})[y] = float(v)
+        spliced: list[str] = []
+        for key, fred_ids, _desc, _agg in SERIES:
+            if key in by_series_monthly:
+                continue
+            if key in prev_monthly:
+                by_series_monthly[key] = prev_monthly[key]
+                by_series_annual[key] = prev_annual.get(key, {})
+                # Preserve which FRED ID was used last time if we have it.
+                for meta in prev.get("series_meta") or []:
+                    if meta.get("key") == key and meta.get("fred_id"):
+                        chosen_id[key] = meta["fred_id"]
+                        break
+                else:
+                    chosen_id[key] = fred_ids[0]
+                spliced.append(key)
+        if spliced:
+            print(
+                f"[fetch-macros] spliced {len(spliced)} failed series from "
+                f"previous macros.json: {', '.join(spliced)}",
+                file=sys.stderr,
+            )
 
     all_months: set[str] = set()
     for s in by_series_monthly.values():

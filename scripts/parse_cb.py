@@ -151,12 +151,46 @@ def normalize_country_key(name: str) -> str:
     return s
 
 
+_MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+_MONTH_YEAR_RX = re.compile(
+    r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[_\-\s]?(\d{4})",
+    re.IGNORECASE,
+)
+_YYYY_MM_RX = re.compile(r"(20\d{2})[-_](\d{1,2})")
+
+
+def _month_key(p: Path) -> tuple[int, int]:
+    """(year, month) so newest by date wins — NOT alphabetical.
+
+    WGC names files Central_Bank_Holdings_May2026.xlsx. Sorted
+    alphabetically, May > Jun > Mar/Sep/Nov for the same year because
+    M comes after J and S alphabetically, so the parser would pick a
+    stale May file over a newer June file. This parses the month token.
+    """
+    m = _MONTH_YEAR_RX.search(p.name)
+    if m:
+        return (int(m.group(2)), _MONTHS[m.group(1).lower()[:3]])
+    m = _YYYY_MM_RX.search(p.name)
+    if m:
+        return (int(m.group(1)), int(m.group(2)))
+    return (0, 0)
+
+
 def find_xlsx(*patterns: str) -> Path | None:
+    """Newest XLSX matching any of the patterns, sorted by (year, month)
+    embedded in the filename (NOT alphabetical), with mtime as tiebreaker.
+    """
+    hits: list[Path] = []
     for pat in patterns:
-        hits = sorted(RAW_DIR.glob(pat))
-        if hits:
-            return hits[-1]
-    return None
+        hits.extend(RAW_DIR.glob(pat))
+    if not hits:
+        return None
+    hits = list(dict.fromkeys(hits))
+    hits.sort(key=lambda p: (_month_key(p), p.stat().st_mtime), reverse=True)
+    return hits[0]
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -433,13 +467,23 @@ def main() -> None:
         )
         return
 
-    print(f"[parse-cb] holdings: {holdings_path.name if holdings_path else '—'}")
-    print(f"[parse-cb] changes:  {changes_path.name if changes_path else '—'}")
+    # Partial input is dangerous: if Holdings is present but Changes is
+    # missing (or vice versa), the merged output would drop every
+    # country's monthly_change history → dashboard panels go blank.
+    # Preserve the existing cb.json on partial input instead.
+    if not (holdings_path and changes_path):
+        write_stub(
+            f"Partial CB input — holdings={'yes' if holdings_path else 'no'}, "
+            f"changes={'yes' if changes_path else 'no'}. Need both to "
+            "rebuild monthly history without losing it. Preserving existing cb.json."
+        )
+        return
 
-    holdings = parse_holdings(holdings_path) if holdings_path else []
-    monthly_changes, annual_changes = (
-        parse_changes_file(changes_path) if changes_path else ({}, {})
-    )
+    print(f"[parse-cb] holdings: {holdings_path.name}")
+    print(f"[parse-cb] changes:  {changes_path.name}")
+
+    holdings = parse_holdings(holdings_path)
+    monthly_changes, annual_changes = parse_changes_file(changes_path)
     print(
         f"[parse-cb] parsed: {len(holdings)} holdings, "
         f"{len(monthly_changes)} monthly-changes countries, "
@@ -448,38 +492,52 @@ def main() -> None:
 
     if not holdings:
         write_stub(
-            f"Holdings file {holdings_path.name if holdings_path else 'missing'} "
-            "didn't yield any countries — sheet layout may have changed."
+            f"Holdings file {holdings_path.name} didn't yield any countries — "
+            "sheet layout may have changed. Preserving existing cb.json."
+        )
+        return
+
+    if not monthly_changes:
+        write_stub(
+            f"Changes file {changes_path.name} didn't yield any monthly data "
+            "— sheet layout may have changed. Preserving existing cb.json."
         )
         return
 
     countries = merge_country_data(holdings, monthly_changes, annual_changes)
-    # Sort by current reserves, largest first
     countries.sort(key=lambda c: -(c.get("current_tonnes") or 0))
 
-    # Compute global "as of" month: the latest month any country reports
     all_months: list[str] = []
     for c in countries:
         all_months.extend(c["monthly_change"].keys())
         all_months.extend(c["monthly_tonnes"].keys())
     as_of_month = max(all_months) if all_months else None
 
-    # Holdings as-of date — pick the latest across all countries
     as_of_dates = [c["as_of_date"] for c in countries if c.get("as_of_date")]
     as_of_holdings = max(as_of_dates) if as_of_dates else None
 
     payload = {
         "as_of_month": as_of_month,
         "as_of_holdings_date": as_of_holdings,
-        "source_holdings": holdings_path.name if holdings_path else None,
-        "source_changes": changes_path.name if changes_path else None,
+        "source_holdings": holdings_path.name,
+        "source_changes": changes_path.name,
         "countries": countries,
     }
 
+    # Atomic write: tmp + replace so a crash mid-dump can't truncate
+    # a working cb.json that the dashboard depends on.
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUT_DIR / "cb.json"
-    with open(out, "w", encoding="utf-8") as f:
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False, default=str)
+        f.flush()
+        try:
+            import os
+            os.fsync(f.fileno())
+        except OSError:
+            pass
+    tmp.replace(out)
     print(
         f"[parse-cb] wrote {out.relative_to(ROOT)} "
         f"({out.stat().st_size:,} bytes, {len(countries)} countries, "
